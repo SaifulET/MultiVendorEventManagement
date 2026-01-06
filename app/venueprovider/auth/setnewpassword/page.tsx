@@ -1,93 +1,30 @@
 'use client'
 import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import logo from "@/public/logo.svg"
 import { useRouter } from "next/navigation";
-
-const SignupPage: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [name, setName] = useState<string>("");
+const SetNewPasswordPage: React.FC = () => {
+ 
+  const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [agreeToTerms, setAgreeToTerms] = useState<boolean>(false);
-  const [validationError, setValidationError] = useState<string>('');
-  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [currentPassword, setCurrentPassword] = useState<string>('');
+ 
+  const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
-  const router = useRouter();
+   const router = useRouter();
 
-  const isFormValid = () => {
-    return (
-      name.trim() !== '' &&
-      email.trim() !== '' &&
-      password.trim() !== '' &&
-      confirmPassword.trim() !== '' &&
-      agreeToTerms &&
-      password === confirmPassword
-    );
-  };
-
-  const validateForm = () => {
-    if (!name.trim()) {
-      return "Full name is required";
-    }
-    if (!email.trim()) {
-      return "Email is required";
-    }
-    if (!password.trim()) {
-      return "Password is required";
-    }
-    if (!confirmPassword.trim()) {
-      return "Please confirm your password";
-    }
-    if (password !== confirmPassword) {
-      return "Passwords do not match";
-    }
-    if (!agreeToTerms) {
-      return "You must agree to the terms and conditions";
-    }
-    return "";
-  };
-
-  const handleFieldBlur = (fieldName: string) => {
-    setTouchedFields(prev => new Set(prev).add(fieldName));
-  };
-
-  const handleFieldFocus = () => {
-    if (validationError) {
-      setValidationError('');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const error = validateForm();
-    if (error) {
-      setValidationError(error);
-      return;
-    }
-
-    // If form is valid, proceed with signup
-    router.push("/");
-  };
-
-  // Clear validation error when any field changes
-  useEffect(() => {
-    if (validationError && (touchedFields.size > 0 || name || email || password || confirmPassword)) {
-      const error = validateForm();
-      if (!error) {
-        setValidationError('');
-      }
-    }
-  }, [name, email, password, confirmPassword, agreeToTerms, touchedFields]);
+  const handleSubmit=async()=>{
+    router.push("/")
+  }
 
   return (
-    <div className="relative bg-gradient-to-tr from-[#3A0101] via-[#C94B4B] via-[#8D1414] via-[#C94B4B] to-[#461b1b] min-h-screen w-full flex items-center justify-center px-[24px] py-[17px] md:px-[47px] md:py-[17px]">
-      <div className="w-full flex flex-col lg:flex-row items-center justify-between px-[24px] py-[48px] md:px-[33px] md:py-[60px]">
+    <div className="relative  bg-gradient-to-tr from-[#3A0101] via-[#C94B4B] via-[#8D1414] via-[#C94B4B] to-[#461b1b] min-h-screen w-full flex items-center justify-center px-[24px] py-[17px]  md:px-[47px] md:py-[17px] ">
+      <div className="w-full  flex flex-col  lg:flex-row items-center justify-between px-[24px] py-[48px] md:px-[33px] md:py-[60px]">
         
         {/* Left Side - Stats Section */}
-        <div className="w-full flex flex-col gap-6 text-white lg:py-[42px] lg:pr-[169px]">
+        <div className="w-full  flex flex-col gap-6 text-white lg:py-[42px] lg:pr-[169px]">
           <div className="">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
               Your Event Starts Here
@@ -98,7 +35,7 @@ const SignupPage: React.FC = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 md:pr-[55px] pb-[32px] md:py-[32px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 md:pr-[55px] pb-[32px] md:py-[32px] ">
             {/* Stat 1 */}
             <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm p-4 md:p-5 rounded-2xl border border-white/20 hover:bg-white/15 transition-all">
               <div className="w-12 h-12 md:w-14 md:h-14 bg-[#4ADE80] rounded-full flex items-center justify-center flex-shrink-0">
@@ -153,80 +90,78 @@ const SignupPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side - Signup Form */}
-        <div className="w-full lg:w-auto lg:min-w-[420px] xl:min-w-[480px] p-[16px] md:p-[24px]">
-          <div className="">
+        {/* Right Side - Login Form */}
+        <div className="w-full lg:w-auto lg:min-w-[420px] xl:min-w-[480px]  p-[16px] md:p-[24px]">
+          <div className="  ">
             {/* Logo */}
             <div className="flex justify-center mb-6">
               <div className="text-center">
-                <Image src={logo} alt="logo" width={174} height={128} priority />
+                <Image src={logo} alt="logo" width={174} height={128} priority>
+
+                </Image>
               </div>
             </div>
 
             <h2 className="text-2xl md:text-3xl font-bold text-center text-white mb-2">
-              Create Your Account
+              Set New Password
             </h2>
-            <p className="text-base md:text-lg text-white/80 text-center mb-8">
-              Join our service provider community and start growing your business
-            </p>
 
-            <form onSubmit={handleSubmit}>
-              {/* Full Name Input */}
-              <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-[22px]'>
-                <label htmlFor="name" className="block text-white font-semibold mb-2 text-sm md:text-base">
-                  Full Name
-                </label>
-                <input 
-                  type="text" 
-                  id="name" 
-                  className="w-full px-4 py-3 md:py-3.5 bg-white text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400 text-sm md:text-base" 
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onBlur={() => handleFieldBlur('name')}
-                  onFocus={handleFieldFocus}
-                />
-              </div>
 
+            <form className="" onSubmit={(e) => e.preventDefault()}>
               {/* Email Input */}
               <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-[22px]'>
-                <label htmlFor="email" className="block text-white font-semibold mb-2 text-sm md:text-base">
-                  Email
+                <label htmlFor="currentPassword" className="block text-white font-semibold mb-2 text-sm md:text-base">
+                 Current Password
                 </label>
-                <input 
-                  type="email" 
-                  id="email" 
+                <div className='relative'>
+<input 
+                  type={showCurrentPassword ? "text" : "password"} 
+                  id="currentPassword" 
                   className="w-full px-4 py-3 md:py-3.5 bg-white text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400 text-sm md:text-base" 
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => handleFieldBlur('email')}
-                  onFocus={handleFieldFocus}
+                  placeholder="Enter your current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)} 
                 />
+                    <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showCurrentPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                
               </div>
 
               {/* Password Input */}
-              <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-[22px]'>
-                <label htmlFor="password" className="block text-white font-semibold mb-2 text-sm md:text-base">
-                  Password
+              <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg  mb-[22px]'>
+                <label htmlFor="newPassword" className="block text-white font-semibold mb-2 text-sm md:text-base">
+                  New Password
                 </label>
                 <div className="relative">
                   <input 
-                    type={showPassword ? "text" : "password"}
-                    id="password" 
+                    type={showNewPassword ? "text" : "password"}
+                    id="newPassword" 
                     className="w-full px-4 py-3 md:py-3.5 bg-white text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400 text-sm md:text-base pr-12" 
-                    placeholder="Create a strong password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onBlur={() => handleFieldBlur('password')}
-                    onFocus={handleFieldFocus}
+                    placeholder="Enter new Password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)} 
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowNewPassword(!showNewPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showPassword ? (
+                    {showNewPassword ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -240,28 +175,26 @@ const SignupPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Confirm Password Input */}
-              <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-[22px]'>
+
+              <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg  mb-[22px]'>
                 <label htmlFor="confirmPassword" className="block text-white font-semibold mb-2 text-sm md:text-base">
                   Confirm Password
                 </label>
                 <div className="relative">
                   <input 
-                    type={showPassword ? "text" : "password"}
-                    id="confirmPassword" 
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="Confirm Password" 
                     className="w-full px-4 py-3 md:py-3.5 bg-white text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400 text-sm md:text-base pr-12" 
-                    placeholder="Confirm your password"
+                    placeholder="Enter confrim Password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onBlur={() => handleFieldBlur('confirmPassword')}
-                    onFocus={handleFieldFocus}
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showPassword ? (
+                    {showConfirmPassword ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -275,71 +208,20 @@ const SignupPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Terms Checkbox */}
-              <div className="flex items-center text-sm md:text-base mb-[22px]">
-                <input
-                  type="checkbox"
-                  id="agree"
-                  checked={agreeToTerms}
-                  onChange={(e) => {
-                    setAgreeToTerms(e.target.checked);
-                    handleFieldBlur('agreeToTerms');
-                  }}
-                  onFocus={handleFieldFocus}
-                  className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                />
-                <label htmlFor="agree" className="ml-2 text-white cursor-pointer">
-                  I agree to the{" "}
-                  <a
-                    href="/terms"
-                    className="hover:text-white/80 transition-colors"
-                  >
-                    Terms of Service
-                  </a>{" "}
-                  and{" "}
-                  <a
-                    href="/privacy"
-                    className="hover:text-white/80 transition-colors"
-                  >
-                    Privacy Policy
-                  </a>
-                </label>
-              </div>
+            
 
-              {/* Validation Error Message */}
-              {validationError && (
-                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-white text-sm text-center animate-fadeIn">
-                  {validationError}
-                </div>
-              )}
-
-              {/* Sign Up Button */}
+              {/* Sign In Button */}
               <button 
                 type="submit" 
-                disabled={!isFormValid()}
-                className={`w-full py-3 md:py-3.5 text-white rounded-xl font-semibold text-base md:text-lg transition-all duration-300 ${
-                  isFormValid() 
-                    ? 'bg-[#8a0808] hover:bg-[#660202] hover:shadow-xl cursor-pointer' 
-                    : 'bg-gray-500/50 cursor-not-allowed'
-                }`}
+                className="w-full py-3 md:py-3.5 hover:bg-[#660202] bg-[#8a0808]  text-white rounded-xl font-semibold text-base md:text-lg transition-all duration-300 hover:shadow-xl"
               >
-                Sign Up
+                Update Password
               </button>
             </form>
 
-            {/* Login Link */}
-            <div className="mt-6 text-center text-white text-sm md:text-base">
-              <span>Already have an account? </span>
-              <a href="#" className="font-semibold hover:underline">
-                Log In
-              </a>
-            </div>
+         
 
-            {/* Footer Links */}
-            <div className="mt-6 pt-6 border-t border-white/20 flex justify-center gap-6 text-xs md:text-sm text-white/70">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            </div>
+    
           </div>
         </div>
       </div>
@@ -347,4 +229,4 @@ const SignupPage: React.FC = () => {
   );
 }
 
-export default SignupPage;
+export default SetNewPasswordPage;

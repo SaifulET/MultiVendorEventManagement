@@ -1,4 +1,40 @@
 @import "tailwindcss";
+/* Add to your globals.css or a CSS module */
+
+
+/* Line clamp utility for truncating multi-line text */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+/* Custom scrollbar for notifications dropdown */
+.notification-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.notification-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.notification-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 
 :root {
   --background: #ffffff;
