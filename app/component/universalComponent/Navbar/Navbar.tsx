@@ -5,10 +5,11 @@ import { Menu, X, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import logo from "@/public/logo.svg"
+import { useRouter } from 'next/navigation';
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
-
+const router = useRouter();
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
@@ -19,7 +20,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-[86px]">
           {/* Logo */}
           <div className="flex-shrink-0 py-[15px] ">
-            <Link href="/" className="flex items-center">
+            <Link href="/home" className="flex items-center">
               <Image src={logo} alt='logo' width={75} height={55} priority />
             </Link>
           </div>
@@ -27,7 +28,7 @@ export default function Header() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-8 ">
             <Link
-              href="/"
+              href="/home"
               className="text-gray-700 hover:text-gray-900 font-inter font-medium text-[14px] leading-[100%] tracking-[0] transition-colors"
             >
               Home
@@ -96,7 +97,7 @@ export default function Header() {
 
           {/* Sign In Button - Desktop */}
           <div className="hidden md:block">
-            <button className="bg-[#B74140] hover:bg-[#B74140] text-white px-[31px] py-[10px] rounded-md text-sm font-medium transition-colors">
+            <button onClick={()=>{router.push('/venueprovider/auth/signin')}} className="bg-[#B74140] hover:bg-[#B74140] text-white px-[31px] py-[10px] rounded-md text-sm font-medium transition-colors">
               Sign In
             </button>
           </div>
@@ -187,7 +188,7 @@ export default function Header() {
 
               {/* Sign In Button - Mobile */}
               <div className="pt-4 px-3">
-                <button className="w-full bg-[#B74140] hover:bg-[#741e1c] text-white px-6 py-2 rounded-md font-inter font-medium text-[14px] leading-[100%] tracking-[0] transition-colors">
+                <button onClick={() => router.push('/venueprovider/auth/signin')} className="w-full bg-[#B74140] hover:bg-[#741e1c] text-white px-6 py-2 rounded-md font-inter font-medium text-[14px] leading-[100%] tracking-[0] transition-colors">
                   Sign In
                 </button>
               </div>

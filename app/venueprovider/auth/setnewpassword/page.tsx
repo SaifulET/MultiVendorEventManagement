@@ -16,7 +16,7 @@ const SetNewPasswordPage: React.FC = () => {
    const router = useRouter();
 
   const handleSubmit=async()=>{
-    router.push("/")
+    router.push("/venueprovider/auth/welcomevenueprovider")
   }
 
   return (
@@ -107,7 +107,7 @@ const SetNewPasswordPage: React.FC = () => {
             </h2>
 
 
-            <form className="" onSubmit={(e) => e.preventDefault()}>
+            <form className="" onSubmit={handleSubmit}>
               {/* Email Input */}
               <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-[22px]'>
                 <label htmlFor="currentPassword" className="block text-white font-semibold mb-2 text-sm md:text-base">

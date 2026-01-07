@@ -41,10 +41,9 @@ const BookingContainer: React.FC = () => {
       default:
         return (
           <BookingRequestDetails
-            onAccept={() =>router.push("/serviceprovider/dashboard/bookingRequest")}
-            onReject={() => router.push("/serviceprovider/dashboard/bookingRequest")}
-            onMessage={() => handleNavigation('chat')}
-            onBack={handleBack}
+           
+           
+          
           />
         );
     }

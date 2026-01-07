@@ -63,7 +63,7 @@ const SetNewPasswordPage: React.FC = () => {
     }
     
     // If validation passes, proceed with the action
-    router.push("/serviceprovider/auth/welcomeserviceprovider");
+    router.push("/home/auth/welcomeUser");
   };
 
   // Helper function to clear specific error when user starts typing
@@ -84,15 +84,13 @@ const SetNewPasswordPage: React.FC = () => {
         
         {/* Left Side - Stats Section */}
         <div className="w-full flex flex-col gap-6 text-white lg:py-[42px] lg:pr-[169px]">
-          <div className="">
+        <div className="">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
-              Turn Your Service Into
+              Your Event Starts Here
             </h1>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-[#C94B4B]">
-              Bookings
-            </h1>
+            
             <p className="text-base md:text-lg text-white/90">
-              Get more clients. Manage jobs. Grow your business.
+              Book top venues and trusted service providers in minutes.
             </p>
           </div>
 

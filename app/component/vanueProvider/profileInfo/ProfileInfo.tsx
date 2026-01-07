@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function BusinessProfileForm() {
   const [formData, setFormData] = useState({
@@ -20,11 +21,10 @@ export default function BusinessProfileForm() {
       [name]: value
     }));
   };
-
+const router = useRouter();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Add your form submission logic here
+   router.push("/venueprovider/auth/welcomevenueprovider")
   };
 
   return (

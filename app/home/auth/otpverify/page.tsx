@@ -54,15 +54,15 @@ const VerifyOtpPage: React.FC = () => {
     };
   
     const handleNext = () => {
-      router.push('/venueprovider/auth/setnewpassword');
+      router.push('/home/auth/setnewpassword');
     };
   
     const handleBackToLogin = () => {
-      router.push('/venueprovider/auth/signin');
+      router.push('/auth/signin');
     };
 
   return (
-    <div className="relative bg-gradient-to-tr from-[#3A0101] via-[#C94B4B] via-[#8D1414] via-[#C94B4B] to-[#461b1b] min-h-screen w-full flex items-center justify-center px-[24px] py-[17px] md:px-[47px] md:py-[17px] lg:pr-[113px]">
+    <div className="relative bg-gradient-to-tl from-[#3A0101] via-[#C94B4B] via-[#8D1414] via-[#C94B4B] to-[#461b1b] min-h-screen w-full flex items-center justify-center px-[24px] py-[17px] md:px-[47px] md:py-[17px] lg:pr-[113px]">
       <div className="w-full flex flex-col lg:flex-row items-center justify-between px-[24px] py-[48px] md:px-[33px] md:py-[60px]">
         
         {/* Left Side - Stats Section */}
@@ -71,6 +71,7 @@ const VerifyOtpPage: React.FC = () => {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
               Your Event Starts Here
             </h1>
+            
             <p className="text-base md:text-lg text-white/90">
               Book top venues and trusted service providers in minutes.
             </p>

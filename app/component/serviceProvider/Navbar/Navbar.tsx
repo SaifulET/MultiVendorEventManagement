@@ -103,7 +103,7 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
   ];
 
   const handleAddVenue = () => {
-    router.push("/serviceprovider/addVenue");
+    router.push("/serviceprovider/addService");
   };
 
   const getNotificationIcon = (type: string) => {
@@ -244,7 +244,7 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
             onClick={handleAddVenue}
             className="bg-[#B74140] text-white py-2 px-4 rounded-lg hover:bg-[#a3312f] transition"
           >
-            + Add Venue
+            + Add Service
           </button>
         </div>
       </header>

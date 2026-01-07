@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
    const router = useRouter();
 
   const handleSubmit=async()=>{
-    router.push("/serviceprovider/dashboard/dashboard")
+    router.push("/user/dashboard/dashboard")
   }
 
   return (
@@ -23,13 +23,11 @@ const LoginPage: React.FC = () => {
         <div className="w-full  flex flex-col gap-6 text-white lg:py-[42px] lg:pr-[169px]">
           <div className="">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
-              Turn Your Service Into
+              Your Event Starts Here
             </h1>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-[#C94B4B]">
-              Bookings
-            </h1>
+            
             <p className="text-base md:text-lg text-white/90">
-              Get more clients. Manage jobs. Grow your business.
+              Book top venues and trusted service providers in minutes.
             </p>
           </div>
 
@@ -102,10 +100,10 @@ const LoginPage: React.FC = () => {
             </div>
 
             <h2 className="text-2xl md:text-3xl font-bold text-center text-white mb-2">
-              Login as a Service Provider
+              Login as a User
             </h2>
             <p className="text-base md:text-lg text-white/80 text-center mb-8">
-              Access your business dashboard
+              Book your service
             </p>
 
             <form className="" onSubmit={handleSubmit}>
@@ -171,7 +169,7 @@ const LoginPage: React.FC = () => {
                     Remember me
                   </label>
                 </div>
-                <a href="/serviceprovider/auth/forgetpassword" className="text-white hover:text-white/80 transition-colors">
+                <a href="/user/auth/forgetpassword" className="text-white hover:text-white/80 transition-colors">
                   Forgot Password?
                 </a>
               </div>

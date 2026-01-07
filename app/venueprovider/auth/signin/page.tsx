@@ -3,6 +3,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import logo from "@/public/logo.svg"
 import { useRouter } from "next/navigation";
+import Link from 'next/link';
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -12,7 +13,7 @@ const LoginPage: React.FC = () => {
    const router = useRouter();
 
   const handleSubmit=async()=>{
-    router.push("/")
+    router.push("/venueprovider/auth/welcomevenueprovider");
   }
 
   return (
@@ -105,7 +106,7 @@ const LoginPage: React.FC = () => {
               Book your service
             </p>
 
-            <form className="" onSubmit={(e) => e.preventDefault()}>
+            <form className="" onSubmit={handleSubmit}>
               {/* Email Input */}
               <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-[22px]'>
                 <label htmlFor="email" className="block text-white font-semibold mb-2 text-sm md:text-base">
@@ -168,9 +169,9 @@ const LoginPage: React.FC = () => {
                     Remember me
                   </label>
                 </div>
-                <a href="#" className="text-white hover:text-white/80 transition-colors">
+                <Link href="/venueprovider/auth/forgetpassword" className="text-white hover:text-white/80 transition-colors">
                   Forgot Password?
-                </a>
+                </Link>
               </div>
 
               {/* Sign In Button */}
@@ -185,9 +186,9 @@ const LoginPage: React.FC = () => {
             {/* Create Account Link */}
             <div className="mt-6 text-center text-white text-sm md:text-base">
               <span>Dont have an account? </span>
-              <a href="#" className="font-semibold hover:underline">
+              <Link href="/venueprovider/auth/signup" className="font-semibold hover:underline">
                 Create New Account
-              </a>
+              </Link>
             </div>
 
             {/* Footer Links */}

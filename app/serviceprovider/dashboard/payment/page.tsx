@@ -188,7 +188,7 @@ export default function PaymentRecords() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Venue Name</th>
+                  <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Service Name</th>
                   <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Event Date</th>
                   <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Amount</th>
                   <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Payment Method</th>

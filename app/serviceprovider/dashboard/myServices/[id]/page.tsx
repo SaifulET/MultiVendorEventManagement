@@ -187,10 +187,10 @@ const HandleSave=()=>{
       <div className="">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Venue</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Service</h1>
           <button onClick={()=>{HandleSave()}} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
             <Check className="w-5 h-5" />
-            Publish Venue
+            Publish Service
           </button>
         </div>
 
@@ -202,13 +202,13 @@ const HandleSave=()=>{
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-              <p className="text-sm text-gray-500">Enter the core details of your venue</p>
+              <p className="text-sm text-gray-500">Enter the core details of your Service</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Venue Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
               <input
                 type="text"
                 value={formData.venueName}
@@ -218,7 +218,7 @@ const HandleSave=()=>{
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Venue Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Service Category</label>
               <select
                 value={formData.venueCategory}
                 onChange={(e) => handleInputChange('venueCategory', e.target.value)}
@@ -242,77 +242,23 @@ const HandleSave=()=>{
           </div>
         </div>
 
-        {/* Section 2: Location */}
+   
+
+        {/* Section 3: Pricing & Capacity */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               2
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Location</h2>
-              <p className="text-sm text-gray-500">Set your venues address and map location</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Address</label>
-              <input
-                type="text"
-                value={formData.fullAddress}
-                onChange={(e) => handleInputChange('fullAddress', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Post Code</label>
-                <input
-                  type="text"
-                  value={formData.postCode}
-                  onChange={(e) => handleInputChange('postCode', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Map Location</label>
-              <div className="bg-gray-100 rounded-lg p-12 flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
-                <MapPin className="w-12 h-12 text-red-500 mb-3" />
-                <p className="text-gray-700 font-medium mb-1">Click to set location pin</p>
-                <p className="text-sm text-gray-500">Drag the pin to adjust position</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Pricing & Capacity */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              3
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Pricing & Capacity</h2>
-              <p className="text-sm text-gray-500">Define pricing structure and venue capacity</p>
+              <h2 className="text-lg font-semibold text-gray-900">Pricing </h2>
+              <p className="text-sm text-gray-500">Define pricing structure </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Per Person</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Per Hour</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                 <input
@@ -324,61 +270,20 @@ const HandleSave=()=>{
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Guest Capacity</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={formData.guestCapacity}
-                  onChange={(e) => handleInputChange('guestCapacity', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">guests</span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Section 4: Amenities */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              4
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Amenities</h2>
-              <p className="text-sm text-gray-500">Select available facilities and services</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {amenitiesList.map(amenity => (
-              <label
-                key={amenity.id}
-                className="flex items-center gap-3 p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.amenities.includes(amenity.id)}
-                  onChange={() => handleAmenityToggle(amenity.id)}
-                  className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                />
-                <span className="text-xl">{amenity.icon}</span>
-                <span className="text-sm font-medium text-gray-700">{amenity.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+      
 
         {/* Section 5: Media */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              5
+              3
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Media Section</h2>
-              <p className="text-sm text-gray-500">Upload images and videos to showcase your venue</p>
+              <h2 className="text-lg font-semibold text-gray-900">Porfolio/Media</h2>
+              
             </div>
           </div>
 
@@ -445,11 +350,11 @@ const HandleSave=()=>{
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              6
+              4
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Availability Calendar</h2>
-              <p className="text-sm text-gray-500">Manage venue booking dates</p>
+              <p className="text-sm text-gray-500">Manage service booking dates</p>
             </div>
           </div>
 

@@ -69,7 +69,7 @@ const SignupPage: React.FC = () => {
     }
 
     // If form is valid, proceed with signup
-    router.push("/");
+    router.push("/serviceprovider/auth/signin");
   };
 
   // Clear validation error when any field changes

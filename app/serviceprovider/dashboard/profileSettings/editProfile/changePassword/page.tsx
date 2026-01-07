@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -80,7 +81,7 @@ export default function ChangePassword({ onClose, onUpdate }: ChangePasswordProp
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 ">
-      <div className="max-w-3xl mx-auto">
+      <div className="">
         {/* Header */}
         <div className="bg-white rounded-t-2xl border border-gray-200 border-b-0 p-6 sm:p-8">
           <div className="flex items-center justify-between">

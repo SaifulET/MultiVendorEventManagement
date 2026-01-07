@@ -22,7 +22,7 @@ interface Booking {
   };
   date: string;
   time: string;
-  venue: {
+  service: {
     name: string;
     type: string;
   };
@@ -57,7 +57,7 @@ const defaultBookings: Booking[] = [
     },
     date: 'Dec 28, 2024',
     time: '6:00 PM - 11:00 PM',
-    venue: {
+    service: {
       name: 'Grand Ballroom',
       type: 'Corporate Event'
     },
@@ -72,7 +72,7 @@ const defaultBookings: Booking[] = [
     },
     date: 'Dec 30, 2024',
     time: '2:00 PM - 8:00 PM',
-    venue: {
+    service: {
       name: 'Garden Terrace',
       type: 'Wedding Reception'
     },
@@ -87,7 +87,7 @@ const defaultBookings: Booking[] = [
     },
     date: 'Jan 5, 2025',
     time: '10:00 AM - 4:00 PM',
-    venue: {
+    service: {
       name: 'Conference Hall A',
       type: 'Business Meeting'
     },
@@ -102,7 +102,7 @@ const defaultBookings: Booking[] = [
     },
     date: 'Jan 8, 2025',
     time: '7:00 PM - 12:00 AM',
-    venue: {
+    service: {
       name: 'Rooftop Lounge',
       type: 'Product Launch'
     },
@@ -117,7 +117,7 @@ const defaultBookings: Booking[] = [
     },
     date: 'Jan 12, 2025',
     time: '5:00 PM - 10:00 PM',
-    venue: {
+    service: {
       name: 'Art Gallery Space',
       type: 'Exhibition Opening'
     },
@@ -347,7 +347,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                   </th>
                   <th className="px-6 py-4 text-left">
                     <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Venue Name
+                      Service Name
                     </span>
                   </th>
                   <th className="px-6 py-4 text-center">
@@ -393,11 +393,9 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium text-gray-900">
-                          {booking.venue.name}
+                          {booking.service.name}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          {booking.venue.type}
-                        </p>
+                        
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center">

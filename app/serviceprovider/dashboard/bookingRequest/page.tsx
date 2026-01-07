@@ -191,7 +191,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
 
   const handleViewDetails = (bookingId: string) => {
     console.log(bookingId)
-    router.push("/venueprovider/bookingRequest/"+bookingId);
+    router.push("/serviceprovider/bookingRequest/"+bookingId);
   };
 
   const goToPage = (page: number) => {

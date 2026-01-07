@@ -1,6 +1,9 @@
+'use client'
+import { useRouter } from 'next/navigation';
 import React from 'react';
 
 export default function AccountReady() {
+  const router =useRouter()
   return (
     <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 md:p-12 bg-gradient-to-br from-[#3A0101] via-[#8D1414] to-[#C94B4B]">
       <div className="w-full max-w-[672px] bg-white shadow-[0px_25px_50px_rgba(0,0,0,0.25)] rounded-2xl p-6 md:p-12 relative">
@@ -26,47 +29,23 @@ export default function AccountReady() {
           {/* Header Section */}
           <div className="text-center space-y-4 md:space-y-6">
             <h1 className="text-2xl md:text-4xl font-bold text-[#111827] leading-tight px-2 md:px-0">
-              Your Venue Provider Account Is Ready
+             Your Account Is Ready
             </h1>
             <p className="text-base md:text-xl text-[#4B5563] leading-relaxed px-2 md:px-8">
-              Your venue provider account has been successfully created. Start listing your venue, manage bookings, and increase your event revenue.
+              Your account has been successfully created. You can now book venues, add services, and manage everything from your dashboard.
             </p>
           </div>
 
           {/* Buttons Section */}
           <div className="flex flex-col gap-4">
-            {/* Primary Button */}
-            <button className="w-full h-12 md:h-14 bg-[#B74241] hover:bg-[#9a3635] transition-colors shadow-[0px_4px_6px_rgba(0,0,0,0.1),0px_10px_15px_rgba(0,0,0,0.1)] rounded-xl flex items-center justify-center gap-3">
-              <svg 
-                className="w-3 h-3 md:w-4 md:h-4 text-white" 
-                fill="currentColor" 
-                viewBox="0 0 16 16"
-              >
-                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-              </svg>
-              <span className="text-sm md:text-base font-semibold text-white">
-                Add Your Business Information
-              </span>
-            </button>
+            
 
             {/* Secondary Button */}
-            <button className="w-full h-12 md:h-14 bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors border border-[#E5E7EB] rounded-xl flex items-center justify-center gap-3">
-              <svg 
-                className="w-4 h-4 text-[#374151]" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              <span className="text-sm md:text-base font-semibold text-[#374151]">
-                Go to Provider Dashboard
-              </span>
+            <button onClick={()=>{router.push("/home")}} className="w-full h-12 md:h-14 bg-[#B74241] hover:bg-[#912321] transition-colors border border-[#E5E7EB] rounded-xl flex items-center justify-center gap-3">
+              
+              <div  className="text-sm md:text-base font-semibold text-white">
+                Go to Home
+              </div>
             </button>
           </div>
 

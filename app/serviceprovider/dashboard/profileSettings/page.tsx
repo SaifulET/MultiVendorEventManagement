@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, ChangeEvent } from 'react';
 import { X, CreditCard, Trash2, Lock, Plus, Check, MapPin, DollarSign, Phone, Mail, User, Calendar } from 'lucide-react';
-
+import cover from "@/public/bg.svg"
+import profileimg from "@/public/profile.jpg"
 interface Profile {
   fullName: string;
   email: string;
@@ -37,8 +38,8 @@ const ProfilePage: React.FC = () => {
   const [showAddCard, setShowAddCard] = useState<boolean>(false);
   
   // Photo states
-  const [coverPhoto, setCoverPhoto] = useState<string>('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300"%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23334155;stop-opacity:1" /%3E%3Cstop offset="50%25" style="stop-color:%23475569;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23334155;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill="url(%23grad)" width="1200" height="300"/%3E%3Cg opacity="0.1"%3E%3Ccircle cx="200" cy="100" r="60" fill="white"/%3E%3Ccircle cx="600" cy="180" r="80" fill="white"/%3E%3Ccircle cx="1000" cy="120" r="70" fill="white"/%3E%3C/g%3E%3C/svg%3E');
-  const [profilePhoto, setProfilePhoto] = useState<string>("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23f59e0b' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' text-anchor='middle' dy='.3em' fill='white' font-family='system-ui'%3ESJ%3C/text%3E%3C/svg%3E");
+  const [coverPhoto, setCoverPhoto] = useState<string>(cover.src);
+  const [profilePhoto, setProfilePhoto] = useState<string>(profileimg.src);
   
   // Profile state
   const [profile, setProfile] = useState<Profile>({
@@ -180,7 +181,7 @@ const ProfilePage: React.FC = () => {
     <img 
       src={coverPhoto}
       alt="Cover" 
-      className="w-full h-[332px] object-fit rounded-lg"
+      className="w-full h-[332px] object-cover rounded-lg"
     />
     
     {/* Camera Icon Overlay - Shows when editing */}

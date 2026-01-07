@@ -1,68 +1,26 @@
 'use client'
 import Image from 'next/image';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import logo from "@/public/logo.svg"
 import { useRouter } from "next/navigation";
 
-const VerifyOtpPage: React.FC = () => {
-    const [otpValues, setOtpValues] = useState(['', '', '', '']);
-    const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-    const router = useRouter();
-  
-    useEffect(() => {
-      if (inputRefs.current[0]) {
-        inputRefs.current[0].focus();
-        setFocusedIndex(0);
-      }
-    }, []);
-  
-    const handleOtpChange = (index: number, value: string) => {
-      if (value.length <= 1) {
-        const newOtpValues = [...otpValues];
-        newOtpValues[index] = value;
-        setOtpValues(newOtpValues);
-  
-        // Auto-focus next field if value is entered and not last field
-        if (value && index < 3) {
-          const nextIndex = index + 1;
-          if (inputRefs.current[nextIndex]) {
-            inputRefs.current[nextIndex].focus();
-            setFocusedIndex(nextIndex);
-          }
-        }
-      }
-    };
-  
-    const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-      // Handle backspace to move to previous field
-      if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-        const prevIndex = index - 1;
-        if (inputRefs.current[prevIndex]) {
-          inputRefs.current[prevIndex].focus();
-          setFocusedIndex(prevIndex);
-        }
-      }
-    };
-  
-    const handleFocus = (index: number) => {
-      setFocusedIndex(index);
-    };
-  
-    const handleBlur = () => {
-      setFocusedIndex(null);
-    };
-  
-    const handleNext = () => {
-      router.push('/venueprovider/auth/setnewpassword');
-    };
-  
-    const handleBackToLogin = () => {
-      router.push('/venueprovider/auth/signin');
-    };
+const ForgotPasswordPage: React.FC = () => {
+  const [email, setEmail] = useState<string>('');
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      return;
+    }
+
+    router.push("/home/auth/otpverify")
+  };
 
   return (
-    <div className="relative bg-gradient-to-tr from-[#3A0101] via-[#C94B4B] via-[#8D1414] via-[#C94B4B] to-[#461b1b] min-h-screen w-full flex items-center justify-center px-[24px] py-[17px] md:px-[47px] md:py-[17px] lg:pr-[113px]">
+    <div className="relative bg-gradient-to-tl from-[#3A0101] via-[#C94B4B] via-[#8D1414] via-[#C94B4B] to-[#461b1b] min-h-screen w-full flex items-center justify-center px-[24px] py-[17px] md:px-[47px] md:py-[17px]">
       <div className="w-full flex flex-col lg:flex-row items-center justify-between px-[24px] py-[48px] md:px-[33px] md:py-[60px]">
         
         {/* Left Side - Stats Section */}
@@ -71,6 +29,7 @@ const VerifyOtpPage: React.FC = () => {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
               Your Event Starts Here
             </h1>
+            
             <p className="text-base md:text-lg text-white/90">
               Book top venues and trusted service providers in minutes.
             </p>
@@ -142,48 +101,49 @@ const VerifyOtpPage: React.FC = () => {
               </div>
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-bold text-center text-white mb-[32px]">
-              Verify OTP
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-white mb-2">
+              Forgot Password
             </h2>
-            
-             <p className="text-[16px]  text-white/80  mb-8">
-              Please check your email. We have sent a code to contact @gmail.com
+            <p className="text-base md:text-lg text-white/80 text-center mb-8">
+              Enter your email address to get a verification code for resetting your password
             </p>
 
-              <div>
+          
+              <form onSubmit={handleSubmit}>
                 {/* Email Input */}
-                <div className='flex gap-[28px]  md:w-[430px]'>
-                  {otpValues.map((value, index) => (
-                    <div key={index} className="">
-                      <input
-                        ref={(el) => { inputRefs.current[index] = el; }}
-                        type="text"
-                        maxLength={1}
-                        value={value}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        onFocus={() => handleFocus(index)}
-                        onBlur={handleBlur}
-                        className={`w-full px-[16px] py-[7px] rounded-xl font-bold text-[48px]  tracking-normal text-center capitalize text-white bg-transparent border-2 border-white focus:border-white focus:outline-none focus:ring-0`}
-                        placeholder="-"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-[12px] mb-[22px]">
-                    <p className='text-white'>Didn&apos;t receive code?</p>
-                    <p className='underline text-black'>Resend</p>
+                <div className='bg-[#00000080] px-[4px] py-[6px] rounded-lg mb-8'>
+                  <label htmlFor="email" className="block text-white font-semibold mb-2 text-sm md:text-base">
+                    Email Address
+                  </label>
+                  <input 
+                    type="email" 
+                    id="email" 
+                    className="w-full px-4 py-3 md:py-3.5 bg-white text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-400 text-sm md:text-base" 
+                    placeholder="Enter your email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
 
                 {/* Send Code Button */}
                 <button 
-                  type="button"
-                  onClick={handleNext}
-                  className={`w-full py-3.5 text-white rounded-xl font-semibold text-base md:text-lg transition-all duration-300 mb-6  bg-red-800 hover:bg-red-700 active:bg-red-900`}
+                  type="submit" 
+                  disabled={!email.trim()}
+                  className={`w-full py-3 md:py-3.5 text-white rounded-xl font-semibold text-base md:text-lg transition-all duration-300 mb-6 ${
+                    email.trim() 
+                      ? 'bg-[#8a0808] hover:bg-[#660202] hover:shadow-xl cursor-pointer' 
+                      : 'bg-[#8a0808] cursor-not-allowed'
+                  }`}
                 >
                   Send Code
                 </button>
-              </div>
+
+             
+              </form>
+            
+
+           
           </div>
         </div>
       </div>
@@ -191,4 +151,4 @@ const VerifyOtpPage: React.FC = () => {
   );
 }
 
-export default VerifyOtpPage;
+export default ForgotPasswordPage;

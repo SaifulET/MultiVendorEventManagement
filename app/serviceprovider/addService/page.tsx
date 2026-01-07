@@ -1,30 +1,25 @@
-'use client'
-import React, { useState, ChangeEvent, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Upload, Plus, Wifi, Car, Snowflake, Utensils, Mic, Shield, Accessibility, Music, X, ArrowLeftIcon } from 'lucide-react';
- // Adjust import path as needed
+'use client';
 
-// Import Leaflet for map preview
-import { MapContainer as LeafletMap, TileLayer, Marker } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import React, { useState, ChangeEvent } from 'react';
+import dynamic from 'next/dynamic';
+import {
+  ChevronLeft, ChevronRight, MapPin, Upload, Plus, Wifi, Car,
+  Snowflake, Utensils, Mic, Shield, Accessibility, Music, X, ArrowLeftIcon
+} from 'lucide-react';
 import MapContainer from '@/app/component/vanueProvider/StreetMap/MapContainer';
+
+
+
+
 import { useRouter } from 'next/navigation';
 
+const LeafletPreview = dynamic(
+  () => import('./LeafletPreview'),
+  { ssr: false }
+);
+
 // Create a proper interface extension
-interface FixedIcon extends L.Icon.Default {
-  _getIconUrl?: string;
-}
 
-const DefaultIcon = L.Icon.Default.prototype as FixedIcon;
-if (DefaultIcon._getIconUrl) {
-  delete DefaultIcon._getIconUrl;
-}
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 interface AvailabilityStatus {
   [key: number]: 'available' | 'pending' | 'booked' | null;
@@ -206,57 +201,38 @@ const MapPreview = () => {
   }
 
   return (
-    <div className="h-full relative group">
-      {/* Make this div NOT intercept clicks */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        <LeafletMap
-          center={[selectedLocation.lat, selectedLocation.lng]}
-          zoom={15}
-          style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}
-          zoomControl={false}
-          dragging={false}
-          scrollWheelZoom={false}
-          doubleClickZoom={false}
-          touchZoom={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={[selectedLocation.lat, selectedLocation.lng]} />
-        </LeafletMap>
-      </div>
-      
-      {/* Location info overlay - also NOT intercepting clicks */}
-      <div className="absolute top-3 left-3 bg-emerald-600 text-white text-xs px-2 py-1 rounded pointer-events-none">
-        Location Set ✓
-      </div>
-      
-      <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-sm pointer-events-none">
-        <p className="text-xs font-medium text-gray-900 truncate">{selectedLocation.address}</p>
-        <p className="text-xs text-gray-600">
-          Lat: {selectedLocation.lat.toFixed(6)}, Lng: {selectedLocation.lng.toFixed(6)}
+    <div className="h-full relative">
+      <LeafletPreview
+        lat={selectedLocation.lat}
+        lng={selectedLocation.lng}
+      />
+
+      <div className="absolute bottom-3 left-3 right-3 bg-white/90 rounded-lg p-2 text-xs">
+        <p className="font-medium truncate">{selectedLocation.address}</p>
+        <p>
+          Lat: {selectedLocation.lat.toFixed(6)} | Lng:{' '}
+          {selectedLocation.lng.toFixed(6)}
         </p>
       </div>
-      
-      {/* Only the X button should intercept clicks */}
+
       <button
         onClick={(e) => {
           e.stopPropagation();
           setSelectedLocation(null);
         }}
-        className="absolute top-3 right-3 p-1 bg-white hover:bg-gray-100 rounded-full shadow-sm transition-colors z-20"
+        className="absolute top-3 right-3 bg-white p-1 rounded shadow"
       >
-        <X className="w-4 h-4 text-gray-700" />
+        <X className="w-4 h-4" />
       </button>
     </div>
   );
 };
+
 const route= useRouter()
   return (
     <div className="min-h-screen bg-gray-50 p-[32px] md:px-[160px] ">
       <div>
-        <button className='flex' onClick={()=>{route.push("/venueprovider/dashboard/myVanue")}}><ArrowLeftIcon className='w-7 h-7'/> <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[24px] md:mb-[34px]">Add Your Venue</h1></button>
+        <button className='flex' onClick={()=>{route.push("/serviceprovider/dashboard/myServices")}}><ArrowLeftIcon className='w-7 h-7'/> <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[24px] md:mb-[34px]">Add Your Service</h1></button>
        
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -264,106 +240,63 @@ const route= useRouter()
           <div className="lg:col-span-2 space-y-6 ">
             {/* Venue Information */}
             <div className="bg-white rounded-xl shadow-sm p-[24px]">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Venue Information</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Service Information</h2>
               
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Venue Name</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Service Name</label>
                   <input
                     type="text"
-                    placeholder="Enter venue name"
+                    placeholder="Enter service name"
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Category</label>
-                  <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors appearance-none bg-white">
-                    <option>Select category</option>
-                    <option>Wedding Hall</option>
-                    <option>Conference Room</option>
-                    <option>Banquet Hall</option>
-                  </select>
-                </div>
+  <label className="block text-sm font-medium text-gray-900 mb-2">
+    Category
+  </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Address</label>
-                  <input
-                    type="text"
-                    placeholder="Enter full address"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                  />
-                </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <label className="block text-sm font-medium text-gray-900 mb-2">Street Address</label>
-    <input
-      type="text"
-      placeholder="Enter street address"
-      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-    />
-  </div>
-  <div>
-    <label className="block text-sm font-medium text-gray-900 mb-2">Map Location</label>
-    <div 
-      onClick={openGoogleMaps}
-      className="h-[140px] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-gray-400 transition-colors relative"
+  <div className="relative">
+    <select
+      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg
+                 outline-none focus:border-gray-400 transition-colors
+                 appearance-none bg-white cursor-pointer"
     >
-      <MapPreview />
-      
-      {/* Add a transparent overlay that ensures the whole area is clickable */}
-      <div className="absolute inset-0 z-0">
-        {/* This empty div ensures the click works */}
-      </div>
+      <option>Select category</option>
+      <option>Wedding Hall</option>
+      <option>Conference Room</option>
+      <option>Banquet Hall</option>
+    </select>
+
+    {/* Down Arrow */}
+    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
     </div>
-    {selectedLocation && (
-      <div className="mt-2 text-xs text-gray-500">
-        Click to change location
-      </div>
-    )}
   </div>
 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">City</label>
-                    <input
-                      type="text"
-                      placeholder="City"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">State</label>
-                    <input
-                      type="text"
-                      placeholder="State"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-2">Full Service Description</label>
+                  <textarea  id="description"   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors" placeholder='Describe your service in detail...'></textarea>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">Post Code</label>
-                    <input
-                      type="text"
-                      placeholder="Post Code"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">Country</label>
-                    <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors appearance-none bg-white">
-                      <option>United Kingdom</option>
-                      <option>United States</option>
-                      <option>Canada</option>
-                      <option>Australia</option>
-                      <option>Germany</option>
-                      <option>France</option>
-                    </select>
-                  </div>
-                </div>
+                
+
+
+             
               </div>
             </div>
 
@@ -373,7 +306,7 @@ const route= useRouter()
               
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Per Person</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Per Hour</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                     <input
@@ -395,47 +328,7 @@ const route= useRouter()
               </div>
             </div>
 
-            {/* Amenities */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Amenities</h2>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {amenities.map((amenity: Amenity) => (
-                  <div
-                    key={amenity.id}
-                    className="relative p-4 border-2 rounded-xl transition-all border-gray-200 hover:border-gray-300"
-                  >
-                    <input
-                      type="checkbox"
-                      id={amenity.id}
-                      checked={selectedAmenities.includes(amenity.id)}
-                      onChange={() => toggleAmenity(amenity.id)}
-                      className="absolute top-3 left-3 w-4 h-4 rounded border-gray-300 text-emerald-600 outline-none cursor-pointer"
-                    />
-                    <div className="flex flex-col items-center gap-2 mt-2">
-                      <div className="text-gray-600">
-                        {amenity.icon}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{amenity.label}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Capacity */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Capacity</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Maximum Guests</label>
-                <input
-                  type="number"
-                  placeholder="Enter maximum capacity"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                />
-              </div>
-            </div>
+            
 
             {/* Gallery */}
             <div className="bg-white rounded-xl shadow-sm p-6">
