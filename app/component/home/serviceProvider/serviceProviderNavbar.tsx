@@ -4,13 +4,13 @@ import { Columns2, Bell, MessageSquare, MessageSquareMore } from "lucide-react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import profile from "@/public/profile.jpg";
-
+import logo from "@/public/logo.svg";
 interface NavbarProps {
   collapsed: boolean;
   toggleSidebar: () => void;
 }
 
-export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
+export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -22,17 +22,11 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
 
   return (
     <header
-      className={`h-20 bg-white border-b border-gray-200 flex items-center justify-between px-[32px] py-[48px] 
-      fixed top-0 z-30 transition-all duration-300 
-      ${collapsed ? "left-20 w-[calc(100%-80px)]" : "left-64 w-[calc(100%-256px)]"}`}
+      className={`w-full bg-[#f0d7d7] border-b border-gray-200 flex items-center justify-between px-[32px] py-[16px] 
+      transition-all duration-300 sticky top-0
+     `}
     >
-      {/* Left Icon (Columns2) */}
-      <button
-        onClick={toggleSidebar}
-        className="flex items-center justify-center rounded-xl transition"
-      >
-        <Columns2 className="w-8 h-8 text-gray-600" />
-      </button>
+    <div><Image src={logo} alt="Logo" width={75} height={45} /></div>
 
       {/* Right Side - All Icons Right Aligned */}
       <div className="flex items-center gap-3">

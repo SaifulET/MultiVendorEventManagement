@@ -96,7 +96,10 @@ const VenueBookingPage: React.FC = () => {
     alert('Booking cancelled');
     setShowCancelModal(false);
   };
-
+const handleViwServiceProvider = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+    window.location.href = '/home/venueBooking/service-provider/sarah-johnson';
+  }
   return (
     <div className="min-h-screen px-4 sm:px-6 md:px-8 lg:px-[144px]">
       <div className="px-4 sm:px-6 lg:px-[32px] py-6 lg:py-[24px]">
@@ -217,7 +220,7 @@ const VenueBookingPage: React.FC = () => {
                   <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
                   Message Provider
                 </button>
-                <button className="flex items-center justify-center gap-2 border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors text-sm sm:text-base">
+                <button onClick={handleViwServiceProvider} className="flex items-center justify-center gap-2 border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors text-sm sm:text-base">
                   <User className="w-4 h-4 sm:w-5 sm:h-5" />
                   View service provider Profile
                 </button>

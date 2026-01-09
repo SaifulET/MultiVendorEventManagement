@@ -6,20 +6,38 @@ import {
   ChevronLeft, ChevronRight, MapPin, Upload, Plus, Wifi, Car,
   Snowflake, Utensils, Mic, Shield, Accessibility, Music, X, ArrowLeftIcon
 } from 'lucide-react';
-import MapContainer from '@/app/component/vanueProvider/StreetMap/MapContainer';
-
-
-
-
 import { useRouter } from 'next/navigation';
 
+// Dynamically import ALL map-related components to avoid SSR issues
 const LeafletPreview = dynamic(
   () => import('./LeafletPreview'),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-400 animate-pulse" />
+          <p className="text-sm text-gray-500">Loading map...</p>
+        </div>
+      </div>
+    )
+  }
 );
 
-// Create a proper interface extension
-
+// Also dynamically import MapContainer
+const MapContainer = dynamic(
+  () => import('@/app/component/vanueProvider/StreetMap/MapContainer'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="bg-white rounded-2xl p-8">
+          <p className="text-gray-600">Loading map...</p>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface AvailabilityStatus {
   [key: number]: 'available' | 'pending' | 'booked' | null;
@@ -189,52 +207,54 @@ const VenueManagement: React.FC = () => {
   };
 
   // Map Preview Component
-// Map Preview Component - FIXED VERSION
-const MapPreview = () => {
-  if (!selectedLocation) {
+  const MapPreview = () => {
+    if (!selectedLocation) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-gray-500">
+          <MapPin className="w-6 h-6 mb-2" />
+          <span className="text-sm">Click to set location on map</span>
+        </div>
+      );
+    }
+
     return (
-      <div className="h-full flex flex-col items-center justify-center text-gray-500">
-        <MapPin className="w-6 h-6 mb-2" />
-        <span className="text-sm">Click to set location on map</span>
+      <div className="h-full relative">
+        <LeafletPreview
+          lat={selectedLocation.lat}
+          lng={selectedLocation.lng}
+        />
+
+        <div className="absolute bottom-3 left-3 right-3 bg-white/90 rounded-lg p-2 text-xs">
+          <p className="font-medium truncate">{selectedLocation.address}</p>
+          <p>
+            Lat: {selectedLocation.lat.toFixed(6)} | Lng:{' '}
+            {selectedLocation.lng.toFixed(6)}
+          </p>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedLocation(null);
+          }}
+          className="absolute top-3 right-3 bg-white p-1 rounded shadow"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     );
-  }
+  };
 
-  return (
-    <div className="h-full relative">
-      <LeafletPreview
-        lat={selectedLocation.lat}
-        lng={selectedLocation.lng}
-      />
-
-      <div className="absolute bottom-3 left-3 right-3 bg-white/90 rounded-lg p-2 text-xs">
-        <p className="font-medium truncate">{selectedLocation.address}</p>
-        <p>
-          Lat: {selectedLocation.lat.toFixed(6)} | Lng:{' '}
-          {selectedLocation.lng.toFixed(6)}
-        </p>
-      </div>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedLocation(null);
-        }}
-        className="absolute top-3 right-3 bg-white p-1 rounded shadow"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-};
-
-const route= useRouter()
+  const route = useRouter();
+  
   return (
     <div className="min-h-screen bg-gray-50 p-[32px] md:px-[160px] ">
       <div>
-        <button className='flex' onClick={()=>{route.push("/serviceprovider/dashboard/myServices")}}><ArrowLeftIcon className='w-7 h-7'/> <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[24px] md:mb-[34px]">Add Your Service</h1></button>
+        <button className='flex' onClick={()=>{route.push("/serviceprovider/dashboard/myServices")}}>
+          <ArrowLeftIcon className='w-7 h-7'/> 
+          <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[24px] md:mb-[34px]">Add Your Service</h1>
+        </button>
        
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Form */}
           <div className="lg:col-span-2 space-y-6 ">
@@ -253,50 +273,92 @@ const route= useRouter()
                 </div>
 
                 <div>
-  <label className="block text-sm font-medium text-gray-900 mb-2">
-    Category
-  </label>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Category
+                  </label>
 
-  <div className="relative">
-    <select
-      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg
-                 outline-none focus:border-gray-400 transition-colors
-                 appearance-none bg-white cursor-pointer"
-    >
-      <option>Select category</option>
-      <option>Wedding Hall</option>
-      <option>Conference Room</option>
-      <option>Banquet Hall</option>
-    </select>
+                  <div className="relative">
+                    <select
+                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg
+                                 outline-none focus:border-gray-400 transition-colors
+                                 appearance-none bg-white cursor-pointer"
+                    >
+                      <option>Select category</option>
+                      <option>Wedding Hall</option>
+                      <option>Conference Room</option>
+                      <option>Banquet Hall</option>
+                    </select>
 
-    {/* Down Arrow */}
-    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
-      <svg
-        className="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M19 9l-7 7-7-7"
-        />
-      </svg>
-    </div>
-  </div>
-</div>
+                    {/* Down Arrow */}
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-2">Full Service Description</label>
                   <textarea  id="description"   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors" placeholder='Describe your service in detail...'></textarea>
                 </div>
 
-                
+                {/* Location Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Service Location</label>
+                  <button
+                    type="button"
+                    onClick={openGoogleMaps}
+                    className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors overflow-hidden outline-none"
+                  >
+                    <MapPreview />
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">Click on the map to set or change location</p>
+                </div>
 
-
-             
+                {/* Amenities Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Amenities</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {amenities.map(amenity => (
+                      <button
+                        key={amenity.id}
+                        type="button"
+                        onClick={() => toggleAmenity(amenity.id)}
+                        className={`flex flex-col items-center p-4 rounded-xl border transition-colors ${
+                          selectedAmenities.includes(amenity.id)
+                            ? 'border-[#B74140] bg-[#B74140]/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        } outline-none`}
+                      >
+                        <div className={`p-2 rounded-lg mb-2 ${
+                          selectedAmenities.includes(amenity.id)
+                            ? 'text-[#B74140]'
+                            : 'text-gray-400'
+                        }`}>
+                          {amenity.icon}
+                        </div>
+                        <span className={`text-sm font-medium ${
+                          selectedAmenities.includes(amenity.id)
+                            ? 'text-[#B74140]'
+                            : 'text-gray-700'
+                        }`}>
+                          {amenity.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -327,8 +389,6 @@ const route= useRouter()
                 </div>
               </div>
             </div>
-
-            
 
             {/* Gallery */}
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -470,17 +530,17 @@ const route= useRouter()
       </div>
 
       {/* Map Container Modal */}
-     {showMap && (
-  <MapContainer
-    onClose={() => setShowMap(false)}
-    onLocationSelect={handleLocationSelect}
-    initialPosition={selectedLocation ? { 
-      lat: selectedLocation.lat, 
-      lng: selectedLocation.lng 
-    } : undefined}
-    initialAddress={selectedLocation?.address}
-  />
-)}
+      {showMap && (
+        <MapContainer
+          onClose={() => setShowMap(false)}
+          onLocationSelect={handleLocationSelect}
+          initialPosition={selectedLocation ? { 
+            lat: selectedLocation.lat, 
+            lng: selectedLocation.lng 
+          } : undefined}
+          initialAddress={selectedLocation?.address}
+        />
+      )}
     </div>
   );
 };

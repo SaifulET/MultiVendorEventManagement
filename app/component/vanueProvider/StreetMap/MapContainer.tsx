@@ -1,14 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, X, Search } from 'lucide-react';
-import MapPicker, { Coordinates } from './StreetMap';
+import { MapPin, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import MapPicker to avoid SSR
+const MapPicker = dynamic(
+  () => import('./StreetMap'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] w-full flex items-center justify-center bg-gray-100">
+        <div className="text-gray-500">Loading map...</div>
+      </div>
+    )
+  }
+);
+
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
 
 interface MapContainerProps {
   onClose: () => void;
   onLocationSelect: (lat: number, lng: number, address: string) => void;
-  initialPosition?: Coordinates; // Previous location
-  initialAddress?: string; // Previous address
+  initialPosition?: Coordinates;
+  initialAddress?: string;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({ 
@@ -17,12 +35,11 @@ const MapContainer: React.FC<MapContainerProps> = ({
   initialPosition,
   initialAddress 
 }) => {
-  const [searchQuery, setSearchQuery] = useState(initialAddress || '');
+  const [searchQuery, setSearchQuery] = useState<string>(initialAddress || '');
   const [selectedCoords, setSelectedCoords] = useState<Coordinates | null>(initialPosition || null);
 
   const handleMapSelect = (coords: Coordinates) => {
     setSelectedCoords(coords);
-    // If there's no search query, use coordinates as address
     if (!searchQuery.trim()) {
       setSearchQuery(`Location at ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
     }
@@ -60,7 +77,6 @@ const MapContainer: React.FC<MapContainerProps> = ({
           {/* Map Container */}
           <div className="flex-1 p-4">
             <div className="h-full rounded-lg overflow-hidden border border-gray-200">
-              {/* Pass initialPosition to show previous location */}
               <MapPicker onSelect={handleMapSelect} initialPosition={initialPosition} />
             </div>
             

@@ -11,8 +11,9 @@ const LoginPage: React.FC = () => {
 
    const router = useRouter();
 
-  const handleSubmit=async()=>{
-    router.push("/user/dashboard/dashboard")
+  const handleSubmit=async(e: React.FormEvent)=>{
+    e.preventDefault();
+    router.push("/home/dashboard/dashboard")
   }
 
   return (

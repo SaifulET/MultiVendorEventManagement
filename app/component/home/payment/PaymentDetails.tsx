@@ -2,27 +2,31 @@
 import React from 'react';
 import { MapPin, Users, Star, Calendar, Clock, CreditCard, CalendarCheck } from 'lucide-react';
 import payment from "@/public/payment.png"
+import Image from 'next/image';
+import visa from "@/public/visa.svg"
 const PaymentDetails = () => {
   return (
     <div className="min-h-screen ">
       <div className="">
         {/* Header */}
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-[32px] ">
+        <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[28px] ">
           Payment Details
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Venue Card */}
-            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
+            <div className="bg-white rounded-lg shadow-sm p-[25px]">
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Venue Image */}
-                <div className="w-full sm:w-24 h-48 sm:h-24 flex-shrink-0">
-                  <img
+                <div className="">
+                  <Image
+                  width={128}
+                  height={96}
                     src={payment.src}
                     alt="Grand Ballroom"
-                    className="w-full h-full object-cover rounded-lg"
+                    className=" object-cover rounded-lg"
                   />
                 </div>
 
@@ -93,7 +97,7 @@ const PaymentDetails = () => {
             </div>
 
             {/* Event Details Card */}
-            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
+            <div className="bg-white rounded-lg shadow-sm p-[25px]">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <CalendarCheck className="w-5 h-5 text-[#B74140]" />
                 Event Details
@@ -132,9 +136,9 @@ const PaymentDetails = () => {
 
           {/* Right Column - Payment Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 sticky top-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Payment Summary</h3>
+            <div className="bg-white rounded-lg shadow-sm p-[25px] sticky top-4">
+              <div className="flex items-center justify-between mb-[24px]">
+                <h3 className="font-inter font-bold text-[18px] leading-[28px] tracking-[0] text-gray-900">Payment Summary</h3>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#3CCF911A] bg-opacity-10 text-[#3CCF91]">
                   <span className="w-2 h-2 bg-[#3CCF91] rounded-full"></span>
                   Completed
@@ -143,21 +147,24 @@ const PaymentDetails = () => {
 
               {/* Transaction Details */}
               <div className="space-y-3 mb-4 pb-4 border-b border-gray-200">
-                <div>
-                  <span className="text-xs text-gray-500 block mb-1">Transaction ID</span>
-                  <p className="text-sm font-mono text-gray-900">TXN-20240218-4829</p>
+                <div className='mb-[16px]'>
+                  <span className="font-inter font-normal text-[12px] leading-[12px] tracking-[0] text-gray-500 block mb-1">Transaction ID</span>
+                  <p className="font-inter font-normal text-[14px] leading-[14px] tracking-[0] text-gray-900">TXN-20240218-4829</p>
                 </div>
-                <div>
+                <div className='mb-[16px]'>
                   <span className="text-xs text-gray-500 block mb-1">Payment Date & Time</span>
                   <p className="text-sm font-semibold text-gray-900">Feb 18, 2024 at 3:42 PM</p>
                 </div>
-                <div>
+                <div className='mb-[16px]'>
                   <span className="text-xs text-gray-500 block mb-1">Payment Method</span>
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-semibold text-gray-900">Visa •••• 4242</span>
+                    <Image src={visa.src} alt="Visa" width={32} height={20} />
+                    <div>
+                      <span className="text-sm font-semibold text-gray-900">Visa •••• 4242</span>
+                      <p className="text-xs text-gray-500 mt-0.5 ">via Stripe</p>
+                      </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">via Stripe</p>
+                  
                 </div>
               </div>
 
@@ -181,19 +188,11 @@ const PaymentDetails = () => {
               <div className="pt-4 border-t-2 border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-base font-bold text-gray-900">Total Paid</span>
-                  <span className="text-xl md:text-2xl font-bold text-[#3CCF91]">$5,126.63</span>
+                  <span className="text-xl md:text-2xl font-bold text-[#2563EB]">$5,126.63</span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="mt-6 space-y-2">
-                <button className="w-full px-4 py-2.5 bg-[#B74140] text-white rounded-lg text-sm font-semibold hover:bg-[#9a3635] transition-colors">
-                  Download Invoice
-                </button>
-                <button className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
-                  Contact Support
-                </button>
-              </div>
+              
             </div>
           </div>
         </div>

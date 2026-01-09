@@ -1,30 +1,42 @@
 'use client'
 import React, { useState, ChangeEvent, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Upload, Plus, Wifi, Car, Snowflake, Utensils, Mic, Shield, Accessibility, Music, X, ArrowLeftIcon } from 'lucide-react';
- // Adjust import path as needed
-
-// Import Leaflet for map preview
-import { MapContainer as LeafletMap, TileLayer, Marker } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import MapContainer from '@/app/component/vanueProvider/StreetMap/MapContainer';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
-// Create a proper interface extension
-interface FixedIcon extends L.Icon.Default {
-  _getIconUrl?: string;
+// Dynamically import MapContainer to avoid SSR
+const MapContainer = dynamic(
+  () => import('@/app/component/vanueProvider/StreetMap/MapContainer'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[140px] flex items-center justify-center bg-gray-100">
+        <div className="text-gray-500">Loading map...</div>
+      </div>
+    )
+  }
+);
+
+// Dynamically import Leaflet components for MapPreview
+const DynamicMapPreview = dynamic(
+  () => import('./DynamicMapPreview'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex flex-col items-center justify-center text-gray-500">
+        <MapPin className="w-6 h-6 mb-2" />
+        <span className="text-sm">Loading map...</span>
+      </div>
+    )
+  }
+);
+
+// Types
+interface Location {
+  lat: number;
+  lng: number;
+  address: string;
 }
-
-const DefaultIcon = L.Icon.Default.prototype as FixedIcon;
-if (DefaultIcon._getIconUrl) {
-  delete DefaultIcon._getIconUrl;
-}
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 interface AvailabilityStatus {
   [key: number]: 'available' | 'pending' | 'booked' | null;
@@ -36,15 +48,36 @@ interface Amenity {
   icon: React.ReactNode;
 }
 
+interface MapPreviewProps {
+  selectedLocation: Location | null;
+  setSelectedLocation: (location: null) => void;
+}
+
+// Simple MapPreview that conditionally renders the dynamic one
+const MapPreview = ({ selectedLocation, setSelectedLocation }: MapPreviewProps) => {
+  if (!selectedLocation) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-500">
+        <MapPin className="w-6 h-6 mb-2" />
+        <span className="text-sm">Click to set location on map</span>
+      </div>
+    );
+  }
+
+  return (
+    <DynamicMapPreview 
+      selectedLocation={selectedLocation} 
+      setSelectedLocation={setSelectedLocation} 
+    />
+  );
+};
+
+// Main Component
 const VenueManagement: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<number>(11);
   const [currentYear, setCurrentYear] = useState<number>(2024);
   const [showMap, setShowMap] = useState<boolean>(false);
-  const [selectedLocation, setSelectedLocation] = useState<{
-    lat: number;
-    lng: number;
-    address: string;
-  } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([
     '/api/placeholder/300/200',
     '/api/placeholder/300/200',
@@ -84,6 +117,7 @@ const VenueManagement: React.FC = () => {
   ];
 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const router = useRouter();
 
   const toggleAmenity = (id: string): void => {
     setSelectedAmenities(prev =>
@@ -193,71 +227,18 @@ const VenueManagement: React.FC = () => {
     ];
   };
 
-  // Map Preview Component
-// Map Preview Component - FIXED VERSION
-const MapPreview = () => {
-  if (!selectedLocation) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-gray-500">
-        <MapPin className="w-6 h-6 mb-2" />
-        <span className="text-sm">Click to set location on map</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-full relative group">
-      {/* Make this div NOT intercept clicks */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        <LeafletMap
-          center={[selectedLocation.lat, selectedLocation.lng]}
-          zoom={15}
-          style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}
-          zoomControl={false}
-          dragging={false}
-          scrollWheelZoom={false}
-          doubleClickZoom={false}
-          touchZoom={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={[selectedLocation.lat, selectedLocation.lng]} />
-        </LeafletMap>
-      </div>
-      
-      {/* Location info overlay - also NOT intercepting clicks */}
-      <div className="absolute top-3 left-3 bg-emerald-600 text-white text-xs px-2 py-1 rounded pointer-events-none">
-        Location Set ✓
-      </div>
-      
-      <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-sm pointer-events-none">
-        <p className="text-xs font-medium text-gray-900 truncate">{selectedLocation.address}</p>
-        <p className="text-xs text-gray-600">
-          Lat: {selectedLocation.lat.toFixed(6)}, Lng: {selectedLocation.lng.toFixed(6)}
-        </p>
-      </div>
-      
-      {/* Only the X button should intercept clicks */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedLocation(null);
-        }}
-        className="absolute top-3 right-3 p-1 bg-white hover:bg-gray-100 rounded-full shadow-sm transition-colors z-20"
-      >
-        <X className="w-4 h-4 text-gray-700" />
-      </button>
-    </div>
-  );
-};
-const route= useRouter()
   return (
     <div className="min-h-screen bg-gray-50 p-[32px] md:px-[160px] ">
       <div>
-        <button className='flex' onClick={()=>{route.push("/venueprovider/dashboard/myVanue")}}><ArrowLeftIcon className='w-7 h-7'/> <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[24px] md:mb-[34px]">Add Your Venue</h1></button>
-       
+        <button 
+          className='flex items-center gap-2 mb-4'
+          onClick={() => { router.push("/venueprovider/dashboard/myVanue") }}
+        >
+          <ArrowLeftIcon className='w-7 h-7'/> 
+          <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900">
+            Add Your Venue
+          </h1>
+        </button>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Form */}
@@ -294,35 +275,34 @@ const route= useRouter()
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
                   />
                 </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <label className="block text-sm font-medium text-gray-900 mb-2">Street Address</label>
-    <input
-      type="text"
-      placeholder="Enter street address"
-      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-    />
-  </div>
-  <div>
-    <label className="block text-sm font-medium text-gray-900 mb-2">Map Location</label>
-    <div 
-      onClick={openGoogleMaps}
-      className="h-[140px] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-gray-400 transition-colors relative"
-    >
-      <MapPreview />
-      
-      {/* Add a transparent overlay that ensures the whole area is clickable */}
-      <div className="absolute inset-0 z-0">
-        {/* This empty div ensures the click works */}
-      </div>
-    </div>
-    {selectedLocation && (
-      <div className="mt-2 text-xs text-gray-500">
-        Click to change location
-      </div>
-    )}
-  </div>
-</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">Street Address</label>
+                    <input
+                      type="text"
+                      placeholder="Enter street address"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">Map Location</label>
+                    <div 
+                      onClick={openGoogleMaps}
+                      className="h-[140px] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-gray-400 transition-colors relative"
+                    >
+                      <MapPreview 
+                        selectedLocation={selectedLocation} 
+                        setSelectedLocation={() => setSelectedLocation(null)} 
+                      />
+                    </div>
+                    {selectedLocation && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        Click to change location
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -568,7 +548,10 @@ const route= useRouter()
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Publish Settings</h2>
               
-              <button onClick={()=>{route.push("/venueprovider/dashboard/myVanue")}} className="w-full py-3 bg-[#B74140] hover:bg-[#802423] text-white font-semibold rounded-lg transition-colors outline-none">
+              <button 
+                onClick={() => { router.push("/venueprovider/dashboard/myVanue") }}
+                className="w-full py-3 bg-[#B74140] hover:bg-[#802423] text-white font-semibold rounded-lg transition-colors outline-none"
+              >
                 Publish Venue
               </button>
             </div>
@@ -577,17 +560,17 @@ const route= useRouter()
       </div>
 
       {/* Map Container Modal */}
-     {showMap && (
-  <MapContainer
-    onClose={() => setShowMap(false)}
-    onLocationSelect={handleLocationSelect}
-    initialPosition={selectedLocation ? { 
-      lat: selectedLocation.lat, 
-      lng: selectedLocation.lng 
-    } : undefined}
-    initialAddress={selectedLocation?.address}
-  />
-)}
+      {showMap && (
+        <MapContainer
+          onClose={() => setShowMap(false)}
+          onLocationSelect={handleLocationSelect}
+          initialPosition={selectedLocation ? { 
+            lat: selectedLocation.lat, 
+            lng: selectedLocation.lng 
+          } : undefined}
+          initialAddress={selectedLocation?.address}
+        />
+      )}
     </div>
   );
 };
