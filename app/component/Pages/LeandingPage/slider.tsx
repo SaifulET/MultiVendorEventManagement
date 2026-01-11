@@ -11,8 +11,8 @@ export default function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [slideDirection, setSlideDirection] = useState<'right' | 'left'>('right');
+  const [showArrows, setShowArrows] = useState(false);
 
   const slides = [
     {
@@ -22,15 +22,15 @@ export default function HeroSlider() {
       image: slider1
     },
     {
-      title: 'Find Your Dream Venue',
-      subtitle: 'PERFECT LOCATIONS',
-      description: 'Discover the most beautiful venues for your special day with our curated selection.',
+      title: 'Catering That Delivers Flavor',
+      subtitle: 'Feast Without Fuss',
+      description: 'Compare menus, per-head pricing, and lock in trusted chefs who turn weddings into culinary events.',
       image: slider2
     },
     {
-      title: 'Premium Service Providers',
-      subtitle: 'EXPERT SERVICES',
-      description: 'Connect with verified professionals who will make your event unforgettable.',
+      title: 'Book Event Services',
+      subtitle: 'Plan Smart, Celebrate Better',
+      description: 'From chairs and tents to lighting, décor, and full event planning — get everything you need for a flawless event, all in one place.',
       image: slider3
     }
   ];
@@ -48,26 +48,11 @@ export default function HeroSlider() {
   }, [slides.length]);
 
   // Auto slide effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-    
-    if (isAutoPlaying) {
-      interval = setInterval(() => {
-        setSlideDirection('right');
-        setCurrentSlide((prev) => (prev + 1) % slides.length);
-      }, 5000);
-    }
-    
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isAutoPlaying, slides.length]);
+ 
 
   // Pause auto-play on user interaction
   const handleManualSlideChange = (direction: 'next' | 'prev') => {
-    setIsAutoPlaying(false);
+  
     
     if (direction === 'next') {
       nextSlide();
@@ -75,12 +60,7 @@ export default function HeroSlider() {
       prevSlide();
     }
     
-    // Resume auto-play after 10 seconds of inactivity
-    const timeoutId = setTimeout(() => {
-      setIsAutoPlaying(true);
-    }, 10000);
-    
-    return () => clearTimeout(timeoutId);
+   
   };
 
   const handleSearch = () => {
@@ -90,31 +70,35 @@ export default function HeroSlider() {
   // Get slide animation class based on direction
   const getSlideClass = (index: number): string => {
     if (index === currentSlide) {
-      return 'translate-x-0 opacity-100';
+      return 'translate-x-0 opacity-100 z-10';
     }
     
     if (slideDirection === 'right') {
       if (index === (currentSlide - 1 + slides.length) % slides.length) {
-        return '-translate-x-full opacity-0';
+        return '-translate-x-full opacity-0 z-0';
       } else {
-        return 'translate-x-full opacity-0';
+        return 'translate-x-full opacity-0 z-0';
       }
     } else {
       if (index === (currentSlide + 1) % slides.length) {
-        return 'translate-x-full opacity-0';
+        return 'translate-x-full opacity-0 z-0';
       } else {
-        return '-translate-x-full opacity-0';
+        return '-translate-x-full opacity-0 z-0';
       }
     }
   };
 
   return (
-    <div className="relative w-full h-[500px] md:h-[600px] overflow-hidden">
+    <div 
+      className="relative w-full h-[500px] sm:h-[550px] md:h-[600px] lg:h-[616px] overflow-hidden bg-gray-900"
+      onMouseEnter={() => setShowArrows(true)}
+      onMouseLeave={() => setShowArrows(false)}
+    >
       {/* Slider Images with sliding animation */}
       {slides.map((slide, index) => (
         <div
           key={index}
-          className={`absolute inset-0 transition-all duration-700 ease-in-out transform ${getSlideClass(index)}`}
+          className={`absolute inset-0 transition-all duration-500 ease-in-out transform ${getSlideClass(index)}`}
         >
           <div className="relative w-full h-full">
             <Image
@@ -125,143 +109,115 @@ export default function HeroSlider() {
               priority={index === 0}
               sizes="100vw"
             />
+            {/* Dark overlay for better text readability on mobile */}
+            <div className="absolute inset-0 bg-black/30 md:bg-black/20" />
           </div>
         </div>
       ))}
 
-      {/* Navigation Arrows */}
+      {/* Navigation Arrows - Always visible on mobile, hover on desktop */}
       <button
         onClick={() => handleManualSlideChange('prev')}
-        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors z-10 bg-black/20 hover:bg-black/40 p-2 rounded-full backdrop-blur-sm"
+        className={`absolute left-2 sm:left-4 md:left-8 top-[25%] md:top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-all duration-300 z-20 bg-black/40 hover:bg-black/60 p-2 sm:p-3 rounded-full backdrop-blur-sm
+          md:opacity-0 md:-translate-x-4
+          ${showArrows ? 'md:opacity-100 md:translate-x-0' : ''}
+          opacity-100 translate-x-0
+        `}
         aria-label="Previous slide"
       >
-        <ChevronLeft className="w-10 h-10 md:w-12 md:h-12" />
+        <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" />
       </button>
 
       <button
         onClick={() => handleManualSlideChange('next')}
-        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors z-10 bg-black/20 hover:bg-black/40 p-2 rounded-full backdrop-blur-sm"
+        className={`absolute right-2 sm:right-4 md:right-8 top-[25%] md:top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-all duration-300 z-20 bg-black/40 hover:bg-black/60 p-2 sm:p-3 rounded-full backdrop-blur-sm
+          md:opacity-0 md:translate-x-4
+          ${showArrows ? 'md:opacity-100 md:translate-x-0' : ''}
+          opacity-100 translate-x-0
+        `}
         aria-label="Next slide"
       >
-        <ChevronRight className="w-10 h-10 md:w-12 md:h-12" />
+        <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" />
       </button>
 
-      {/* Content Container with sliding animation */}
-      <div className="absolute inset-0 flex items-center justify-center z-10">
-        <div className="w-full max-w-4xl mx-4 md:mx-8 lg:mx-auto text-center">
-          <div className="max-w-3xl mx-auto">
-            {/* Subtitle with animation */}
-            <div className={`overflow-hidden mb-2 transition-all duration-700 ease-in-out ${
-              slideDirection === 'right' 
-                ? 'animate-slideInFromRight' 
-                : 'animate-slideInFromLeft'
-            }`}>
-              <p className="text-white text-sm md:text-base tracking-widest font-light">
+      {/* Content Container */}
+      <div className=" absolute inset-0 flex items-center justify-center z-10 px-4 sm:px-6 md:px-8">
+        <div className="w-[645px] text-center">
+          <div className="">
+            {/* Subtitle */}
+            <div className="overflow-hidden mb-[24px]">
+              <p className="text-[#D1D5DB] font-inter font-medium text-xs leading-4 tracking-[2px] text-center
+">
                 {slides[currentSlide].subtitle}
               </p>
             </div>
 
-            {/* Title with animation */}
-            <div className={`overflow-hidden mb-4 transition-all duration-700 ease-in-out delay-100 ${
-              slideDirection === 'right' 
-                ? 'animate-slideInFromRight' 
-                : 'animate-slideInFromLeft'
-            }`}>
-              <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+            {/* Title */}
+            <div className="overflow-hidden mb-3 sm:mb-4">
+              <h1 className="text-white font-inter font-bold text-[24px] md:text-[60px] leading-[100%] tracking-normal text-center
+ px-2">
                 {slides[currentSlide].title}
               </h1>
             </div>
 
-            {/* Description with animation */}
-            <div className={`overflow-hidden mb-8 transition-all duration-700 ease-in-out delay-200 ${
-              slideDirection === 'right' 
-                ? 'animate-slideInFromRight' 
-                : 'animate-slideInFromLeft'
-            }`}>
-              <p className="text-white text-base md:text-lg max-w-2xl mx-auto px-4 md:px-0">
+            {/* Description */}
+            <div className="overflow-hidden mb-[24px] ">
+              <p className="text-white font-inter font-normal text-[18px] leading-[120%] tracking-normal text-center
+">
                 {slides[currentSlide].description}
               </p>
             </div>
 
-            {/* CTA Buttons with animation */}
-            <div className={`flex flex-col sm:flex-row gap-4 mb-8 justify-center px-4 md:px-0 transition-all duration-700 ease-in-out delay-300 ${
-              slideDirection === 'right' 
-                ? 'animate-slideInFromRight' 
-                : 'animate-slideInFromLeft'
-            }`}>
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 justify-center px-2">
               <Link
                 href="/pages/venues"
-                className="bg-[#B74140] text-white px-8 py-4 rounded-md hover:bg-[#a03736] transition-colors font-medium text-lg min-w-[200px]"
+                className="bg-[#B74140] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-md hover:bg-[#a03736] transition-colors font-medium text-base sm:text-lg min-w-[180px] sm:min-w-[200px]"
               >
                 Find Venues
               </Link>
               <a
                 href="/pages/serviceproviders"
-                className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-md hover:bg-white hover:text-gray-900 transition-colors font-medium text-lg min-w-[200px]"
+                className="bg-transparent text-white border-2 border-white px-6 sm:px-8 py-3 sm:py-4 rounded-md hover:bg-white hover:text-gray-900 transition-colors font-medium text-base sm:text-lg min-w-[180px] sm:min-w-[200px]"
               >
                 Find Service Providers
               </a>
             </div>
 
-            {/* Search Box with animation */}
-            <div className={`bg-white rounded-lg shadow-xl p-2 md:p-3 flex flex-col md:flex-row items-center gap-2 max-w-3xl mx-auto transition-all duration-700 ease-in-out delay-400 ${
-              slideDirection === 'right' 
-                ? 'animate-slideInFromRight' 
-                : 'animate-slideInFromLeft'
-            }`}>
-              <div className="flex items-center flex-1 w-full px-4 py-3 border-b md:border-b-0 md:border-r border-gray-200">
-                <MapPin className="w-5 h-5 text-gray-400 mr-3" />
+            {/* Search Box */}
+            <div className="bg-white rounded-lg shadow-xl p-2 sm:p-3 flex flex-col md:flex-row items-center gap-2 max-w-3xl mx-auto">
+              <div className="flex items-center flex-1 w-full px-3 sm:px-4 py-2 sm:py-3 border-b md:border-b-0 md:border-r border-gray-200">
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2 sm:mr-3 flex-shrink-0" />
                 <input
                   type="text"
                   placeholder="Enter location or venue name"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-base"
+                  className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-sm sm:text-base"
                 />
               </div>
 
-              <div className="flex items-center flex-1 w-full px-4 py-3">
-                <Calendar className="w-5 h-5 text-gray-400 mr-3" />
+              <div className="flex items-center flex-1 w-full px-3 sm:px-4 py-2 sm:py-3">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2 sm:mr-3 flex-shrink-0" />
                 <input
                   type="date"
                   placeholder="Select date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-base"
+                  className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-sm sm:text-base"
                 />
               </div>
 
               <button
                 onClick={handleSearch}
-                className="bg-[#B74140] text-white px-8 py-3 rounded-md hover:bg-[#a03736] transition-colors flex items-center justify-center gap-3 w-full md:w-auto font-medium"
+                className="bg-[#B74140] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-md hover:bg-[#a03736] transition-colors flex items-center justify-center gap-2 sm:gap-3 w-full md:w-auto font-medium"
               >
-                <Search className="w-5 h-5" />
-                <span className="text-base">Search</span>
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">Search</span>
               </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Slide Indicators */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              setIsAutoPlaying(false);
-              setSlideDirection(index > currentSlide ? 'right' : 'left');
-              setCurrentSlide(index);
-              setTimeout(() => setIsAutoPlaying(true), 10000);
-            }}
-            className={`transition-all duration-300 rounded-full ${
-              index === currentSlide
-                ? 'bg-white w-8 h-2'
-                : 'bg-white/50 hover:bg-white/75 w-2 h-2'
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
       </div>
     </div>
   );
