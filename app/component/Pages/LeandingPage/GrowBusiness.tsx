@@ -10,18 +10,21 @@ import icon1 from "@/public/serviceprovidericon.svg"
 import icon2 from "@/public/eventPlaner.svg"
 import icon3 from "@/public/venueprovider.svg"
 import Image from 'next/image';
-import { Check } from 'lucide-react';
+import { Check, Link } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 interface GrowBusinessSectionProps {
   backgroundImage?: string; // Optional prop to pass background image path
 }
 
 export default function GrowBusinessSection({ backgroundImage = '/business-bg.jpg' }: GrowBusinessSectionProps) {
+  const router = useRouter(); 
   const services = [
     {
       id: 1,
       icon: icon1,
       title: 'Join as a Service Provider',
       description: 'Offer your services to thousands of event hosts and get booked for weddings, corporate events, and celebrations.',
+       link:"/serviceprovider/auth/signin",
       features: [
         'Receive verified booking requests',
         'Flexible availability calendar',
@@ -33,6 +36,7 @@ export default function GrowBusinessSection({ backgroundImage = '/business-bg.jp
       icon: icon2,
       title: 'Join as a Event Planner',
       description: 'Step into events that need your expertise. Manage weddings, conferences, and private gatherings with precision and flair.',
+      link:"/serviceprovider/auth/signin",
       features: [
         'Coordinate event logistics with ease',
         'Deliver memorable experiences for clients',
@@ -44,6 +48,7 @@ export default function GrowBusinessSection({ backgroundImage = '/business-bg.jp
       icon:icon3,
       title: 'Join as a Venue Provider',
       description: 'List your venue and start accepting bookings for weddings, conferences, and private events.',
+      link:"/venueprovider/auth/signin",
       features: [
         'Manage venue availability',
         'Accept instant bookings',
@@ -120,7 +125,8 @@ text-white mb-[12px] ">
                 </ul>
 
                 {/* CTA Button */}
-                <button className="w-full bg-[#B74140] hover:bg-[#9a3534] text-white font-semibold py-3 sm:py-3.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+              
+                <button onClick={()=>{router.push(service.link)}} className="w-full bg-[#B74140] hover:bg-[#9a3534] text-white font-semibold py-3 sm:py-3.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                   Get Started
                 </button>
               </div>

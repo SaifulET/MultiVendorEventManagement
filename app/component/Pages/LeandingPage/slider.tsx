@@ -171,13 +171,13 @@ export default function HeroSlider() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 justify-center px-2">
               <Link
-                href="/pages/venues"
+                href="/pages/findVenues"
                 className="bg-[#B74140] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-md hover:bg-[#a03736] transition-colors font-medium text-base sm:text-lg min-w-[180px] sm:min-w-[200px]"
               >
                 Find Venues
               </Link>
               <a
-                href="/pages/serviceproviders"
+                href="/pages/findServiceProvider"
                 className="bg-transparent text-white border-2 border-white px-6 sm:px-8 py-3 sm:py-4 rounded-md hover:bg-white hover:text-gray-900 transition-colors font-medium text-base sm:text-lg min-w-[180px] sm:min-w-[200px]"
               >
                 Find Service Providers

@@ -114,7 +114,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/join-venue-provider" 
+                  href="/venueprovider/auth/signin" 
                   className="text-sm hover:text-red-400 transition-colors duration-200 block"
                 >
                   Join as Venue Provider
@@ -122,7 +122,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/join-service-provider" 
+                  href="/serviceprovider/auth/signin" 
                   className="text-sm hover:text-red-400 transition-colors duration-200 block"
                 >
                   Join as Service Provider

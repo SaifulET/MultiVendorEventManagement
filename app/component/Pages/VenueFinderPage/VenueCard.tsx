@@ -36,6 +36,12 @@ const isAmenityKey = (key: string): key is AmenityKey => {
 };
 
 export default function VenueCard({ venue }: VenueCardProps) {
+  const handleViewDetails = () => {
+    if(getButtonText() === 'View Details') {
+     
+      window.location.href = `/pages/findVenues/details`;
+    }
+  }
 
   const getButtonStyle = (): string => {
     switch (venue.status) {
@@ -119,6 +125,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
           
           <button
             disabled={venue.status !== 'available'}
+            onClick={handleViewDetails}
             className={`px-6 py-2.5 rounded-lg font-semibold transition-all shadow-md disabled:opacity-70 disabled:cursor-not-allowed ${getButtonStyle()}`}
           >
             {getButtonText()}

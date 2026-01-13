@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
               Discover amazing venues for your next celebration
             </p>
             <Link 
-              href="/join-venue-provider"
+              href="/venueprovider/auth/signin"
               className="inline-block bg-white text-gray-800 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 shadow-md"
               style={{ color: '#B74140' }}
             >
@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
               Join our platform and grow your service business with us
             </p>
             <Link 
-              href="/join-service-provider"
+              href="/serviceprovider/auth/signin"
               className="inline-block bg-white text-gray-800 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 shadow-md"
               style={{ color: '#B74140' }}
             >

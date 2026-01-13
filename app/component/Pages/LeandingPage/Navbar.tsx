@@ -1,27 +1,109 @@
 'use client';
-import React, { useState } from 'react';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, ChevronDown, MessageCircle, Bell, User } from 'lucide-react';
 import logo from "@/public/logo.svg";
 import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false); // Change this to true to see signed in state
+  const pathname = usePathname();
+  const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const navLinks = [
-    { name: 'Home', href: '#' },
-    { name: 'Find Venues', href: '#' },
-    { name: 'Find Event Planners', href: '#' },
-    { name: 'Find Service', href: '#', hasDropdown: true },
-    { name: 'About Us', href: '#' },
+    { name: 'Home', href: '/pages/homepage' },
+    { name: 'Find Venues', href: '/pages/findVenues' },
+    { name: 'Find Event Planners', href: '/pages/findServiceProvider?category=event-planner' },
+    { name: 'Find Service', href: '/pages/findServiceProvider', hasDropdown: true },
+    { name: 'About Us', href: '/pages/aboutus' },
   ];
 
+  const serviceOptions = [
+    { name: 'Catering', value: 'catering' },
+    { name: 'Photography', value: 'photography' },
+    { name: 'Decoration', value: 'decoration' },
+  ];
+
+  // Handle dropdown hover with delay for better UX
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsServiceOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsServiceOpen(false);
+    }, 300); // 300ms delay before closing
+  };
+
+  // Handle dropdown click
+  const handleServiceClick = (serviceValue: string) => {
+    const url = `/pages/findServiceProvider?category=${serviceValue}`;
+    router.push(url);
+    setIsServiceOpen(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  // Handle mobile service click
+  const handleMobileServiceClick = (serviceValue: string) => {
+    const url = `/pages/findServiceProvider?category=${serviceValue}`;
+    router.push(url);
+    setIsServiceOpen(false);
+  };
+
+  // Handle sign in/out
+  const handleAuthClick = () => {
+    if (isSignedIn) {
+      // Handle sign out logic
+      setIsSignedIn(false);
+      console.log('User signed out');
+    } else {
+      // Handle sign in logic - you can redirect to sign in page
+      setIsSignedIn(true);
+      console.log('User signed in');
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsServiceOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <nav className="bg-[#B741401A] shadow-sm">
+    <nav className="bg-[#fceded] shadow-sm sticky top-0 z-50">
       <div className="px-[20px] md:px-[50px] py-[16px]">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center">
-            <Image src={logo} alt="Logo" width={75} height={55}/>
+          <div onClick={()=>{router.push("/pages/homepage")}} className="flex items-center">
+            <Image src={logo} alt="Logo" width={75} height={55} />
           </div>
 
           {/* Desktop Navigation */}
@@ -30,46 +112,88 @@ export default function Navbar() {
               <div key={link.name} className="relative">
                 {link.hasDropdown ? (
                   <div
+                    ref={dropdownRef}
                     className="relative"
-                    onMouseEnter={() => setIsServiceOpen(true)}
-                    onMouseLeave={() => setIsServiceOpen(false)}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
                   >
-                    <button className="flex items-center space-x-1 text-gray-700 hover:text-[#B74140] transition-colors">
+                    <button className={`flex items-center space-x-1 transition-colors ${
+                      pathname === link.href 
+                        ? 'text-[#B74140]' 
+                        : 'text-gray-700 hover:text-[#B74140]'
+                    }`}>
                       <span>{link.name}</span>
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     {isServiceOpen && (
-                      <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
-                        {/* Placeholder for dropdown items - you can add these later */}
-                        <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                          Service 1
-                        </a>
-                        <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                          Service 2
-                        </a>
-                        <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                          Service 3
-                        </a>
+                      <div 
+                        className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50"
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        {serviceOptions.map((service) => (
+                          <button
+                            key={service.value}
+                            onClick={() => handleServiceClick(service.value)}
+                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[#B74140] transition-colors"
+                          >
+                            {service.name}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
                 ) : (
                   <a
                     href={link.href}
-                    className="text-gray-700 hover:text-[#B74140] transition-colors"
+                    className={`relative transition-colors ${
+                      pathname === link.href 
+                        ? 'text-[#B74140]' 
+                        : 'text-gray-700 hover:text-[#B74140]'
+                    }`}
                   >
                     {link.name}
+                    {pathname === link.href && (
+                      <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#B74140]"></span>
+                    )}
                   </a>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Sign In Button - Desktop */}
-          <div className="hidden lg:block">
-            <button className="bg-[#B74140] text-white px-6 py-2 rounded-md hover:bg-[#a03736] transition-colors">
-              Sign In
-            </button>
+          {/* Auth Section - Desktop */}
+          <div className="hidden lg:flex items-center space-x-4">
+            {isSignedIn ? (
+              <>
+                <button onClick={()=>{router.push("/home/dashboard/chat")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB]  transition-colors relative">
+                  <MessageCircle className="w-[22px] h-[22px]" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button onClick={()=>{router.push("/home/dashboard/notifications")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB]  transition-colors relative">
+                  <Bell  className="w-[22px] h-[22px]" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button onClick={()=>{router.push("/home/dashboard/profileSettings")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB]  transition-colors relative">
+                  <div className=" rounded-full flex items-center justify-center">
+                    <User className="w-[22px] h-[22px]" />
+                  </div>
+                </button>
+                <button 
+                  onClick={handleAuthClick}
+                  className="bg-[#B74140] text-white px-4 py-2 rounded-md  transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={handleAuthClick}
+                className="bg-[#B74140] text-white px-6 py-2 rounded-md hover:bg-[#a03736] transition-colors"
+              >
+                Sign In
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -91,7 +215,11 @@ export default function Navbar() {
                     <div>
                       <button
                         onClick={() => setIsServiceOpen(!isServiceOpen)}
-                        className="flex items-center justify-between w-full text-gray-700 hover:text-[#B74140] transition-colors"
+                        className={`flex items-center justify-between w-full transition-colors ${
+                          pathname === link.href 
+                            ? 'text-[#B74140]' 
+                            : 'text-gray-700 hover:text-[#B74140]'
+                        }`}
                       >
                         <span>{link.name}</span>
                         <ChevronDown
@@ -102,31 +230,81 @@ export default function Navbar() {
                       </button>
                       {isServiceOpen && (
                         <div className="mt-2 ml-4 space-y-2">
-                          <a href="#" className="block text-gray-600 hover:text-[#B74140]">
-                            Service 1
-                          </a>
-                          <a href="#" className="block text-gray-600 hover:text-[#B74140]">
-                            Service 2
-                          </a>
-                          <a href="#" className="block text-gray-600 hover:text-[#B74140]">
-                            Service 3
-                          </a>
+                          {serviceOptions.map((service) => (
+                            <button
+                              key={service.value}
+                              onClick={() => handleMobileServiceClick(service.value)}
+                              className="block text-gray-600 hover:text-[#B74140] transition-colors"
+                            >
+                              {service.name}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
                   ) : (
                     <a
                       href={link.href}
-                      className="block text-gray-700 hover:text-[#B74140] transition-colors"
+                      className={`block transition-colors ${
+                        pathname === link.href 
+                          ? 'text-[#B74140]' 
+                          : 'text-gray-700 hover:text-[#B74140]'
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {link.name}
+                      <span className="relative">
+                        {link.name}
+                        {pathname === link.href && (
+                          <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#B74140]"></span>
+                        )}
+                      </span>
                     </a>
                   )}
                 </div>
               ))}
-              <button className="bg-[#B74140] text-white px-6 py-2 rounded-md hover:bg-[#a03736] transition-colors w-full">
-                Sign In
-              </button>
+              
+              {/* Mobile Auth Section */}
+              <div className="pt-4 border-t">
+                {isSignedIn ? (
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <button onClick={()=>{router.push("/home/dashboard/profileSettings")}} className="p-[5px]  rounded-full flex items-center justify-center border border-[#F8FAFB]">
+                          <User className="w-6 h-6" />
+                        </button>
+                        <div>
+                          <p className="font-medium">John Doe</p>
+                          <p className="text-sm text-gray-500">john@example.com</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <button onClick={()=>{router.push("/home/dashboard/chat")}} className="flex-1 flex flex-col items-center p-3 text-gray-700 hover:text-[#B74140] transition-colors border rounded-lg">
+                        <MessageCircle className="w-5 h-5 mb-1" />
+                        <span className="text-xs">Messages</span>
+                      </button>
+                      <button onClick={()=>{router.push("/home/dashboard/notifications")}} className="flex-1 flex flex-col items-center p-3 text-gray-700 hover:text-[#B74140] transition-colors border rounded-lg relative">
+                        <Bell className="w-5 h-5 mb-1" />
+                        <span className="text-xs">Notifications</span>
+                        <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
+                      </button>
+                    </div>
+                    <button 
+                      onClick={handleAuthClick}
+                      className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-300 transition-colors w-full"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={handleAuthClick}
+                    className="bg-[#B74140] text-white px-6 py-3 rounded-md hover:bg-[#a03736] transition-colors w-full"
+                  >
+                    Sign In
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
