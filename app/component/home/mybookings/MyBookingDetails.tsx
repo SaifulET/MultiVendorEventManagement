@@ -47,7 +47,7 @@ const VenueBookingPage = () => {
 
   const router = useRouter();
 const handleVenueDetails = () => {
-router.push('/home/venueBooking/grand-ballroom-elite');
+router.push('/home/viewvenueprofile/details');
 
 }
   return (
@@ -241,7 +241,7 @@ router.push('/home/venueBooking/grand-ballroom-elite');
             {/* Contact Venue */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold mb-4">Contact Venue</h2>
-              <button className="w-full bg-[#B74140] hover:bg-[#a03635] text-white font-medium py-3 px-4 rounded-lg mb-3 transition-colors flex items-center justify-center gap-1">
+              <button onClick={()=>{router.push("/home/dashboard/chat")}} className="w-full bg-[#B74140] hover:bg-[#a03635] text-white font-medium py-3 px-4 rounded-lg mb-3 transition-colors flex items-center justify-center gap-1">
                 <MessageSquare size={16} strokeWidth={2.25} /> Message provider
               </button>
               <button onClick={handleVenueDetails} className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors">

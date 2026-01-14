@@ -210,7 +210,7 @@ export default function Navbar() {
                   <MessageCircle className="w-[22px] h-[22px]" />
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                <button onClick={()=>{router.push("/home/dashboard/notifications")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB] transition-colors relative">
+                <button onClick={()=>{router.push("/home/dashboard/notification")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB] transition-colors relative">
                   <Bell className="w-[22px] h-[22px]" />
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>

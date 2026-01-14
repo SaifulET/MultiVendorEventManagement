@@ -165,11 +165,9 @@ export default function ProviderFinderPage() {
           <div className="flex items-center justify-between">
             <div className="text-center m-auto">
               <h1 className="font-inter font-semibold md:text-[30px] md:leading-[36px] tracking-normal">
-                Find Your Perfect Service Provider
+                Find Your Perfect Event Planner
               </h1>
-              <p className="text-slate-600 mt-1 text-sm sm:text-base">
-                Trusted professionals for every event need
-              </p>
+             
             </div>
             
             {/* Mobile Filter Button */}

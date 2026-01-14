@@ -1,5 +1,6 @@
 import React from 'react';
 import img from "@/public/img.png"
+import { useRouter } from 'next/navigation';
 interface Booking {
   type: 'Venue' | 'Service';
   name: string;
@@ -49,27 +50,27 @@ const MyBookingsPage = () => {
         return '';
     }
   };
-
+const router= useRouter()
   const getActionButton = (status: string) => {
     if (status === 'Pending') {
       return (
         <div className="flex gap-2">
-          <button className="text-[#B74140] hover:underline">View</button>
+          <button onClick={()=>{router.push("/home/mybookings/booking-details")}} className="text-[#B74140] hover:underline">View</button>
           <button className="text-[#FF5A5A] hover:underline">Cancel</button>
         </div>
       );
     } else if (status === 'Completed') {
       return (
         <div className="flex gap-2">
-          <button className="text-[#B74140] hover:underline">View</button>
+          <button onClick={()=>{router.push("/home/mybookings/booking-details")}} className="text-[#B74140] hover:underline">View</button>
           <button className="text-[#B74140] hover:underline">Review</button>
         </div>
       );
     } else {
       return (
         <div className="flex gap-2">
-          <button className="text-[#B74140] hover:underline">View</button>
-          <button className="text-[#B74140] hover:underline">Message</button>
+          <button onClick={()=>{router.push("/home/mybookings/booking-details")}} className="text-[#B74140] hover:underline">View</button>
+          <button onClick={()=>{router.push("/home/dashboard/chat")}} className="text-[#B74140] hover:underline">Message</button>
         </div>
       );
     }
@@ -171,7 +172,7 @@ const MyBookingsPage = () => {
                 Confirmed
               </span>
 
-              <button className="w-full bg-[#B74140] text-white py-3 rounded-lg font-medium hover:bg-[#A03736] transition-colors">
+              <button onClick={()=>{router.push("/home/mybookings/booking-details")}}   className="w-full bg-[#B74140] text-white py-3 rounded-lg font-medium hover:bg-[#A03736] transition-colors">
                 View Details
               </button>
             </div>
