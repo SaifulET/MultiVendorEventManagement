@@ -100,7 +100,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
   onBack
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
       {/* Header - Now extracted to Navbar component */}
       
 
@@ -110,7 +110,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
           {/* Left Column - Main Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* Event Overview Card */}
-            <div className="bg-white border border-gray-200 rounded-xl p-8">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-8">
               <div className="flex items-start justify-between mb-8">
                 <div>
                   <h2 className="font-inter font-bold text-[30px] leading-9 tracking-normal mb-2">
@@ -168,7 +168,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
             </div>
 
             {/* Pricing Details Card */}
-            <div className="bg-white border border-gray-200 rounded-xl p-8">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-8">
               <h3 className="font-inter font-bold text-2xl leading-8 tracking-normal text-gray-900 mb-8">
                 Pricing Details
               </h3>
@@ -199,7 +199,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
               </div>
 
               {/* Special Requests */}
-              <div className="border-b border-gray-200 pb-8 mb-8">
+              <div className="border-b  border-[#E5E7EB] pb-8 mb-8">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">
                   Special Requests & Notes
                 </h4>
@@ -237,7 +237,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
 
           {/* Right Column - Actions Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-8">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 sticky top-8">
               {/* Actions */}
               <h3 className="text-xl font-bold text-gray-900 mb-6">Actions</h3>
               
@@ -268,7 +268,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
               </div>
 
               {/* Client Contact */}
-              <div className="mb-8 pt-6 border-t border-gray-100">
+              <div className="mb-8 pt-6 border-t  border-[#E5E7EB]">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">
                   Client Contact
                 </h4>

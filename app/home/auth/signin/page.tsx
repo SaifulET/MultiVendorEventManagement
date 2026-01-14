@@ -13,7 +13,7 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit=async(e: React.FormEvent)=>{
     e.preventDefault();
-    router.push("/home/dashboard/dashboard")
+    router.push("/home/auth/welcomeUser")
   }
 
   return (

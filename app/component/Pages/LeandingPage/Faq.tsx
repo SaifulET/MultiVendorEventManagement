@@ -52,7 +52,7 @@ export default function FAQPage() {
           {faqData.map((item, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md"
+              className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden transition-all duration-200 "
             >
               {/* Question Button */}
               <button

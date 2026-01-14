@@ -188,14 +188,14 @@ const HandleSave=()=>{
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Venue</h1>
-          <button onClick={()=>{HandleSave()}} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+          <button onClick={()=>{HandleSave()}} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#B74140] hover:bg-[#ad3c3a] text-white px-6 py-3 rounded-lg font-medium transition-colors">
             <Check className="w-5 h-5" />
             Publish Venue
           </button>
         </div>
 
         {/* Section 1: Basic Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               1
@@ -213,7 +213,7 @@ const HandleSave=()=>{
                 type="text"
                 value={formData.venueName}
                 onChange={(e) => handleInputChange('venueName', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
 
@@ -222,7 +222,7 @@ const HandleSave=()=>{
               <select
                 value={formData.venueCategory}
                 onChange={(e) => handleInputChange('venueCategory', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -236,14 +236,14 @@ const HandleSave=()=>{
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
               />
             </div>
           </div>
         </div>
 
         {/* Section 2: Location */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               2
@@ -261,7 +261,7 @@ const HandleSave=()=>{
                 type="text"
                 value={formData.fullAddress}
                 onChange={(e) => handleInputChange('fullAddress', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
 
@@ -272,7 +272,7 @@ const HandleSave=()=>{
                   type="text"
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
 
@@ -282,14 +282,14 @@ const HandleSave=()=>{
                   type="text"
                   value={formData.postCode}
                   onChange={(e) => handleInputChange('postCode', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Map Location</label>
-              <div className="bg-gray-100 rounded-lg p-12 flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
+              <div className="bg-gray-100 rounded-lg p-12 flex flex-col items-center justify-center border-2 border-dashed  border-[#E5E7EB]">
                 <MapPin className="w-12 h-12 text-red-500 mb-3" />
                 <p className="text-gray-700 font-medium mb-1">Click to set location pin</p>
                 <p className="text-sm text-gray-500">Drag the pin to adjust position</p>
@@ -299,7 +299,7 @@ const HandleSave=()=>{
         </div>
 
         {/* Section 3: Pricing & Capacity */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               3
@@ -319,7 +319,7 @@ const HandleSave=()=>{
                   type="number"
                   value={formData.pricePerPerson}
                   onChange={(e) => handleInputChange('pricePerPerson', e.target.value)}
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full pl-8 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -331,7 +331,7 @@ const HandleSave=()=>{
                   type="number"
                   value={formData.guestCapacity}
                   onChange={(e) => handleInputChange('guestCapacity', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">guests</span>
               </div>
@@ -340,7 +340,7 @@ const HandleSave=()=>{
         </div>
 
         {/* Section 4: Amenities */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               4
@@ -355,7 +355,7 @@ const HandleSave=()=>{
             {amenitiesList.map(amenity => (
               <label
                 key={amenity.id}
-                className="flex items-center gap-3 p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-4 border border-[#E5E7EB] rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 <input
                   type="checkbox"
@@ -371,7 +371,7 @@ const HandleSave=()=>{
         </div>
 
         {/* Section 5: Media */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               5
@@ -400,7 +400,7 @@ const HandleSave=()=>{
               ))}
               <button
                 onClick={handleImageUpload}
-                className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-red-500 hover:bg-red-50 transition-colors"
+                className="aspect-square border border-dashed  border-[#E5E7EB] rounded-lg flex flex-col items-center justify-center hover:border-red-500 hover:bg-red-50 transition-colors"
               >
                 <svg className="w-8 h-8 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -442,7 +442,7 @@ const HandleSave=()=>{
         </div>
 
         {/* Section 6: Availability Calendar */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               6
@@ -461,13 +461,13 @@ const HandleSave=()=>{
               <div className="flex gap-2">
                 <button
                   onClick={() => changeMonth(-1)}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-gray-50"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => changeMonth(1)}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-gray-50"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

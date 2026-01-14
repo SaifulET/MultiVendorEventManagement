@@ -119,7 +119,7 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange }
 
       {/* Modal */}
       <div className="fixed inset-x-0 bottom-0 z-50 lg:hidden animate-slide-up">
-        <div className="bg-white  shadow-2xl h-[100vh] overflow-y-auto">
+        <div className="bg-white  border border-[#E5E7EB]  h-[100vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
             <h2 className="text-xl font-bold text-slate-900">Filters</h2>
@@ -143,7 +143,7 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange }
               {/* Show On Map Button Overlay */}
               <button
                 onClick={handleShowOnMap}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#B74140] hover:bg-[#8a3634] text-white px-4 py-2 rounded-full font-medium text-sm shadow-lg transition-colors flex items-center gap-2"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#B74140] hover:bg-[#8a3634] text-white px-4 py-2 rounded-full font-medium text-sm border border-[#E5E7EB]  transition-colors flex items-center gap-2"
               >
                 <MapPin size={16} />
                 Show On Map
@@ -299,7 +299,7 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange }
             </button>
             <button
               onClick={handleApply}
-              className="flex-1 px-6 py-3 bg-[#B74140] text-white rounded-lg font-semibold hover:bg-[#862f2e] transition-colors shadow-md"
+              className="flex-1 px-6 py-3 bg-[#B74140] text-white rounded-lg font-semibold hover:bg-[#862f2e] transition-colors border border-[#E5E7EB] "
             >
               Apply Filters
             </button>

@@ -228,7 +228,7 @@ const ServiceProviderConfirmation: React.FC = () => {
     // Store booking data in localStorage for the confirmation page
     localStorage.setItem('bookingData', JSON.stringify(bookingData));
     
-    router.push('/pages/findServiceProviderConfirmation/confirmed-booking-slug');
+    router.push('/pages/reviewProvider/details');
   };
 
   const calendarDays = getCalendarDays();
@@ -247,7 +247,7 @@ const ServiceProviderConfirmation: React.FC = () => {
           <div className="space-y-6">
 
             {/* DATE & TIME */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <div className='flex items-center justify-between'> 
                 <h2 className="text-xl font-semibold mb-6">Select Date & Time</h2>
                 <div className="w-[198px] flex flex-col justify-center items-center gap-2">
@@ -403,7 +403,7 @@ const ServiceProviderConfirmation: React.FC = () => {
             </div>
 
             {/* PAYMENT */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-semibold mb-6">Payment Information</h2>
 
               <div className="space-y-4">
@@ -450,7 +450,7 @@ const ServiceProviderConfirmation: React.FC = () => {
             </div>
 
             {/* CONFIRM */}
-            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 space-y-6">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -459,7 +459,7 @@ const ServiceProviderConfirmation: React.FC = () => {
                   className="w-5 h-5 rounded border-gray-300 text-[#B74140] focus:ring-[#B74140]"
                 />
                 <span className="text-gray-700">
-                  I agree to the <a href="#" className="text-[#B74140] hover:underline">Terms of Service</a>
+                  I agree to the <a href="/pages/termsAndConditions" className="text-[#B74140] hover:underline">Terms of Service</a>
                 </span>
               </label>
 
@@ -483,7 +483,7 @@ const ServiceProviderConfirmation: React.FC = () => {
 
           {/* RIGHT COLUMN - SUMMARY */}
           <div className="sticky top-6 h-fit">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-semibold mb-6">Booking Summary</h2>
 
               {/* Provider Info */}
@@ -500,7 +500,7 @@ const ServiceProviderConfirmation: React.FC = () => {
               </div>
 
               {/* Contact Button */}
-              <button className="w-full border border-gray-300 rounded-lg py-3 mb-6 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
+              <button onClick={()=>{router.push("/home/dashboard/chat")}} className="w-full border border-gray-300 rounded-lg py-3 mb-6 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0l3.293 3.293 3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
                 </svg>

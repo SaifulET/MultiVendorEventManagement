@@ -91,7 +91,7 @@ export default function SubscriptionManagement() {
 
         {/* Current Plan Card */}
         <div className="mb-[32px] sm:mb-[48px] animate-slide-up">
-          <div className="bg-[#B74140] rounded-3xl shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-transform duration-300">
+          <div className="bg-[#B74140] rounded-3xl border border-[#E5E7EB] overflow-hidden transform hover:scale-[1.01] transition-transform duration-300">
             <div className="p-[24px] lg:p-[32px]">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-0 mb-6">
                 <div>
@@ -106,25 +106,25 @@ export default function SubscriptionManagement() {
                     Everything you need to grow your business
                   </p>
                 </div>
-                <button className="px-6 py-2.5 bg-white text-rose-600 rounded-xl font-semibold hover:bg-rose-50 transition-all duration-300 shadow-lg hover:shadow-xl self-start sm:self-auto transform hover:-translate-y-0.5">
+                <button className="px-6 py-2.5 bg-white text-rose-600 rounded-xl font-semibold hover:bg-rose-50 transition-all duration-300 border border-[#E5E7EB] hover:shadow-xl self-start sm:self-auto transform hover:-translate-y-0.5">
                   Cancel Subscription
                 </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-[#E5E7EB]">
                   <p className="text-rose-100 font-inter font-normal text-[14px] leading-[20px] tracking-[0] mb-1">Billing Cycle</p>
                   <p className="text-white font-inter font-semibold text-[20px] leading-[28px] tracking-[0]">
                     Monthly
                   </p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-[#E5E7EB]">
                   <p className="text-rose-100 font-inter font-normal text-[14px] leading-[20px] tracking-[0] mb-1">Next Renewal</p>
                   <p className="text-white font-inter font-semibold text-[20px] leading-[28px] tracking-[0]">
                     January 15, 2025
                   </p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-[#E5E7EB]">
                   <p className="text-rose-100 font-inter font-normal text-[14px] leading-[20px] tracking-[0] mb-1">Amount</p>
                   <p className="text-white font-inter font-semibold text-[20px] leading-[28px] tracking-[0]">
                     $49/month
@@ -151,7 +151,7 @@ export default function SubscriptionManagement() {
             {plans.map((plan, index) => (
               <div
                 key={plan.name}
-                className={`relative bg-white rounded-3xl shadow-xl  transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${
+                className={`relative bg-white rounded-3xl   transform transition-all duration-500 border border-[#E5E7EB] hover:-translate-y-2 ${
                   plan.highlighted ? "lg:scale-105 ring-4 ring-[#B74140]" : ""
                 }`}
                 style={{
@@ -211,7 +211,7 @@ export default function SubscriptionManagement() {
                   </ul>
 
                   <button
-                    className={`w-full py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl ${
+                    className={`w-full py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] border border-[#E5E7EB] ${
                       plan.current
                         ? "bg-[#B74140] text-white"
                         : "bg-slate-900 text-white hover:bg-slate-800"

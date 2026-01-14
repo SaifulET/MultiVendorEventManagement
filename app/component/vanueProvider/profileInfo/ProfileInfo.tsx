@@ -28,9 +28,9 @@ const router = useRouter();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-4 lg:px[408px] lg:py-[22px]">
+    <div className="min-h-screen flex items-center justify-center px-4 py-4 lg:px[408px] lg:py-[22px]">
       <div className="">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 lg:p-[32px]">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 sm:p-8 lg:p-[32px]">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
             <h1 className="font-inter font-semibold text-[24px] leading-[32px] tracking-[0] text-gray-900 mb-2">
@@ -55,7 +55,7 @@ const router = useRouter();
                 value={formData.businessName}
                 onChange={handleInputChange}
                 placeholder="Enter your business name"
-                className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
+                className="w-full px-4 py-2.5 sm:py-3 border border-[#E5E7EB] rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
                 required
               />
             </div>
@@ -71,7 +71,7 @@ const router = useRouter();
                   name="businessType"
                   value={formData.businessType}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-md text-sm sm:text-base text-gray-900 appearance-none  transition-all cursor-pointer"
+                  className="w-full px-4 py-2.5 sm:py-3 border border-[#E5E7EB] rounded-md text-sm sm:text-base text-gray-900 appearance-none  transition-all cursor-pointer"
                   required
                 >
                   <option value="">Select business type</option>
@@ -82,7 +82,7 @@ const router = useRouter();
                   <option value="retail">Retail Store</option>
                   <option value="other">Other</option>
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#9CA3AF] pointer-events-none" />
               </div>
             </div>
 
@@ -99,7 +99,7 @@ const router = useRouter();
                 value={formData.legalBusinessName}
                 onChange={handleInputChange}
                 placeholder="Enter legal business name"
-                className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
+                className="w-full px-4 py-2.5 sm:py-3 border border-[#E5E7EB] rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
               />
             </div>
 
@@ -116,7 +116,7 @@ const router = useRouter();
                 value={formData.registrationNumber}
                 onChange={handleInputChange}
                 placeholder="Enter registration number"
-                className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
+                className="w-full px-4 py-2.5 sm:py-3 border border-[#E5E7EB] rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
               />
             </div>
 
@@ -132,7 +132,7 @@ const router = useRouter();
                 value={formData.businessEmail}
                 onChange={handleInputChange}
                 placeholder="Enter business email"
-                className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
+                className="w-full px-4 py-2.5 sm:py-3 border border-[#E5E7EB] rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
                 required
               />
             </div>
@@ -149,7 +149,7 @@ const router = useRouter();
                 value={formData.businessPhone}
                 onChange={handleInputChange}
                 placeholder="Enter business phone number"
-                className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
+                className="w-full px-4 py-2.5 sm:py-3 border border-[#E5E7EB] rounded-md text-sm sm:text-base placeholder-gray-400  transition-all"
                 required
               />
             </div>

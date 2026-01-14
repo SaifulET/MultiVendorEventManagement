@@ -138,7 +138,7 @@ const router = useRouter();
           <div className="space-y-6">
 
             {/* DATE & TIME */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-semibold mb-6">Select Date & Time</h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
@@ -224,7 +224,7 @@ const router = useRouter();
             </div>
 
             {/* EVENT DETAILS */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-6">
               <div className="flex justify-between mb-4">
                 <h2 className="text-xl font-semibold">Event Details</h2>
                 <button 
@@ -294,7 +294,7 @@ const router = useRouter();
             </div>
 
             {/* PAYMENT */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-6">
               <h2 className="text-xl font-semibold mb-6">Payment Information</h2>
 
               <div className="space-y-4">
@@ -341,7 +341,7 @@ const router = useRouter();
             </div>
 
             {/* CONFIRM */}
-            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 space-y-6">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -350,7 +350,7 @@ const router = useRouter();
                   className="w-5 h-5 rounded border-gray-300 text-[#B74140] focus:ring-[#B74140]"
                 />
                 <span className="text-gray-700">
-                  I agree to the <a href="#" className="text-[#B74140] hover:underline">Terms of Service</a>
+                  I agree to the <a href="/pages/termsAndConditions" className="text-[#B74140] hover:underline">Terms of Service</a>
                 </span>
               </label>
 
@@ -374,7 +374,7 @@ const router = useRouter();
 
           {/* RIGHT COLUMN - SUMMARY */}
           <div className="sticky top-6 h-fit">
-            <div className="bg-white rounded-lg shadow-sm p-[25px]">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-[25px]">
               <h2 className="text-xl font-semibold mb-4">Booking Summary</h2>
 
               <img

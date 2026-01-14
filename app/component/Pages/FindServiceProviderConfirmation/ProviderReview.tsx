@@ -16,12 +16,12 @@ export default function ReviewForm() {
 
   const handleSubmit = () => {
     // In your Next.js app, you would use: router.push('/pages/findServiceProvider');
-    window.location.href = '/pages/findServceProvider';
+    window.location.href = '/pages/findServiceProvider';
   };
 
   const handleSkip = () => {
     // In your Next.js app, you would use: router.push('/pages/findServiceProvider');
-    window.location.href = '/pages/findServceProvider';
+    window.location.href = '/pages/findServiceProvider';
   };
 
   const StarRating = ({ 

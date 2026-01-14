@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Play, MapPin, DollarSign, Users, Wifi, Volume2, Utensils, Wind, Accessibility, Calendar, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface CalendarDay {
   date: number;
@@ -156,7 +158,7 @@ const VenueBookingPage: React.FC = () => {
     setSelectedMedia(mediaName);
     setIsPlaying(false);
   };
-
+const router= useRouter()
   const handlePlayClick = (): void => {
     const currentMedia = mediaOptions.find(m => m.name === selectedMedia);
     if (currentMedia?.type === 'video') {
@@ -187,7 +189,7 @@ const VenueBookingPage: React.FC = () => {
           {/* Left Column: Media Gallery + Details */}
           <div className="lg:col-span-8">
             {/* Media Gallery Card */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-[42px]">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  overflow-hidden mb-[42px]">
               {/* Main Image/Video Display */}
               <div className="aspect-video bg-gray-200 relative  w-[811px] h-[480px]">
                 {isPlaying && currentMedia?.type === 'video' ? (
@@ -202,17 +204,21 @@ const VenueBookingPage: React.FC = () => {
                   </video>
                 ) : (
                   <>
-                    <img
-                      src={currentMedia?.thumbnail || 'https://images.unsplash.com/photo-1519167758481-83f29da8685c?w=1200&h=675&fit=crop'}
-                      alt="Grand Ballroom"
-                      className="w-full h-full object-cover"
-                    />
+                   <Image
+  src={
+    currentMedia?.thumbnail ||
+    "https://images.unsplash.com/photo-1519167758481-83f29da8685c?w=1200&h=675&fit=crop"
+  }
+  alt="Grand Ballroom"
+  fill
+  className="object-cover"
+/>
                     {currentMedia?.type === 'video' && (
                       <button 
                         onClick={handlePlayClick}
                         className="absolute inset-0 flex items-center justify-center"
                       >
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center border border-[#E5E7EB]  hover:scale-110 transition-transform">
                           <Play className="w-10 h-10 text-gray-800 ml-1" fill="currentColor" />
                         </div>
                       </button>
@@ -257,7 +263,7 @@ const VenueBookingPage: React.FC = () => {
             </div>
 
             {/* Venue Details Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-[32px]">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-6 mb-[32px]">
               <h1 className="text-2xl font-bold mb-2">Grand Ballroom at The Metropolitan</h1>
               
               <div className="flex items-start gap-2 text-gray-600 mb-6">
@@ -335,7 +341,7 @@ const VenueBookingPage: React.FC = () => {
             </div>
 
             {/* Reviews Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-6">
               <h2 className="text-lg font-semibold mb-6">Reviews ({reviews.length})</h2>
               <div className="space-y-4">
                 {reviews.map((review, index) => (
@@ -361,7 +367,7 @@ const VenueBookingPage: React.FC = () => {
 
           {/* Right Column: Booking Calendar */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-lg shadow-lg p-5 sticky top-8">
+            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-5 sticky top-8">
               <h3 className="text-base font-semibold mb-4">Check Availability</h3>
               
               {/* Month Navigation */}
@@ -427,7 +433,7 @@ const VenueBookingPage: React.FC = () => {
               <button onClick={bookHandler} className="w-full bg-[#B74140] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#a03837] transition-colors mb-2.5">
                 Book Now
               </button>
-              <button className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+              <button onClick={()=>{router.push("/home/dashboard/chat")}} className="w-full border border-[#E5E7EB]  text-gray-700 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
                 Contact Provider
               </button>
             </div>

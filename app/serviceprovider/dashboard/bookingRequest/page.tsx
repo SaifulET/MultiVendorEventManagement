@@ -206,7 +206,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Requests Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Total Requests</p>
@@ -219,7 +219,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Pending Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Pending</p>
@@ -232,7 +232,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Accepted Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Accepted</p>
@@ -245,7 +245,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Rejected Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Rejected</p>
@@ -259,7 +259,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
         </div>
 
         {/* Recent Booking Requests Table */}
-        <div className="bg-white rounded-2xl shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB]">
           {/* Table Header */}
           <div className="px-[24px] py-[20px] border-b border-gray-100">
             <h2 className="text-xl font-bold text-gray-900">Recent Booking Requests</h2>

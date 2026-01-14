@@ -1,24 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-
-    images: {
+  images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'i.pravatar.cc',
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      // add any other external image domains you need
+      {
+        protocol: "https",
+        hostname: "encrypted-tbn0.gstatic.com",
       },
       {
-        protocol: 'https',
-        hostname: 'i.pinimg.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.pinimg.com', // Wildcard for all pinimg subdomains
+        protocol: "https",
+        hostname: "i.pravatar.cc",
       },
     ],
   },
-  /* config options here */
 };
 
 export default nextConfig;

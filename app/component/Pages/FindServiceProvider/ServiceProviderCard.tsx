@@ -21,7 +21,7 @@ export default function serviceProviderCard({ serviceProvider }: serviceProvider
   const handleViewDetails = () => {
    
      
-      window.location.href = `/pages/findVenues/details`;
+      window.location.href = `/pages/findServiceProvider/confirmed-booking-slug`;
   }
   const getButtonStyles = (): string => {
     switch (serviceProvider.status) {
@@ -38,7 +38,7 @@ export default function serviceProviderCard({ serviceProvider }: serviceProvider
 
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border border-slate-200 ">
+    <div className="bg-white rounded-xl border border-[#E5E7EB] transition-all duration-300 overflow-hidden group border border-slate-200 ">
       {/* Image */}
       <div className=" h-[191px] overflow-hidden">
         <img
@@ -104,7 +104,7 @@ export default function serviceProviderCard({ serviceProvider }: serviceProvider
         </div>
          <button
             onClick={handleViewDetails}
-            className={`w-full px-6 py-[12px] rounded-lg font-semibold transition-all shadow-md disabled:opacity-70 disabled:cursor-not-allowed bg-[#B74140] hover:bg-[#9d3534] text-white`}
+            className={`w-full px-6 py-[12px] rounded-lg font-semibold transition-all border border-[#E5E7EB] disabled:opacity-70 disabled:cursor-not-allowed bg-[#B74140] hover:bg-[#9d3534] text-white`}
           >
             View Details
           </button>

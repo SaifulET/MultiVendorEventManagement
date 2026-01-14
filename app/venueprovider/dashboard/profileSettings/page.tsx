@@ -105,7 +105,7 @@ export default function ProfileSettings() {
     <div className="min-h-screen bg-white ">
       <div className="">
         {/* Profile Information Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px] mb-[25px]">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-[18px] sm:p-[24px] mb-[25px]">
           <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Profile Information</h2>
           
           <div className="flex flex-col sm:flex-row gap-[24px] sm:gap-[18px]">
@@ -131,7 +131,7 @@ export default function ProfileSettings() {
                   type="text"
                   value={profileData.fullName}
                   onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300  transition-all duration-200 text-slate-900"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#E5E7EB]  transition-all duration-200 text-slate-900"
                   readOnly
                 />
               </div>
@@ -145,7 +145,7 @@ export default function ProfileSettings() {
                   type="email"
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 f transition-all duration-200 text-slate-900"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#E5E7EB]  transition-all duration-200 text-slate-900"
                   readOnly
                 />
               </div>
@@ -159,7 +159,7 @@ export default function ProfileSettings() {
                   type="tel"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 fo transition-all duration-200 text-slate-900"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#E5E7EB]  transition-all duration-200 text-slate-900"
                   readOnly
                 />
               </div>
@@ -168,7 +168,7 @@ export default function ProfileSettings() {
               <div className="flex items-end">
                 <button
                   onClick={handleEditProfile}
-                  className="w-full sm:w-auto px-8 py-2.5 bg-[#B74140] text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  className="w-full sm:w-auto px-8 py-2.5 bg-[#B74140] text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 border border-[#E5E7EB] transform hover:-translate-y-0.5"
                 >
                   Edit profile
                 </button>
@@ -178,7 +178,7 @@ export default function ProfileSettings() {
         </div>
 
         {/* Account Settings Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px] mb-[32px]">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-[18px] sm:p-[24px] mb-[32px]">
           <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Account Settings</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -205,7 +205,7 @@ export default function ProfileSettings() {
                 type="text"
                 value={accountSettings.location}
                 onChange={(e) => setAccountSettings({ ...accountSettings, location: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300  transition-all duration-200 text-slate-900"
+                className="w-full px-4 py-2.5 rounded-lg border border-[#E5E7EB]  transition-all duration-200 text-slate-900"
                 readOnly
               />
             </div>
@@ -213,14 +213,14 @@ export default function ProfileSettings() {
         </div>
 
         {/* Payment Methods Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px]">
+        <div className="bg-white rounded-2xl sborder border-[#E5E7EB] p-[18px] sm:p-[24px]">
           <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Payment Methods</h2>
           
           <div className="space-y-4">
             {paymentCards.map((card) => (
               <div
                 key={card.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border border-[#E5E7EB] hover:border-[#E5E7EB] transition-all duration-200"
               >
                 {/* Card Info */}
                 <div className="flex items-center gap-4">

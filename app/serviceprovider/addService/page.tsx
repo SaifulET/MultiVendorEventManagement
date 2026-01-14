@@ -8,51 +8,17 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-// Dynamically import ALL map-related components to avoid SSR issues
-const LeafletPreview = dynamic(
-  () => import('./LeafletPreview'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="h-full flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-400 animate-pulse" />
-          <p className="text-sm text-gray-500">Loading map...</p>
-        </div>
-      </div>
-    )
-  }
-);
 
-// Also dynamically import MapContainer
-const MapContainer = dynamic(
-  () => import('@/app/component/vanueProvider/StreetMap/MapContainer'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-        <div className="bg-white rounded-2xl p-8">
-          <p className="text-gray-600">Loading map...</p>
-        </div>
-      </div>
-    )
-  }
-);
 
 interface AvailabilityStatus {
   [key: number]: 'available' | 'pending' | 'booked' | null;
 }
 
-interface Amenity {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-}
+
 
 const VenueManagement: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<number>(11);
   const [currentYear, setCurrentYear] = useState<number>(2024);
-  const [showMap, setShowMap] = useState<boolean>(false);
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
     lng: number;
@@ -85,24 +51,6 @@ const VenueManagement: React.FC = () => {
     return 'text-gray-400 hover:bg-gray-50';
   };
 
-  const amenities: Amenity[] = [
-    { id: 'wifi', label: 'Wi-Fi', icon: <Wifi className="w-6 h-6" /> },
-    { id: 'parking', label: 'Parking', icon: <Car className="w-6 h-6" /> },
-    { id: 'ac', label: 'AC', icon: <Snowflake className="w-6 h-6" /> },
-    { id: 'catering', label: 'Catering', icon: <Utensils className="w-6 h-6" /> },
-    { id: 'audio', label: 'Audio/Video', icon: <Mic className="w-6 h-6" /> },
-    { id: 'security', label: 'Security', icon: <Shield className="w-6 h-6" /> },
-    { id: 'accessible', label: 'Accessible', icon: <Accessibility className="w-6 h-6" /> },
-    { id: 'sound', label: 'Sound System', icon: <Music className="w-6 h-6" /> }
-  ];
-
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-
-  const toggleAmenity = (id: string): void => {
-    setSelectedAmenities(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
-  };
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>): void => {
     const files = e.target.files;
@@ -153,13 +101,7 @@ const VenueManagement: React.FC = () => {
     }
   };
 
-  const openGoogleMaps = (): void => {
-    setShowMap(true);
-  };
 
-  const handleLocationSelect = (lat: number, lng: number, address: string): void => {
-    setSelectedLocation({ lat, lng, address });
-  };
 
   const addVideoLink = (): void => {
     setVideoLinks([...videoLinks, '']);
@@ -206,44 +148,7 @@ const VenueManagement: React.FC = () => {
     ];
   };
 
-  // Map Preview Component
-  const MapPreview = () => {
-    if (!selectedLocation) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center text-gray-500">
-          <MapPin className="w-6 h-6 mb-2" />
-          <span className="text-sm">Click to set location on map</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="h-full relative">
-        <LeafletPreview
-          lat={selectedLocation.lat}
-          lng={selectedLocation.lng}
-        />
-
-        <div className="absolute bottom-3 left-3 right-3 bg-white/90 rounded-lg p-2 text-xs">
-          <p className="font-medium truncate">{selectedLocation.address}</p>
-          <p>
-            Lat: {selectedLocation.lat.toFixed(6)} | Lng:{' '}
-            {selectedLocation.lng.toFixed(6)}
-          </p>
-        </div>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedLocation(null);
-          }}
-          className="absolute top-3 right-3 bg-white p-1 rounded shadow"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  };
+ 
 
   const route = useRouter();
   
@@ -259,7 +164,7 @@ const VenueManagement: React.FC = () => {
           {/* Left Column - Main Form */}
           <div className="lg:col-span-2 space-y-6 ">
             {/* Venue Information */}
-            <div className="bg-white rounded-xl shadow-sm p-[24px]">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-[24px]">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Service Information</h2>
               
               <div className="space-y-5">
@@ -313,57 +218,11 @@ const VenueManagement: React.FC = () => {
                   <textarea  id="description"   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors" placeholder='Describe your service in detail...'></textarea>
                 </div>
 
-                {/* Location Section */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Service Location</label>
-                  <button
-                    type="button"
-                    onClick={openGoogleMaps}
-                    className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors overflow-hidden outline-none"
-                  >
-                    <MapPreview />
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">Click on the map to set or change location</p>
-                </div>
-
-                {/* Amenities Section */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Amenities</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {amenities.map(amenity => (
-                      <button
-                        key={amenity.id}
-                        type="button"
-                        onClick={() => toggleAmenity(amenity.id)}
-                        className={`flex flex-col items-center p-4 rounded-xl border transition-colors ${
-                          selectedAmenities.includes(amenity.id)
-                            ? 'border-[#B74140] bg-[#B74140]/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        } outline-none`}
-                      >
-                        <div className={`p-2 rounded-lg mb-2 ${
-                          selectedAmenities.includes(amenity.id)
-                            ? 'text-[#B74140]'
-                            : 'text-gray-400'
-                        }`}>
-                          {amenity.icon}
-                        </div>
-                        <span className={`text-sm font-medium ${
-                          selectedAmenities.includes(amenity.id)
-                            ? 'text-[#B74140]'
-                            : 'text-gray-700'
-                        }`}>
-                          {amenity.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
 
             {/* Pricing */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Pricing</h2>
               
               <div className="space-y-5">
@@ -391,7 +250,7 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Gallery */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Gallery</h2>
               
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6">
@@ -433,7 +292,7 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Venue Video */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Venue Video (if have)</h2>
               
               <div className="space-y-4">
@@ -474,7 +333,7 @@ const VenueManagement: React.FC = () => {
           {/* Right Column - Calendar & Publish */}
           <div className="space-y-6">
             {/* Availability Calendar */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Availability Calendar</h2>
               
               <div className="mb-4">
@@ -518,7 +377,7 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Publish Settings */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Publish Settings</h2>
               
               <button onClick={()=>{route.push("/venueprovider/dashboard/myVanue")}} className="w-full py-3 bg-[#B74140] hover:bg-[#802423] text-white font-semibold rounded-lg transition-colors outline-none">
@@ -529,18 +388,7 @@ const VenueManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Map Container Modal */}
-      {showMap && (
-        <MapContainer
-          onClose={() => setShowMap(false)}
-          onLocationSelect={handleLocationSelect}
-          initialPosition={selectedLocation ? { 
-            lat: selectedLocation.lat, 
-            lng: selectedLocation.lng 
-          } : undefined}
-          initialAddress={selectedLocation?.address}
-        />
-      )}
+   
     </div>
   );
 };

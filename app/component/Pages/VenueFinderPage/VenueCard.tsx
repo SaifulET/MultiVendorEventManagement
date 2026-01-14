@@ -70,7 +70,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border border-slate-200">
+    <div className="bg-white rounded-xl border border-[#E5E7EB]  hover:shadow-xl transition-all duration-300 overflow-hidden group border border-slate-200">
       {/* Image */}
       <div className=" h-[191px] overflow-hidden">
         <img
@@ -126,7 +126,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
           <button
             disabled={venue.status !== 'available'}
             onClick={handleViewDetails}
-            className={`px-6 py-2.5 rounded-lg font-semibold transition-all shadow-md disabled:opacity-70 disabled:cursor-not-allowed ${getButtonStyle()}`}
+            className={`px-6 py-2.5 rounded-lg font-semibold transition-all border border-[#E5E7EB]  disabled:opacity-70 disabled:cursor-not-allowed ${getButtonStyle()}`}
           >
             {getButtonText()}
           </button>

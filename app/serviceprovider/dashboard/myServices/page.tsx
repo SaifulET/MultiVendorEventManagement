@@ -132,7 +132,7 @@ const router = useRouter();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 ">
+    <div className="min-h-screen  ">
       <div className="">
         {/* Header */}
         <div className=" flex justify-between p-[32px]">
@@ -149,16 +149,16 @@ const router = useRouter();
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+        <div className="hidden lg:block bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-y border-gray-200">
+              <thead className="bg-gray-50 border-y border-[#E5E7EB]">
                 <tr>
                   <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Venue Name</th>
                   <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Category</th>
@@ -190,7 +190,7 @@ const router = useRouter();
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         venue.status === 'Published' 
                           ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
+                          : 'bg-red-100 text-[#B74140]'
                       }`}>
                         {venue.status}
                       </span>
@@ -202,7 +202,7 @@ const router = useRouter();
                           <Edit2 className="w-4 h-4" />
                         </button>
                         
-                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button className="p-2 text-[#B74140] hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -217,7 +217,7 @@ const router = useRouter();
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden space-y-4">
           {currentVenues.map((venue) => (
-            <div key={venue.id} className="bg-white rounded-lg shadow p-4">
+            <div key={venue.id} className="bg-white rounded-lg border border-[#E5E7EB] p-4">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center text-3xl flex-shrink-0">
                   {venue.image}
@@ -228,7 +228,7 @@ const router = useRouter();
                   <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                     venue.status === 'Published' 
                       ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
+                      : 'bg-red-100 text-[#B74140]'
                   }`}>
                     {venue.status}
                   </span>
@@ -267,14 +267,14 @@ const router = useRouter();
 
         {/* No Results */}
         {filteredVenues.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="bg-white rounded-lg border border-[#E5E7EB] p-12 text-center">
             <p className="text-gray-500 text-lg">No venues found matching your search.</p>
           </div>
         )}
 
         {/* Pagination */}
         {filteredVenues.length > 0 && (
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg shadow p-4">
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg border border-[#E5E7EB] p-4">
             <div className="text-sm text-gray-600">
               SHOWING {startIndex + 1}-{Math.min(endIndex, filteredVenues.length)} OF {filteredVenues.length}
             </div>
@@ -283,7 +283,7 @@ const router = useRouter();
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg border border-[#E5E7EB] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -298,7 +298,7 @@ const router = useRouter();
                         onClick={() => handlePageChange(page as number)}
                         className={`min-w-[40px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           currentPage === page
-                            ? 'bg-red-500 text-white'
+                            ? 'bg-[#B74140] text-white'
                             : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
@@ -312,7 +312,7 @@ const router = useRouter();
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg border border-[#E5E7EB] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>

@@ -188,14 +188,14 @@ const HandleSave=()=>{
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Service</h1>
-          <button onClick={()=>{HandleSave()}} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+          <button onClick={()=>{HandleSave()}} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#B74140] hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
             <Check className="w-5 h-5" />
             Publish Service
           </button>
         </div>
 
         {/* Section 1: Basic Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               1
@@ -213,7 +213,7 @@ const HandleSave=()=>{
                 type="text"
                 value={formData.venueName}
                 onChange={(e) => handleInputChange('venueName', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
 
@@ -222,7 +222,7 @@ const HandleSave=()=>{
               <select
                 value={formData.venueCategory}
                 onChange={(e) => handleInputChange('venueCategory', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -236,7 +236,7 @@ const HandleSave=()=>{
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent resize-none"
               />
             </div>
           </div>
@@ -245,7 +245,7 @@ const HandleSave=()=>{
    
 
         {/* Section 3: Pricing & Capacity */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               2
@@ -265,7 +265,7 @@ const HandleSave=()=>{
                   type="number"
                   value={formData.pricePerPerson}
                   onChange={(e) => handleInputChange('pricePerPerson', e.target.value)}
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full pl-8 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -276,7 +276,7 @@ const HandleSave=()=>{
       
 
         {/* Section 5: Media */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               3
@@ -347,7 +347,7 @@ const HandleSave=()=>{
         </div>
 
         {/* Section 6: Availability Calendar */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
           <div className="flex items-start gap-3 mb-6">
             <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
               4
@@ -366,13 +366,13 @@ const HandleSave=()=>{
               <div className="flex gap-2">
                 <button
                   onClick={() => changeMonth(-1)}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-gray-50"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => changeMonth(1)}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-gray-50"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

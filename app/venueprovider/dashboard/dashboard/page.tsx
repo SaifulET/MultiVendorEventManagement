@@ -179,7 +179,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Venues Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-[24px]">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-start justify-between mb-10">
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                 <Home className="w-5 h-5 text-[#B74140]" />
@@ -191,7 +191,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Upcoming Bookings Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-[24px]">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-start justify-between mb-10">
               <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-green-500" />
@@ -203,7 +203,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Monthly Revenue Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-[24px]">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-start justify-between mb-10">
               <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-purple-600" />
@@ -215,7 +215,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Average Rating Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-[24px] ">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-center justify-between mb-6">
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <Star className="w-5 h-5 text-purple-600 fill-purple-600" />
@@ -230,9 +230,9 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
         </div>
 
         {/* Recent Booking Requests Table */}
-        <div className="bg-white border border-gray-100 rounded-xl shadow-sm">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl ">
           {/* Table Header */}
-          <div className="border-b border-gray-200 px-6 py-5">
+          <div className="border-b border-[#E5E7EB] px-6 py-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
                 Recent Booking Requests
@@ -251,7 +251,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-gray-50 border-b  border-[#E5E7EB]">
                   <th className="px-6 py-4 text-left">
                     <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Client Name

@@ -206,7 +206,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Requests Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Total Requests</p>
@@ -219,7 +219,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Pending Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Pending</p>
@@ -232,7 +232,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Accepted Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Accepted</p>
@@ -245,7 +245,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Rejected Card */}
-          <div className="bg-white rounded-2xl p-[24px] shadow-sm">
+          <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Rejected</p>
@@ -259,9 +259,9 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
         </div>
 
         {/* Recent Booking Requests Table */}
-        <div className="bg-white rounded-2xl shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB]">
           {/* Table Header */}
-          <div className="px-[24px] py-[20px] border-b border-gray-100">
+          <div className="px-[24px] py-[20px] border-b border-[#E5E7EB]">
             <h2 className="text-xl font-bold text-gray-900">Recent Booking Requests</h2>
           </div>
 
@@ -369,7 +369,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
 
           {/* Pagination */}
-          <div className="px-6 py-4 border-t border-gray-100">
+          <div className="px-6 py-4 border-t  border-[#E5E7EB]">
             <div className="flex items-center justify-between">
               <p className="text-sm text-[#B74140] font-medium">
                 SHOWING {startIndex + 1}-{Math.min(endIndex, bookings.length)} OF {bookings.length}
@@ -379,7 +379,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg border border-[#E5E7EB] text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -408,7 +408,7 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg border border-[#E5E7EB] text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

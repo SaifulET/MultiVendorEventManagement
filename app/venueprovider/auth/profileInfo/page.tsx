@@ -4,7 +4,7 @@ import React from 'react'
 
 function page() {
   return (
-    <div><Header/><BusinessProfileForm/></div>
+    <div><BusinessProfileForm/></div>
   )
 }
 

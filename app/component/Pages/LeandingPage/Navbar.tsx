@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false); // Change this to true to see signed in state
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -17,7 +17,7 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Home', href: '/pages/homepage' },
     { name: 'Find Venues', href: '/pages/findVenues' },
-    { name: 'Find Event Planners', href: '/pages/findServiceProvider?category=event-planner' },
+    { name: 'Find Event Planners', href: '/pages/findEventPlanners' },
     { name: 'Find Service', href: '/pages/findServiceProvider', hasDropdown: true },
     { name: 'About Us', href: '/pages/aboutus' },
   ];
@@ -26,7 +26,28 @@ export default function Navbar() {
     { name: 'Catering', value: 'catering' },
     { name: 'Photography', value: 'photography' },
     { name: 'Decoration', value: 'decoration' },
+    { name: 'Lighting', value: 'lighting' },
+    { name: 'Sound System', value: 'sound-system' },
+    { name: 'Entertainment', value: 'entertainment' },
+    { name: 'Transportation', value: 'transportation' },
   ];
+
+  // Function to get display categories
+  const getDisplayCategories = () => {
+    if (serviceOptions.length <= 3) {
+      return serviceOptions;
+    }
+    
+    // First 2 items
+    const firstTwo = serviceOptions.slice(0, 2);
+    // Everything else becomes "Other Services"
+    const otherServices = { 
+      name: 'Other Services', 
+      value: 'other' 
+    };
+    
+    return [...firstTwo, otherServices];
+  };
 
   // Handle dropdown hover with delay for better UX
   const handleMouseEnter = () => {
@@ -39,12 +60,21 @@ export default function Navbar() {
   const handleMouseLeave = () => {
     hoverTimeoutRef.current = setTimeout(() => {
       setIsServiceOpen(false);
-    }, 300); // 300ms delay before closing
+    }, 300);
   };
 
-  // Handle dropdown click
+  // Handle service category click
   const handleServiceClick = (serviceValue: string) => {
-    const url = `/pages/findServiceProvider?category=${serviceValue}`;
+    let url = `/pages/findServiceProvider`;
+    
+    if (serviceValue === 'other') {
+      // For "Other Services", don't filter by category initially
+      // Or you could pass a special parameter to show all other services
+      url = `/pages/findServiceProvider`;
+    } else {
+      url = `/pages/findServiceProvider?category=${serviceValue}`;
+    }
+    
     router.push(url);
     setIsServiceOpen(false);
     setIsMobileMenuOpen(false);
@@ -52,19 +82,25 @@ export default function Navbar() {
 
   // Handle mobile service click
   const handleMobileServiceClick = (serviceValue: string) => {
-    const url = `/pages/findServiceProvider?category=${serviceValue}`;
+    let url = `/pages/findServiceProvider`;
+    
+    if (serviceValue === 'other') {
+      url = `/pages/findServiceProvider`;
+    } else {
+      url = `/pages/findServiceProvider?category=${serviceValue}`;
+    }
+    
     router.push(url);
     setIsServiceOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   // Handle sign in/out
   const handleAuthClick = () => {
     if (isSignedIn) {
-      // Handle sign out logic
       setIsSignedIn(false);
       console.log('User signed out');
     } else {
-      // Handle sign in logic - you can redirect to sign in page
       setIsSignedIn(true);
       console.log('User signed in');
     }
@@ -102,7 +138,7 @@ export default function Navbar() {
       <div className="px-[20px] md:px-[50px] py-[16px]">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div onClick={()=>{router.push("/pages/homepage")}} className="flex items-center">
+          <div onClick={()=>{router.push("/pages/homepage")}} className="flex items-center cursor-pointer">
             <Image src={logo} alt="Logo" width={75} height={55} />
           </div>
 
@@ -118,7 +154,7 @@ export default function Navbar() {
                     onMouseLeave={handleMouseLeave}
                   >
                     <button className={`flex items-center space-x-1 transition-colors ${
-                      pathname === link.href 
+                      pathname.includes('/pages/findServiceProvider') 
                         ? 'text-[#B74140]' 
                         : 'text-gray-700 hover:text-[#B74140]'
                     }`}>
@@ -127,19 +163,23 @@ export default function Navbar() {
                     </button>
                     {isServiceOpen && (
                       <div 
-                        className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50"
+                        className="absolute top-full left-[-156px] mt-2 bg-white rounded-md shadow-lg py-2 z-50 min-w-[450px]"
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
                       >
-                        {serviceOptions.map((service) => (
-                          <button
-                            key={service.value}
-                            onClick={() => handleServiceClick(service.value)}
-                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[#B74140] transition-colors"
-                          >
-                            {service.name}
-                          </button>
-                        ))}
+                        <div className="grid grid-cols-3 gap-1 px-2">
+                          {getDisplayCategories().map((service) => (
+                            <button
+                              key={service.value}
+                              onClick={() => handleServiceClick(service.value)}
+                              className="text-left px-3 py-2 text-gray-700  hover:text-[#B74140] transition-colors rounded"
+                            >
+                              {service.name}
+                            </button>
+                          ))}
+                        </div>
+                        
+                      
                       </div>
                     )}
                   </div>
@@ -166,22 +206,22 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center space-x-4">
             {isSignedIn ? (
               <>
-                <button onClick={()=>{router.push("/home/dashboard/chat")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB]  transition-colors relative">
+                <button onClick={()=>{router.push("/home/dashboard/chat")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB] transition-colors relative">
                   <MessageCircle className="w-[22px] h-[22px]" />
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                <button onClick={()=>{router.push("/home/dashboard/notifications")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB]  transition-colors relative">
-                  <Bell  className="w-[22px] h-[22px]" />
+                <button onClick={()=>{router.push("/home/dashboard/notifications")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB] transition-colors relative">
+                  <Bell className="w-[22px] h-[22px]" />
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                <button onClick={()=>{router.push("/home/dashboard/profileSettings")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB]  transition-colors relative">
-                  <div className=" rounded-full flex items-center justify-center">
+                <button onClick={()=>{router.push("/home/dashboard/profileSettings")}} className="p-[5px] border border-[#ADAEBC] rounded-full text-gray-700 hover:text-[#B74140] bg-[#F8FAFB] transition-colors relative">
+                  <div className="rounded-full flex items-center justify-center">
                     <User className="w-[22px] h-[22px]" />
                   </div>
                 </button>
                 <button 
                   onClick={handleAuthClick}
-                  className="bg-[#B74140] text-white px-4 py-2 rounded-md  transition-colors"
+                  className="bg-[#B74140] text-white px-4 py-2 rounded-md transition-colors"
                 >
                   Sign Out
                 </button>
@@ -216,7 +256,7 @@ export default function Navbar() {
                       <button
                         onClick={() => setIsServiceOpen(!isServiceOpen)}
                         className={`flex items-center justify-between w-full transition-colors ${
-                          pathname === link.href 
+                          pathname.includes('/pages/findServiceProvider') 
                             ? 'text-[#B74140]' 
                             : 'text-gray-700 hover:text-[#B74140]'
                         }`}
@@ -230,7 +270,7 @@ export default function Navbar() {
                       </button>
                       {isServiceOpen && (
                         <div className="mt-2 ml-4 space-y-2">
-                          {serviceOptions.map((service) => (
+                          {getDisplayCategories().map((service) => (
                             <button
                               key={service.value}
                               onClick={() => handleMobileServiceClick(service.value)}
@@ -239,6 +279,8 @@ export default function Navbar() {
                               {service.name}
                             </button>
                           ))}
+                          
+                         
                         </div>
                       )}
                     </div>
@@ -269,7 +311,7 @@ export default function Navbar() {
                   <div className="flex flex-col space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <button onClick={()=>{router.push("/home/dashboard/profileSettings")}} className="p-[5px]  rounded-full flex items-center justify-center border border-[#F8FAFB]">
+                        <button onClick={()=>{router.push("/home/dashboard/profileSettings")}} className="p-[5px] rounded-full flex items-center justify-center border border-[#F8FAFB]">
                           <User className="w-6 h-6" />
                         </button>
                         <div>

@@ -171,7 +171,7 @@ export default function VenueFinderPage() {
   return (
     <div className="">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white  border-b border-[#E5E7EB]  sticky top-0 z-40 ">
         <div className=" px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="text-center m-auto">
@@ -186,7 +186,7 @@ export default function VenueFinderPage() {
             {/* Mobile Filter Button */}
             <button
               onClick={() => setIsFilterOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-[#B74140] text-white rounded-lg hover:bg-[#9b3534] transition-colors shadow-md"
+              className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-[#B74140] text-white rounded-lg hover:bg-[#9b3534] transition-colors border border-[#E5E7EB] "
             >
               <Filter size={20} />
               <span className="font-medium">Filters</span>

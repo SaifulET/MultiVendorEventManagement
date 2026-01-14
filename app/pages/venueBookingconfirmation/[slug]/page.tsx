@@ -2,11 +2,13 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const BookingConfirmation: React.FC = () => {
+  const router= useRouter()
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 lg:p-10 w-full max-w-md">
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 lg:p-10 w-full max-w-md">
         {/* Success Icon */}
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 md:w-20 md:h-20 bg-[#B74140] rounded-full flex items-center justify-center">
@@ -64,7 +66,7 @@ const BookingConfirmation: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-6">
-          <button className="w-full bg-[#B74140] hover:bg-[#a33736] text-white font-medium py-3 md:py-3.5 rounded-lg transition-colors text-sm md:text-base">
+          <button onClick={()=>{router.push("/pages/venueBookings/details")}} className="w-full bg-[#B74140] hover:bg-[#a33736] text-white font-medium py-3 md:py-3.5 rounded-lg transition-colors text-sm md:text-base">
             View Booking Details
           </button>
           

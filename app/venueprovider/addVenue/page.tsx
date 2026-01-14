@@ -228,7 +228,7 @@ const VenueManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-[32px] md:px-[160px] ">
+    <div className="min-h-screen  p-[32px] md:px-[160px] ">
       <div>
         <button 
           className='flex items-center gap-2 mb-4'
@@ -244,7 +244,7 @@ const VenueManagement: React.FC = () => {
           {/* Left Column - Main Form */}
           <div className="lg:col-span-2 space-y-6 ">
             {/* Venue Information */}
-            <div className="bg-white rounded-xl shadow-sm p-[24px]">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-[24px]">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Venue Information</h2>
               
               <div className="space-y-5">
@@ -253,13 +253,13 @@ const VenueManagement: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Enter venue name"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                    className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">Category</label>
-                  <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors appearance-none bg-white">
+                  <select className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors appearance-none bg-white">
                     <option>Select category</option>
                     <option>Wedding Hall</option>
                     <option>Conference Room</option>
@@ -272,7 +272,7 @@ const VenueManagement: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Enter full address"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                    className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                   />
                 </div>
 
@@ -282,14 +282,14 @@ const VenueManagement: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Enter street address"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                      className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">Map Location</label>
                     <div 
                       onClick={openGoogleMaps}
-                      className="h-[140px] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-gray-400 transition-colors relative"
+                      className="h-[140px] border-2 border-dashed border-[#E5E7EB] rounded-lg overflow-hidden cursor-pointer hover:border-gray-400 transition-colors relative"
                     >
                       <MapPreview 
                         selectedLocation={selectedLocation} 
@@ -310,7 +310,7 @@ const VenueManagement: React.FC = () => {
                     <input
                       type="text"
                       placeholder="City"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                      className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -318,7 +318,7 @@ const VenueManagement: React.FC = () => {
                     <input
                       type="text"
                       placeholder="State"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                      className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -329,12 +329,12 @@ const VenueManagement: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Post Code"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                      className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">Country</label>
-                    <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors appearance-none bg-white">
+                    <select className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors appearance-none bg-white">
                       <option>United Kingdom</option>
                       <option>United States</option>
                       <option>Canada</option>
@@ -348,7 +348,7 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Pricing */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Pricing</h2>
               
               <div className="space-y-5">
@@ -359,7 +359,7 @@ const VenueManagement: React.FC = () => {
                     <input
                       type="number"
                       placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                      className="w-full pl-8 pr-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -376,21 +376,21 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Amenities */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Amenities</h2>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {amenities.map((amenity: Amenity) => (
                   <div
                     key={amenity.id}
-                    className="relative p-4 border-2 rounded-xl transition-all border-gray-200 hover:border-gray-300"
+                    className="relative p-4 border-2 rounded-xl transition-all border border-[#E5E7EB]"
                   >
                     <input
                       type="checkbox"
                       id={amenity.id}
                       checked={selectedAmenities.includes(amenity.id)}
                       onChange={() => toggleAmenity(amenity.id)}
-                      className="absolute top-3 left-3 w-4 h-4 rounded border-gray-300 text-emerald-600 outline-none cursor-pointer"
+                      className="absolute top-3 left-3 w-4 h-4 rounded border border-[#E5E7EB] text-emerald-600 outline-none cursor-pointer"
                     />
                     <div className="flex flex-col items-center gap-2 mt-2">
                       <div className="text-gray-600">
@@ -404,7 +404,7 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Capacity */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Capacity</h2>
               
               <div>
@@ -412,16 +412,16 @@ const VenueManagement: React.FC = () => {
                 <input
                   type="number"
                   placeholder="Enter maximum capacity"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                  className="w-full px-4 py-2.5 border border-[#E5E7EB] rounded-lg outline-none focus:border-gray-400 transition-colors"
                 />
               </div>
             </div>
 
             {/* Gallery */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Gallery</h2>
               
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6">
+              <div className="border-2 border-dashed  border-[#E5E7EB] rounded-xl p-8 text-center mb-6">
                 <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                 <p className="text-gray-700 font-medium mb-1">Drag & drop images here</p>
                 <p className="text-gray-500 text-sm mb-4">or click to browse files</p>
@@ -453,14 +453,14 @@ const VenueManagement: React.FC = () => {
                     </button>
                   </div>
                 ))}
-                <label htmlFor="file-upload" className="aspect-video rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors outline-none cursor-pointer">
+                <label htmlFor="file-upload" className="aspect-video rounded-lg border-2 border-dashed border-[#E5E7EB] flex items-center justify-center hover:border-gray-400 transition-colors outline-none cursor-pointer">
                   <Plus className="w-8 h-8 text-gray-400" />
                 </label>
               </div>
             </div>
 
             {/* Venue Video */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Venue Video (if have)</h2>
               
               <div className="space-y-4">
@@ -501,7 +501,7 @@ const VenueManagement: React.FC = () => {
           {/* Right Column - Calendar & Publish */}
           <div className="space-y-6">
             {/* Availability Calendar */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Availability Calendar</h2>
               
               <div className="mb-4">
@@ -545,7 +545,7 @@ const VenueManagement: React.FC = () => {
             </div>
 
             {/* Publish Settings */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Publish Settings</h2>
               
               <button 

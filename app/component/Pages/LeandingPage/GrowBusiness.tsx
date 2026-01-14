@@ -36,7 +36,7 @@ export default function GrowBusinessSection({ backgroundImage = '/business-bg.jp
       icon: icon2,
       title: 'Join as a Event Planner',
       description: 'Step into events that need your expertise. Manage weddings, conferences, and private gatherings with precision and flair.',
-      link:"/serviceprovider/auth/signin",
+      link:"/eventPlanner/auth/signin",
       features: [
         'Coordinate event logistics with ease',
         'Deliver memorable experiences for clients',
@@ -89,7 +89,7 @@ text-white mb-[12px] ">
           {services.map((service) => (
             <div
               key={service.id}
-              className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 flex flex-col px-[33px]"
+              className="bg-white rounded-2xl border border-[#E5E7EB]  transition-all duration-300 transform hover:-translate-y-2 flex flex-col px-[33px]"
             >
               {/* Icon Container */}
               <div className="flex justify-center pt-8 pb-6">
@@ -126,7 +126,7 @@ text-white mb-[12px] ">
 
                 {/* CTA Button */}
               
-                <button onClick={()=>{router.push(service.link)}} className="w-full bg-[#B74140] hover:bg-[#9a3534] text-white font-semibold py-3 sm:py-3.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                <button onClick={()=>{router.push(service.link)}} className="w-full bg-[#B74140] hover:bg-[#9a3534] text-white font-semibold py-3 sm:py-3.5 rounded-lg transition-all duration-200 border border-[#E5E7EB] transform hover:-translate-y-0.5">
                   Get Started
                 </button>
               </div>

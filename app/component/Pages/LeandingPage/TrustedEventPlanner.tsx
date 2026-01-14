@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import img from "@/public/pp1.svg"
+import { useRouter } from 'next/navigation';
 
 // Types
 interface ServiceProvider {
@@ -149,9 +150,9 @@ const VenueCard: React.FC<{ venue: ServiceProvider }> = ({ venue }) => {
       );
     });
   };
-
+const router = useRouter();
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+    <div className="bg-white rounded-lg overflow-hidden border border-[#E5E7EB]  transition-all duration-300 transform hover:-translate-y-1 group">
       {/* Image Container */}
       <div className="relative h-48 sm:h-56 overflow-hidden">
         <img
@@ -207,7 +208,7 @@ const VenueCard: React.FC<{ venue: ServiceProvider }> = ({ venue }) => {
             </span>
             <span className="text-sm text-gray-500">/day</span>
           </div>
-          <button className="bg-[#B74140] hover:bg-[#9a3534] text-white px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-md hover:shadow-lg">
+          <button onClick={()=>{router.push("/pages/findEventPlanners/details")}} className="bg-[#B74140] hover:bg-[#9a3534] text-white px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-colors duration-200 border border-[#E5E7EB]">
             View Details
           </button>
         </div>
@@ -227,13 +228,11 @@ export default function TrustedEventPlannerPage() {
   const displayedVenues = filteredVenues.slice(0, visibleCount);
   const hasMore = visibleCount < filteredVenues.length;
 
-  const handleCategoryClick = (category: ServiceCategory) => {
-    setSelectedCategory(category);
-    setVisibleCount(3); // Reset visible count when changing category
-  };
+const router = useRouter();
 
-  const handleShowMore = () => {
-    setVisibleCount((prev) => Math.min(prev + 3, filteredVenues.length));
+  const handleShowMore = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    router.push('/pages/findEventPlanners');
   };
 
   return (
@@ -258,7 +257,7 @@ export default function TrustedEventPlannerPage() {
           <div className="flex justify-center">
             <button
               onClick={handleShowMore}
-              className="bg-[#B74140] hover:bg-[#9a3534] text-white px-12 py-3 rounded-lg text-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="bg-[#B74140] hover:bg-[#9a3534] text-white px-12 py-3 rounded-lg text-lg font-semibold transition-all duration-200 border border-[#E5E7EB] transform hover:-translate-y-0.5"
             >
               Show More
             </button>

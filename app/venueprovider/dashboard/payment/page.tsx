@@ -174,12 +174,12 @@ export default function PaymentRecords() {
   };
 
   return (
-    <div className="min-h-screen bg-white ">
+    <div className="min-h-screen ">
       <div className="">
         {/* Table Container */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
           {/* Header */}
-          <div className=" p-[22px] border-b border-gray-200">
+          <div className=" p-[22px] border-b  border-[#E5E7EB]">
             <h1 className="font-inter font-semibold text-[18px] leading-[28px] tracking-[0] text-slate-900">Payment Records</h1>
           </div>
 
@@ -187,7 +187,7 @@ export default function PaymentRecords() {
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-gray-50 border-b border-[#E5E7EB]">
                   <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Venue Name</th>
                   <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Event Date</th>
                   <th className="p-[17px] text-left text-sm font-semibold text-slate-700">Amount</th>
@@ -283,7 +283,7 @@ export default function PaymentRecords() {
           </div>
 
           {/* Pagination */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-white">
+          <div className="px-6 py-4 border-t  border-[#E5E7EB] bg-white">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               {/* Records Info */}
               <div className="text-sm">
@@ -298,7 +298,7 @@ export default function PaymentRecords() {
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+                  className="p-2 rounded-lg border border-[#E5E7EB] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
                   aria-label="Previous page"
                 >
                   <ChevronLeft className="w-5 h-5 text-slate-600" />
@@ -335,7 +335,7 @@ export default function PaymentRecords() {
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+                  className="p-2 rounded-lg border border-[#E5E7EB] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
                   aria-label="Next page"
                 >
                   <ChevronRight className="w-5 h-5 text-slate-600" />

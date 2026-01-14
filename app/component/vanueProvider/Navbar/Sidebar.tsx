@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname, useRouter} from "next/navigation";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import logo from "@/public/logo.svg"
+import logo from "@/public/logo.svg";
+import profile from "@/public/profile.jpg"
 import {
   LayoutDashboard,
   BookCheck,
-  School,
-  CreditCardIcon,
   Crown,
-  Settings2,
-  ChevronDown,
+  Building2,
+  CreditCard,
+  Settings,
+  LogOut,
 } from "lucide-react";
 
 const MENU = [
@@ -23,30 +24,30 @@ const MENU = [
         icon: LayoutDashboard,
         href: "/venueprovider/dashboard/dashboard",
       },
-      { 
-        label: "Booking Requests", 
-        icon: BookCheck, 
-        href: "/venueprovider/dashboard/bookingRequest" 
+      {
+        label: "Booking Requests",
+        icon: BookCheck,
+        href: "/venueprovider/dashboard/bookingRequest",
       },
-      { 
-        label: "My Vanue", 
-        icon: School, 
-        href: "/venueprovider/dashboard/myVanue" 
+      {
+        label: "Subscription",
+        icon: Crown,
+        href: "/venueprovider/dashboard/subscription",
       },
-      { 
-        label: "Payments", 
-        icon: CreditCardIcon, 
-        href: "/venueprovider/dashboard/payment" 
+      {
+        label: "My Venue",
+        icon: Building2,
+        href: "/venueprovider/dashboard/myVanue",
       },
-      { 
-        label: "Subscription", 
-        icon: Crown, 
-        href: "/venueprovider/dashboard/subscription" 
+      {
+        label: "Payments",
+        icon: CreditCard,
+        href: "/venueprovider/dashboard/payment",
       },
-      { 
-        label: "profile & Settings", 
-        icon: Settings2, 
-        href: "/venueprovider/dashboard/profileSettings" 
+      {
+        label: "Profile & Settings",
+        icon: Settings,
+        href: "/venueprovider/dashboard/profileSettings",
       },
     ],
   },
@@ -54,64 +55,116 @@ const MENU = [
 
 export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   const router = useRouter();
-const handleDashboard=()=>{
-  router.push("/venueprovider/dashboard/dashboard")
-}
   const pathname = usePathname();
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const handleDashboard = () => {
+    router.push("/venueprovider/dashboard/dashboard");
+  };
+
+  const handleLogout = () => {
+   router.push("/venueprovider/auth/signin");
+  };
 
   const isActive = (route: string) => pathname.startsWith(route);
 
   return (
     <aside
-      className={`h-screen bg-white border-r border-gray-200 fixed left-0 top-0 transition-all duration-300 ${
+      className={`h-screen bg-white border-r border-gray-200 fixed left-0 top-0 transition-all duration-300 flex flex-col ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      <div onClick={()=>{handleDashboard()}} className="flex items-center justify-center px-6 py-7">
+      {/* Logo */}
+      <div
+        onClick={handleDashboard}
+        className="flex items-center justify-center px-6 py-7 cursor-pointer"
+      >
         {collapsed ? (
           <Image src={logo} alt="logo" width={30} height={30} />
         ) : (
           <Image src={logo} alt="logo" width={140} height={30} />
         )}
       </div>
-<hr className="text-gray-200"/>
-      <div className="px-4 pt-2 space-y-4">
+
+      <hr className="border-gray-200" />
+
+      {/* Menu Items */}
+      <div className="flex-1 px-3 pt-4 space-y-1">
         {MENU.map((section) => (
           <div key={1}>
-            <div className="mt-2 space-y-1">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className={`flex items-center gap-3 py-4 pl-3 rounded-xl transition ${
-                      isActive(item.href)
-                        ? "bg-[#B74140]"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <Icon
-                      className={`h-5 w-5 ${
-                        isActive(item.href) ? "text-white" : "text-gray-700"
-                      }`}
-                    />
-                    {!collapsed && (
-                      <span
-                        className={`text-[15px] ${
-                          isActive(item.href) ? "text-white" : "text-gray-800"
-                        }`}
-                      >
-                        {item.label}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-lg transition ${
+                    isActive(item.href)
+                      ? "bg-[#B74140] text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="text-[15px] font-normal">
+                      {item.label}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         ))}
+      </div>
+
+      {/* User Profile & Logout */}
+      <div className="p-3 border-t border-gray-200">
+        {/* User Profile */}
+        <div
+          className={`flex items-center gap-3 px-3 py-2 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          {!collapsed ? (
+            <>
+              <Image
+                src={profile} // Replace with actual avatar
+                alt="Sarah Johnson"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  Sarah Johnson
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  sarah@email.com
+                </p>
+              </div>
+            </>
+          ) : (
+            <Image
+              src={profile} // Replace with actual avatar
+              alt="Sarah Johnson"
+              width={36}
+              height={36}
+              className="rounded-full"
+            />
+          )}
+        </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className={`flex items-center gap-3 px-3 py-3 mt-2 w-full text-[#B74140] hover:bg-red-50 rounded-lg transition ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && (
+            <span className="text-[15px] font-normal">Logout</span>
+          )}
+        </button>
       </div>
     </aside>
   );

@@ -122,8 +122,8 @@ export default function VenueGrid({ venues, filters }: VenueGridProps) {
                   onClick={() => goToPage(pageNumber)}
                   className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
                     currentPage === pageNumber
-                      ? 'bg-[#B74140] text-white shadow-md'
-                      : 'border border-slate-300 text-slate-700 hover:bg-[#943a38]'
+                      ? 'bg-[#B74140] text-white border border-[#E5E7EB] '
+                      : 'border border-[#E5E7EB]  text-slate-700 hover:bg-[#943a38]'
                   }`}
                 >
                   {pageNumber}

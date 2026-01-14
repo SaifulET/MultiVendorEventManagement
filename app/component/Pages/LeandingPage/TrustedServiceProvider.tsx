@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import img from "@/public/pp1.svg"
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 // Types
 interface ServiceProvider {
@@ -120,6 +122,7 @@ const categories = [
 
 // VenueCard Component
 const VenueCard: React.FC<{ venue: ServiceProvider }> = ({ venue }) => {
+  const router = useRouter();
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => {
       const starValue = index + 1;
@@ -151,14 +154,16 @@ const VenueCard: React.FC<{ venue: ServiceProvider }> = ({ venue }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+    <div className="bg-white rounded-lg overflow-hidden border border-[#E5E7EB] transition-all duration-300 transform hover:-translate-y-1 group">
       {/* Image Container */}
       <div className="relative h-48 sm:h-56 overflow-hidden">
-        <img
-          src={venue.imageUrl}
-          alt={venue.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        <Image
+  src={venue.imageUrl}
+  alt={venue.name}
+  fill
+  className="object-cover transition-transform duration-500 group-hover:scale-110"
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+/>
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
@@ -207,7 +212,7 @@ const VenueCard: React.FC<{ venue: ServiceProvider }> = ({ venue }) => {
             </span>
             <span className="text-sm text-gray-500">/day</span>
           </div>
-          <button className="bg-[#B74140] hover:bg-[#9a3534] text-white px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-md hover:shadow-lg">
+          <button onClick={()=>{router.push("/pages/findServiceProvider/details")}} className="bg-[#B74140] hover:bg-[#9a3534] text-white px-4 sm:px-6 py-2 rounded-md text-sm font-medium transition-colors duration-200 border border-[#E5E7EB]">
             View Details
           </button>
         </div>
@@ -231,9 +236,10 @@ export default function TrustedServiceProviderPage() {
     setSelectedCategory(category);
     setVisibleCount(3); // Reset visible count when changing category
   };
-
-  const handleShowMore = () => {
-    setVisibleCount((prev) => Math.min(prev + 3, filteredVenues.length));
+const router = useRouter();
+  const handleShowMore = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    router.push('/pages/findServiceProvider');
   };
 
   return (
@@ -253,7 +259,7 @@ export default function TrustedServiceProviderPage() {
               className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 border-2 border-dashed border-red-700
              ${
                 selectedCategory === category.label
-                  ? 'bg-[#B74140] text-white shadow-lg scale-105'
+                  ? 'bg-[#B74140] text-white border border-[#E5E7EB] scale-105'
                   : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
               }`}
             >
@@ -274,7 +280,7 @@ export default function TrustedServiceProviderPage() {
           <div className="flex justify-center">
             <button
               onClick={handleShowMore}
-              className="bg-[#B74140] hover:bg-[#9a3534] text-white px-12 py-3 rounded-lg text-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="bg-[#B74140] hover:bg-[#9a3534] text-white px-12 py-3 rounded-lg text-lg font-semibold transition-all duration-200 border border-[#E5E7EB] transform hover:-translate-y-0.5"
             >
               Show More
             </button>

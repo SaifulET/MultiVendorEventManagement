@@ -98,7 +98,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden ">
+      <div className="bg-white rounded-2xl border border-[#E5E7EB]  overflow-hidden ">
         {/* Map Preview Section - Always Visible */}
         <div className="relative">
           <div className="relative px-[24px] pt-[24px]  h-[103px] ">
@@ -111,7 +111,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
             {/* Show On Map Button Overlay */}
             <button
               onClick={handleShowOnMap}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#B74140] hover:bg-[#a33b39] text-white px-4 py-2 rounded-full font-medium text-sm shadow-lg transition-colors flex items-center w-[145px] h-[27px]"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#B74140] hover:bg-[#a33b39] text-white px-4 py-2 rounded-full font-medium text-sm border border-[#E5E7EB]  transition-colors flex items-center w-[145px] h-[27px]"
             >
               <MapPin size={16} />
               Show On Map
@@ -252,7 +252,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
           </div>
 
           {/* Apply Button */}
-          <button className="w-full bg-[#B74140] text-white py-3 rounded-lg font-semibold hover:bg-[#802423] transition-colors shadow-md">
+          <button className="w-full bg-[#B74140] text-white py-3 rounded-lg font-semibold hover:bg-[#802423] transition-colors border border-[#E5E7EB] ">
             Apply Filters
           </button>
         </div>

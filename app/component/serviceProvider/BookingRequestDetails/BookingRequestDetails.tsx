@@ -91,7 +91,7 @@ const BookingRequestDetails: React.FC<{ booking?: BookingData }> = ({
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Event Overview Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <div className="grid grid-cols-2 gap-6 mb-6">
                 <div>
                   <div className="text-sm text-gray-600 mb-1">Requested Date</div>
@@ -120,7 +120,7 @@ const BookingRequestDetails: React.FC<{ booking?: BookingData }> = ({
               
             </div>
 
-            <div className='bg-white rounded-lg shadow-lg'>
+            <div className='bg-white rounded-lg border border-[#E5E7EB]'>
               <div className=" p-[24px]">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Client Information</h3>
                 <div className="flex items-start gap-4 mb-4">
@@ -167,7 +167,7 @@ const BookingRequestDetails: React.FC<{ booking?: BookingData }> = ({
 
 
             {/* Service Details Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Service Details</h3>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -185,7 +185,7 @@ const BookingRequestDetails: React.FC<{ booking?: BookingData }> = ({
             </div>
 
             {/* Event Location Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Event Location</h3>
               <div className="mb-3">
                 <div className="text-base font-semibold text-gray-900 mb-1">
@@ -230,7 +230,7 @@ const BookingRequestDetails: React.FC<{ booking?: BookingData }> = ({
 
           {/* Right Column - Pricing & Actions */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 sticky top-6">
               {/* Pricing Summary */}
               <h3 className="text-lg font-bold text-gray-900 mb-4">Pricing Summary</h3>
               
