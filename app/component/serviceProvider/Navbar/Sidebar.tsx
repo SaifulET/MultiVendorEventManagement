@@ -1,0 +1,167 @@
+"use client";
+
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import logo from "@/public/logo.svg";
+import profile from "@/public/profile.jpg"
+import {
+  LayoutDashboard,
+  BookCheck,
+  Crown,
+  Briefcase,
+  CreditCard,
+  Settings,
+  LogOut,
+} from "lucide-react";
+
+const MENU = [
+  {
+    items: [
+      {
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        href: "/serviceprovider/dashboard/dashboard",
+      },
+      {
+        label: "Booking Requests",
+        icon: BookCheck,
+        href: "/serviceprovider/dashboard/bookingRequest",
+      },
+      {
+        label: "Subscription",
+        icon: Crown,
+        href: "/serviceprovider/dashboard/subscription",
+      },
+      {
+        label: "My Service",
+        icon: Briefcase,
+        href: "/serviceprovider/dashboard/myServices",
+      },
+      {
+        label: "Payments",
+        icon: CreditCard,
+        href: "/serviceprovider/dashboard/payment",
+      },
+      {
+        label: "Profile & Settings",
+        icon: Settings,
+        href: "/serviceprovider/dashboard/profileSettings",
+      },
+    ],
+  },
+];
+
+export default function Sidebar({ collapsed }: { collapsed: boolean }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handleDashboard = () => {
+    router.push("/serviceprovider/dashboard/dashboard");
+  };
+
+  const handleLogout = () => {
+   router.push("/serviceprovider/auth/signin");
+  };
+
+  const isActive = (route: string) => pathname.startsWith(route);
+
+  return (
+    <aside
+      className={`h-screen bg-white border-r border-gray-200 fixed left-0 top-0 transition-all duration-300 flex flex-col ${
+        collapsed ? "w-20" : "w-64"
+      }`}
+    >
+      {/* Logo */}
+      <div
+        onClick={handleDashboard}
+        className={`flex items-center justify-center cursor-pointer ${
+          collapsed ? "py-9" : "py-[21px]"
+        }`}
+      >
+        {collapsed ? (
+          <Image src={logo} alt="logo" width={40} height={30} />
+        ) : (
+          <Image src={logo} alt="logo" width={75} height={55} />
+        )}
+      </div>
+
+      <hr className="border-gray-200" />
+
+      {/* Menu Items */}
+      <div className="flex-1 px-3 pt-4 space-y-1">
+        {MENU.map((section) => (
+          <div key={1}>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-lg transition ${
+                    isActive(item.href)
+                      ? "bg-[#B74140] text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="text-[15px] font-normal">
+                      {item.label}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* User Profile & Logout */}
+      <div className="p-3 border-t border-gray-200">
+        {/* User Profile */}
+        <div className={`flex items-center gap-3 px-3 py-2 ${collapsed ? 'justify-center' : ''}`}>
+          {!collapsed ? (
+            <>
+              <Image
+                src={profile} // Replace with actual avatar
+                alt="Sarah Johnson"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  Sarah Johnson
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  sarah@email.com
+                </p>
+              </div>
+            </>
+          ) : (
+            <Image
+              src={profile} // Replace with actual avatar
+              alt="Sarah Johnson"
+              width={36}
+              height={36}
+              className="rounded-full"
+            />
+          )}
+        </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className={`flex items-center gap-3 px-3 py-3 mt-2 w-full text-[#B74140] hover:bg-red-50 rounded-lg transition ${
+            collapsed ? 'justify-center' : ''
+          }`}
+        >
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span className="text-[15px] font-normal">Logout</span>}
+        </button>
+      </div>
+    </aside>
+  );
+}

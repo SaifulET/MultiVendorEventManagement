@@ -1,0 +1,30 @@
+{
+  "profile": {
+    "fullName": "Sarah Johnson",
+    "email": "sarah.johnson@email.com",
+    "phone": "+1 (555) 123-4567",
+    "profileImage": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop"
+  },
+  "accountSettings": {
+    "currency": "USD ($)",
+    "location": "San Francisco, CA"
+  },
+  "paymentCards": [
+    {
+      "id": "1",
+      "last4": "4242",
+      "expiresMonth": "12",
+      "expiresYear": "25",
+      "isDefault": true,
+      "cardColor": "from-blue-500 to-indigo-600"
+    },
+    {
+      "id": "2",
+      "last4": "8888",
+      "expiresMonth": "08",
+      "expiresYear": "26",
+      "isDefault": false,
+      "cardColor": "from-orange-500 to-red-500"
+    }
+  ]
+}
