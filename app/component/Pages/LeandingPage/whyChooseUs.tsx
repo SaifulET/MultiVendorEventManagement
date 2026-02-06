@@ -2,6 +2,7 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import Image from 'next/image';
 import img from "@/public/whychoose.svg"
+
 interface FeatureProps {
   title: string;
   description: string;
@@ -42,17 +43,17 @@ const WhyChooseEvenit: React.FC = () => {
   ];
 
   return (
-    <section className="bg-[#F8ECEC] px-[32px] md:px-[112px] py-[32px] md:py-[64px]">
-      <div className="">
+    <section className="bg-[#F8ECEC] px-4 sm:px-6 md:px-[32px] lg:px-[112px] py-8 sm:py-10 md:py-[32px] lg:py-[64px]">
+      <div className="max-w-7xl mx-auto">
         {/* Title */}
-        <h2 className="font-inter font-bold text-4xl leading-10 tracking-normal text-center text-gray-900 mb-8 md:mb-12">
+        <h2 className="font-inter font-bold text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-10 tracking-normal text-center text-gray-900 mb-6 sm:mb-8 md:mb-12">
           Why Choose EVENT?
         </h2>
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px] lg:gap-[48px] items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 md:gap-[24px] lg:gap-[48px] items-center">
           {/* Features List */}
-          <div className="space-y-6 md:space-y-8 order-2 lg:order-1">
+          <div className="space-y-5 sm:space-y-6 md:space-y-8 order-2 lg:order-1">
             {features.map((feature, index) => (
               <Feature
                 key={index}
@@ -64,14 +65,13 @@ const WhyChooseEvenit: React.FC = () => {
 
           {/* Image */}
           <div className="order-1 lg:order-2">
-            <div className="relative w-[584px] h-[264px] aspect-[16/10] md:aspect-[16/9] rounded-lg overflow-hidden shadow-lg">
+            <div className="relative w-full h-auto aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9] rounded-lg overflow-hidden shadow-lg">
               <Image
                 src={img}
                 alt="Professional event setup with elegant chandelier and staff"
-               
                 className="object-cover"
-               width={584}
-                height={264}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 90vw, 584px"
                 priority
               />
             </div>

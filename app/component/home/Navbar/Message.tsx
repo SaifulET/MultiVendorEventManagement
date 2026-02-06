@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MoreVertical, Send } from 'lucide-react';
+import { Search, MoreVertical, Send, ArrowLeft } from 'lucide-react';
+
+// Add this style tag to hide scrollbars
+const styles = `
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
 
 interface Message {
   id: number;
@@ -20,17 +31,11 @@ interface Contact {
 }
 
 export default function MessagingApp() {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>( {
-      id: 1,
-      username: '@greenstay',
-      avatar: '🏨',
-      lastMessage: 'Looking forward to the post!',
-      time: '1h ago',
-      online: true,
-    });
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messageText, setMessageText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showChat, setShowChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const contacts: Contact[] = [
@@ -163,7 +168,6 @@ export default function MessagingApp() {
       sender: 'user',
       time: '11:45 AM',
     },
-    
   ];
 
   useEffect(() => {
@@ -178,6 +182,16 @@ export default function MessagingApp() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleContactSelect = (contact: Contact) => {
+    setSelectedContact(contact);
+    setShowChat(true);
+  };
+
+  const handleBackToContacts = () => {
+    setShowChat(false);
+    setSelectedContact(null);
   };
 
   const handleSendMessage = () => {
@@ -204,11 +218,18 @@ export default function MessagingApp() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <>
+      <style>{styles}</style>
+      <div className="flex h-screen bg-gray-50">
       {/* Sidebar - Contacts List */}
-      <div className="w-72 bg-white border-r border-gray-200 flex flex-col">
+      <div
+        className={`
+          w-full md:w-72 bg-white border-r border-gray-200 flex flex-col
+          ${showChat ? 'hidden md:flex' : 'flex'}
+        `}
+      >
         {/* Header */}
-        <div className="py-6 border-b border-gray-200">
+        <div className="p-4 md:py-6 border-b border-gray-200">
           <h1 className="text-xl font-semibold mb-3">Messages</h1>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -223,15 +244,15 @@ export default function MessagingApp() {
         </div>
 
         {/* Contacts List - Scrollable */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar py-6">
+        <div className="flex-1 overflow-y-auto hide-scrollbar py-4 md:py-6">
           {filteredContacts.length > 0 ? (
             filteredContacts.map((contact) => (
               <div
                 key={contact.id}
-                onClick={() => setSelectedContact(contact)}
-                className={`p-6 cursor-pointer transition-colors rounded-lg ${
-                  selectedContact?.id === contact.id 
-                    ? 'bg-[#B741401A]' 
+                onClick={() => handleContactSelect(contact)}
+                className={`p-4 md:p-6 cursor-pointer transition-colors rounded-lg ${
+                  selectedContact?.id === contact.id
+                    ? 'bg-[#B741401A]'
                     : 'hover:bg-gray-50'
                 }`}
               >
@@ -269,12 +290,24 @@ export default function MessagingApp() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`
+          flex-1 flex flex-col
+          ${!showChat ? 'hidden md:flex' : 'flex'}
+        `}
+      >
         {selectedContact ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-[24px] flex items-center justify-between">
+            <div className="bg-white border-b border-gray-200 p-4 md:p-[24px] flex items-center justify-between">
               <div className="flex items-center gap-3">
+                {/* Back button for mobile */}
+                <button
+                  onClick={handleBackToContacts}
+                  className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-lg">
                     {selectedContact.avatar}
@@ -284,18 +317,19 @@ export default function MessagingApp() {
                   )}
                 </div>
                 <div>
-                  <h2 className="font-semibold">{selectedContact.username}</h2>
+                  <h2 className="font-semibold text-sm md:text-base">
+                    {selectedContact.username}
+                  </h2>
                   {selectedContact.online && (
-                    <p className="text-sm text-green-500">Online</p>
+                    <p className="text-xs md:text-sm text-green-500">Online</p>
                   )}
                 </div>
               </div>
-             
             </div>
 
             {/* Messages Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-[24px] bg-gray-50">
-              <div className=" space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 md:p-[24px] bg-gray-50 hide-scrollbar">
+              <div className="space-y-4">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -303,22 +337,24 @@ export default function MessagingApp() {
                       message.sender === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    <div className="flex items-end gap-2 max-w-xl">
+                    <div className="flex items-end gap-2 max-w-[85%] md:max-w-xl">
                       {message.sender === 'other' && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-sm flex-shrink-0">
+                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xs md:text-sm flex-shrink-0">
                           {selectedContact.avatar}
                         </div>
                       )}
-                      <div
-                        
-                      >
-                        <p className={`px-4 py-3 rounded-2xl ${
-                          message.sender === 'user'
-                            ? 'bg-[#B74140] text-white rounded-br-sm'
-                            : 'bg-white text-gray-800 rounded-bl-sm'
-                        }`}>{message.text}</p>
+                      <div>
+                        <p
+                          className={`px-3 md:px-4 py-2 md:py-3 rounded-2xl text-sm md:text-base ${
+                            message.sender === 'user'
+                              ? 'bg-[#B74140] text-white rounded-br-sm'
+                              : 'bg-white text-gray-800 rounded-bl-sm'
+                          }`}
+                        >
+                          {message.text}
+                        </p>
                         <span
-                          className={`font-inter font-normal text-xs leading-4 tracking-normal  mt-1 block ${
+                          className={`font-inter font-normal text-xs leading-4 tracking-normal mt-1 block ${
                             message.sender === 'user'
                               ? 'text-gray-600 text-right'
                               : 'text-gray-500'
@@ -328,7 +364,7 @@ export default function MessagingApp() {
                         </span>
                       </div>
                       {message.sender === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-sm flex-shrink-0">
+                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-xs md:text-sm flex-shrink-0">
                           👤
                         </div>
                       )}
@@ -340,22 +376,22 @@ export default function MessagingApp() {
             </div>
 
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
-              <div className=" flex items-center gap-3">
+            <div className="bg-white border-t border-gray-200 p-3 md:p-4">
+              <div className="flex items-center gap-2 md:gap-3">
                 <input
                   type="text"
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B74140] text-sm"
+                  className="flex-1 px-3 md:px-4 py-2 md:py-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B74140] text-sm"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!messageText.trim()}
-                  className="bg-[#B74140] text-white px-6 py-3 rounded-lg hover:bg-[#B74140]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+                  className="bg-[#B74140] text-white px-4 md:px-6 py-2 md:py-3 rounded-lg hover:bg-[#B74140]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium text-sm md:text-base"
                 >
-                  Send
+                  <span className="hidden sm:inline">Send</span>
                   <Send className="w-4 h-4" />
                 </button>
               </div>
@@ -363,12 +399,12 @@ export default function MessagingApp() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="text-6xl mb-4">💬</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            <div className="text-center px-4">
+              <div className="text-4xl md:text-6xl mb-4">💬</div>
+              <h2 className="text-lg md:text-xl font-semibold text-gray-700 mb-2">
                 Select a conversation
               </h2>
-              <p className="text-gray-500">
+              <p className="text-sm md:text-base text-gray-500">
                 Choose a contact to start messaging
               </p>
             </div>
@@ -376,5 +412,6 @@ export default function MessagingApp() {
         )}
       </div>
     </div>
+    </>
   );
 }
