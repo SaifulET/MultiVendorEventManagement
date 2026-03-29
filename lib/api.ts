@@ -1,0 +1,49 @@
+import axios, { AxiosHeaders } from "axios";
+
+import { getStoredToken } from "@/lib/auth-storage";
+
+const FALLBACK_API_BASE_URL =
+  "https://eugene-herbal-recommendations-folks.trycloudflare.com";
+
+export const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? FALLBACK_API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  timeout: 20000,
+});
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+
+  if (!token) {
+    return config;
+  }
+
+  const headers = new AxiosHeaders(config.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  config.headers = headers;
+
+  return config;
+});
+
+export const getApiErrorMessage = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    const responseMessage = error.response?.data?.message;
+
+    if (typeof responseMessage === "string" && responseMessage.trim()) {
+      return responseMessage;
+    }
+
+    if (typeof error.message === "string" && error.message.trim()) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "Something went wrong. Please try again.";
+};

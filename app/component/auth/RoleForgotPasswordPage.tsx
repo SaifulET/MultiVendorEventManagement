@@ -3,10 +3,17 @@
 import Link from "next/link";
 import React, { useState } from "react";
 
+import type { RoleAuthConfig } from "@/app/component/auth/role-auth-config";
 import AuthShell from "@/app/component/home/auth/AuthShell";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const ForgotPasswordPage: React.FC = () => {
+interface RoleForgotPasswordPageProps {
+  config: RoleAuthConfig;
+}
+
+export default function RoleForgotPasswordPage({
+  config,
+}: RoleForgotPasswordPageProps) {
   const forgotPassword = useAuthStore((state) => state.forgotPassword);
   const apiError = useAuthStore((state) => state.error);
   const successMessage = useAuthStore((state) => state.successMessage);
@@ -53,7 +60,10 @@ const ForgotPasswordPage: React.FC = () => {
   return (
     <AuthShell
       title="Forgot Password"
-      subtitle="Enter your email address to receive a verification OTP."
+      subtitle={config.forgotSubtitle}
+      heroLines={config.heroLines}
+      heroAccentLineIndex={config.heroAccentLineIndex}
+      heroDescription={config.heroDescription}
     >
       <form onSubmit={handleSubmit}>
         <div className="mb-6 rounded-lg bg-[#00000080] px-1 py-1.5">
@@ -102,12 +112,10 @@ const ForgotPasswordPage: React.FC = () => {
       </form>
 
       <div className="text-center text-sm text-white md:text-base">
-        <Link href="/home/auth/signin" className="font-semibold hover:underline">
+        <Link href={`${config.basePath}/signin`} className="font-semibold hover:underline">
           Back to Sign In
         </Link>
       </div>
     </AuthShell>
   );
-};
-
-export default ForgotPasswordPage;
+}

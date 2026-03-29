@@ -1,331 +1,532 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Search, Edit2, Video, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Search,
+  Edit2,
+  Video,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-interface Venue {
+
+import { api, getApiErrorMessage } from '@/lib/api';
+
+interface VenueApiItem {
+  _id: string;
+  information?: {
+    venueName?: string;
+    venueType?: string;
+    addressLine?: string;
+    city?: string;
+    area?: string;
+  };
+  pricing?: {
+    basePrice?: number;
+    currency?: string;
+  };
+  capacity?: {
+    maximumGuests?: number;
+  };
+  media?: {
+    galleryImages?: string[];
+    videoUrl?: string;
+  };
+  publishStatus?: string;
+  createdAt?: string;
+}
+
+interface VenueListMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+interface VenueListResponse {
+  success: boolean;
+  meta: VenueListMeta;
+  data: VenueApiItem[];
+}
+
+interface VenueCardData {
   id: string;
   name: string;
   type: string;
   location: string;
-  capacity: number;
-  price: number;
-  status: 'Published' | 'Unpublished';
+  capacity: number | null;
+  price: number | null;
+  currency: string;
+  status: string;
   createdDate: string;
-  image: string;
+  imageUrl: string | null;
+  hasVideo: boolean;
 }
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 10;
 
-const venues: Venue[] = [
-  {
-    id: "1",
-    name: 'Grand Palace Hall',
-    type: 'Wedding Hall',
-    location: 'Dhaka, Gulshan',
-    capacity: 500,
-    price: 150000,
-    status: 'Published',
-    createdDate: 'Dec 15, 2024',
-    image: '🏛️'
-  },
-  {
-    id: "2",
-    name: 'Tech Conference Center',
-    type: 'Conference Hall',
-    location: 'Dhaka, Banani',
-    capacity: 200,
-    price: 80000,
-    status: 'Published',
-    createdDate: 'Dec 10, 2024',
-    image: '🏢'
-  },
-  {
-    id: "3",
-    name: 'Garden Paradise',
-    type: 'Outdoor Venue',
-    location: 'Dhaka, Uttara',
-    capacity: 300,
-    price: 120000,
-    status: 'Unpublished',
-    createdDate: 'Dec 8, 2024',
-    image: '🌳'
-  },
-  {
-    id: '4',
-    name: 'Royal Banquet Hall',
-    type: 'Banquet Hall',
-    location: 'Dhaka, Dhanmondi',
-    capacity: 400,
-    price: 135000,
-    status: 'Published',
-    createdDate: 'Dec 5, 2024',
-    image: '👑'
-  },
-  {
-    id: "5",
-    name: 'Sky Lounge Rooftop',
-    type: 'Rooftop Venue',
-    location: 'Dhaka, Motijheel',
-    capacity: 150,
-    price: 95000,
-    status: 'Unpublished',
-    createdDate: 'Dec 1, 2024',
-    image: '🌆'
-  },
-  {
-    id: "6",
-    name: 'Private Dining Suite',
-    type: 'Restaurant',
-    location: 'Dhaka, Bashundhara',
-    capacity: 50,
-    price: 45000,
-    status: 'Published',
-    createdDate: 'Nov 28, 2024',
-    image: '🍽️'
+const formatPublishStatus = (status?: string) => {
+  if (!status) {
+    return 'Pending';
   }
-];
+
+  return status
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+const formatCreatedDate = (value?: string) => {
+  if (!value) {
+    return 'N/A';
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A';
+  }
+
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const formatCurrencyValue = (amount: number | null, currency: string) => {
+  if (amount === null) {
+    return 'N/A';
+  }
+
+  return `${currency} ${amount.toLocaleString()}`;
+};
+
+const getStatusBadgeClasses = (status: string) => {
+  const normalized = status.toLowerCase();
+
+  if (normalized === 'published') {
+    return 'bg-green-100 text-green-700';
+  }
+
+  if (normalized === 'pending') {
+    return 'bg-yellow-100 text-yellow-700';
+  }
+
+  return 'bg-red-100 text-red-700';
+};
 
 export default function VenueManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-const router = useRouter();
-  const filteredVenues = useMemo(() => {
-    return venues.filter(venue =>
-      venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      venue.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      venue.type.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
+  const [venues, setVenues] = useState<VenueApiItem[]>([]);
+  const [meta, setMeta] = useState<VenueListMeta>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
-  const totalPages = Math.ceil(filteredVenues.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentVenues = filteredVenues.slice(startIndex, endIndex);
+  useEffect(() => {
+    const fetchVenues = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        const response = await api.get<VenueListResponse>(
+          '/api/v1/venue-provider/venues',
+          {
+            params: {
+              page: currentPage,
+              limit: ITEMS_PER_PAGE,
+              sortBy: 'createdAt',
+              sortOrder: 'desc',
+            },
+          }
+        );
+        console.log(response,"kdk")
+
+        setVenues(Array.isArray(response.data.data) ? response.data.data : []);
+        setMeta(
+          response.data.meta ?? {
+            page: currentPage,
+            limit: ITEMS_PER_PAGE,
+            total: 0,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPrevPage: false,
+          }
+        );
+      } catch (fetchError) {
+        setError(getApiErrorMessage(fetchError));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVenues();
+  }, [currentPage]);
+
+  const mappedVenues = useMemo<VenueCardData[]>(() => {
+    return venues.map((venue) => {
+      const information = venue.information ?? {};
+      const pricing = venue.pricing ?? {};
+      const capacity = venue.capacity ?? {};
+      const media = venue.media ?? {};
+      const locationParts = [
+        information.addressLine,
+        information.area,
+        information.city,
+      ].filter(Boolean);
+
+      return {
+        id: venue._id,
+        name: information.venueName?.trim() || 'Untitled Venue',
+        type: information.venueType?.trim() || 'Venue',
+        location: locationParts.length ? locationParts.join(', ') : 'N/A',
+        capacity:
+          typeof capacity.maximumGuests === 'number'
+            ? capacity.maximumGuests
+            : null,
+        price:
+          typeof pricing.basePrice === 'number' ? pricing.basePrice : null,
+        currency: pricing.currency?.trim() || 'BDT',
+        status: formatPublishStatus(venue.publishStatus),
+        createdDate: formatCreatedDate(venue.createdAt),
+        imageUrl:
+          Array.isArray(media.galleryImages) &&
+          typeof media.galleryImages[0] === 'string'
+            ? media.galleryImages[0]
+            : null,
+        hasVideo:
+          typeof media.videoUrl === 'string' && media.videoUrl.trim().length > 0,
+      };
+    });
+  }, [venues]);
+
+  const filteredVenues = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return mappedVenues;
+    }
+
+    return mappedVenues.filter((venue) => {
+      return (
+        venue.name.toLowerCase().includes(normalizedQuery) ||
+        venue.location.toLowerCase().includes(normalizedQuery) ||
+        venue.type.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [mappedVenues, searchQuery]);
 
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > meta.totalPages || page === currentPage) {
+      return;
+    }
+
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const HandleEdit=async(id:string)=>{
-    router.push("/venueprovider/dashboard/myVanue/"+id)
-  }
-  
 
+  const handleEdit = (id: string) => {
+    router.push(`/venueprovider/dashboard/myVanue/${id}`);
+  };
 
   const getPageNumbers = () => {
-    const pages = [];
+    const totalPages = meta.totalPages || 1;
+    const pages: Array<number | string> = [];
+
     if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
+      for (let page = 1; page <= totalPages; page += 1) {
+        pages.push(page);
       }
-    } else {
-      if (currentPage <= 3) {
-        pages.push(1, 2, 3, 4, '...', totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-      }
+      return pages;
     }
-    return pages;
+
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, '...', totalPages];
+    }
+
+    if (currentPage >= totalPages - 2) {
+      return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
   };
 
   return (
-    <div className="min-h-screen  ">
-      <div className="">
-        {/* Header */}
-        <div className=" flex justify-between p-[32px]">
-          <h1 className="font-inter font-bold text-2xl leading-8 tracking-normal">My Venues</h1>
-          
-          {/* Search Bar */}
+    <div className="min-h-screen">
+      <div>
+        <div className="flex justify-between p-[32px]">
+          <h1 className="font-inter text-2xl font-bold leading-8 tracking-normal">
+            My Venues
+          </h1>
+
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
             <input
               type="text"
               placeholder="Search by venue name"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
-        {/* Desktop Table View */}
-        <div className="hidden lg:block bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-y  border-[#E5E7EB]">
-                <tr>
-                  <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Venue Name</th>
-                  <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Location</th>
-                  <th className="px-6 py-4 text-left tfont-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Capacity</th>
-                  <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Price</th>
-                  <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Status</th>
-                  <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Created Date</th>
-                  <th className="px-6 py-4 text-left font-inter font-medium text-sm leading-none tracking-normal  text-[#676767]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {currentVenues.map((venue) => (
-                  <tr key={venue.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center text-2xl">
-                          {venue.image}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">{venue.name}</div>
-                          <div className="text-sm text-gray-500">{venue.type}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{venue.location}</td>
-                    <td className="px-6 py-4 text-gray-700">{venue.capacity} guests</td>
-                    <td className="px-6 py-4 font-semibold text-gray-900">${venue.price.toLocaleString()}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        venue.status === 'Published' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
-                      }`}>
+        {error ? (
+          <div className="mx-8 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        {isLoading ? (
+          <div className="mx-8 rounded-lg border border-[#E5E7EB] bg-white p-12 text-center text-gray-500">
+            Loading venues...
+          </div>
+        ) : (
+          <>
+            <div className="hidden overflow-hidden rounded-lg border border-[#E5E7EB] bg-white lg:block">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-y border-[#E5E7EB] bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Venue Name
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Location
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Capacity
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Price
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Created Date
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium leading-none tracking-normal text-[#676767]">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredVenues.map((venue) => (
+                      <tr key={venue.id} className="transition-colors hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 text-xs text-gray-500">
+                              {venue.imageUrl ? (
+                                <img
+                                  src={venue.imageUrl}
+                                  alt={venue.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span>No Image</span>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{venue.name}</div>
+                              <div className="text-sm text-gray-500">{venue.type}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">{venue.location}</td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {venue.capacity !== null ? `${venue.capacity} guests` : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-gray-900">
+                          {formatCurrencyValue(venue.price, venue.currency)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusBadgeClasses(venue.status)}`}
+                          >
+                            {venue.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">{venue.createdDate}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEdit(venue.id)}
+                              className="rounded-lg p-2 text-blue-600 transition-colors hover:bg-blue-50"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              className={`rounded-lg p-2 transition-colors ${
+                                venue.hasVideo
+                                  ? 'text-purple-600 hover:bg-purple-50'
+                                  : 'cursor-not-allowed text-gray-300'
+                              }`}
+                              disabled={!venue.hasVideo}
+                            >
+                              <Video className="h-4 w-4" />
+                            </button>
+                            <button className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="space-y-4 lg:hidden">
+              {filteredVenues.map((venue) => (
+                <div
+                  key={venue.id}
+                  className="rounded-lg border border-[#E5E7EB] bg-white p-4"
+                >
+                  <div className="mb-3 flex items-start gap-3">
+                    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 text-xs text-gray-500">
+                      {venue.imageUrl ? (
+                        <img
+                          src={venue.imageUrl}
+                          alt={venue.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span>No Image</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="mb-1 text-lg font-semibold text-gray-900">
+                        {venue.name}
+                      </h3>
+                      <p className="mb-2 text-sm text-gray-500">{venue.type}</p>
+                      <span
+                        className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${getStatusBadgeClasses(venue.status)}`}
+                      >
                         {venue.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{venue.createdDate}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={()=>{HandleEdit(venue.id)}} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                          <Video className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </div>
+                  </div>
 
-        {/* Mobile/Tablet Card View */}
-        <div className="lg:hidden space-y-4">
-          {currentVenues.map((venue) => (
-            <div key={venue.id} className="bg-white rounded-lg border border-[#E5E7EB] p-4">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center text-3xl flex-shrink-0">
-                  {venue.image}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 text-lg mb-1">{venue.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{venue.type}</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                    venue.status === 'Published' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {venue.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Location:</span>
-                  <span className="text-gray-900 font-medium">{venue.location}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Capacity:</span>
-                  <span className="text-gray-900 font-medium">{venue.capacity} guests</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Price:</span>
-                  <span className="text-gray-900 font-bold">${venue.price.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Created:</span>
-                  <span className="text-gray-900 font-medium">{venue.createdDate}</span>
-                </div>
-              </div>
+                  <div className="mb-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Location:</span>
+                      <span className="font-medium text-gray-900">{venue.location}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Capacity:</span>
+                      <span className="font-medium text-gray-900">
+                        {venue.capacity !== null ? `${venue.capacity} guests` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Price:</span>
+                      <span className="font-bold text-gray-900">
+                        {formatCurrencyValue(venue.price, venue.currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Created:</span>
+                      <span className="font-medium text-gray-900">{venue.createdDate}</span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-2 pt-3 border-t border-[#E5E7EB]">
-                <button onClick={() => HandleEdit(venue.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  <Edit2  className="w-4 h-4" />
-                  <span className="text-sm font-medium">Edit</span>
-                </button>
-                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                  <Video className="w-4 h-4" />
-                  <span className="text-sm font-medium">Media</span>
-                </button>
-                <button className="flex items-center justify-center px-4 py-2 text-[#B74140] bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+                  <div className="flex items-center gap-2 border-t border-[#E5E7EB] pt-3">
+                    <button
+                      onClick={() => handleEdit(venue.id)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-blue-600 transition-colors hover:bg-blue-100"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      <span className="text-sm font-medium">Edit</span>
+                    </button>
+                    <button
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 transition-colors ${
+                        venue.hasVideo
+                          ? 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                          : 'cursor-not-allowed bg-gray-50 text-gray-300'
+                      }`}
+                      disabled={!venue.hasVideo}
+                    >
+                      <Video className="h-4 w-4" />
+                      <span className="text-sm font-medium">Media</span>
+                    </button>
+                    <button className="flex items-center justify-center rounded-lg bg-red-50 px-4 py-2 text-[#B74140] transition-colors hover:bg-red-100">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* No Results */}
-        {filteredVenues.length === 0 && (
-          <div className="bg-white rounded-lg border border-[#E5E7EB]p-12 text-center">
-            <p className="text-gray-500 text-lg">No venues found matching your search.</p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {filteredVenues.length > 0 && (
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg border border-[#E5E7EB] p-4">
-            <div className="text-sm text-gray-600">
-              SHOWING {startIndex + 1}-{Math.min(endIndex, filteredVenues.length)} OF {filteredVenues.length}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-[#E5E7EB] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              
-              <div className="flex items-center gap-1">
-                {getPageNumbers().map((page, index) => (
-                  <React.Fragment key={index}>
-                    {page === '...' ? (
-                      <span className="px-3 py-2 text-gray-400">...</span>
-                    ) : (
-                      <button
-                        onClick={() => handlePageChange(page as number)}
-                        className={`min-w-[40px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === page
-                            ? 'bg-[#B74140] text-white'
-                            : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    )}
-                  </React.Fragment>
-                ))}
+            {filteredVenues.length === 0 ? (
+              <div className="rounded-lg border border-[#E5E7EB] bg-white p-12 text-center">
+                <p className="text-lg text-gray-500">
+                  No venues found matching your search.
+                </p>
               </div>
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-[#E5E7EB] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+            ) : null}
+
+            {meta.total > 0 ? (
+              <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] bg-white p-4 sm:flex-row">
+                <div className="text-sm text-gray-600">
+                  SHOWING {(meta.page - 1) * meta.limit + 1}-
+                  {Math.min(meta.page * meta.limit, meta.total)} OF {meta.total}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!meta.hasPrevPage}
+                    className="rounded-lg border border-[#E5E7EB] p-2 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, index) => (
+                      <React.Fragment key={index}>
+                        {page === '...' ? (
+                          <span className="px-3 py-2 text-gray-400">...</span>
+                        ) : (
+                          <button
+                            onClick={() => handlePageChange(page as number)}
+                            className={`min-w-[40px] rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-[#B74140] text-white'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!meta.hasNextPage}
+                    className="rounded-lg border border-[#E5E7EB] p-2 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </div>

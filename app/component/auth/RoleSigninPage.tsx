@@ -4,10 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
 
+import type { RoleAuthConfig } from "@/app/component/auth/role-auth-config";
 import AuthShell from "@/app/component/home/auth/AuthShell";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const LoginPage: React.FC = () => {
+interface RoleSigninPageProps {
+  config: RoleAuthConfig;
+}
+
+export default function RoleSigninPage({ config }: RoleSigninPageProps) {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const apiError = useAuthStore((state) => state.error);
@@ -49,7 +54,7 @@ const LoginPage: React.FC = () => {
         password,
       });
 
-      router.push("/home/auth/welcomeUser");
+      router.push(config.welcomePath);
     } catch {
       // Store error is already handled for the UI.
     }
@@ -57,8 +62,11 @@ const LoginPage: React.FC = () => {
 
   return (
     <AuthShell
-      title="Login as a User"
-      subtitle="Sign in to manage bookings and continue your event planning."
+      title={config.loginTitle}
+      subtitle={config.loginSubtitle}
+      heroLines={config.heroLines}
+      heroAccentLineIndex={config.heroAccentLineIndex}
+      heroDescription={config.heroDescription}
     >
       <form onSubmit={handleSubmit}>
         <div className="mb-5 rounded-lg bg-[#00000080] px-1 py-1.5">
@@ -112,7 +120,7 @@ const LoginPage: React.FC = () => {
 
         <div className="mb-5 flex justify-end text-sm md:text-base">
           <Link
-            href="/home/auth/forgetpassword"
+            href={`${config.basePath}/forgetpassword`}
             className="text-white transition-colors hover:text-white/80"
           >
             Forgot Password?
@@ -140,12 +148,10 @@ const LoginPage: React.FC = () => {
 
       <div className="mt-6 text-center text-sm text-white md:text-base">
         <span>Don&apos;t have an account? </span>
-        <Link href="/home/auth/signup" className="font-semibold hover:underline">
+        <Link href={`${config.basePath}/signup`} className="font-semibold hover:underline">
           Create New Account
         </Link>
       </div>
     </AuthShell>
   );
-};
-
-export default LoginPage;
+}

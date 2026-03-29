@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
 
 import AuthShell from "@/app/component/home/auth/AuthShell";
+import type { RoleAuthConfig } from "@/app/component/auth/role-auth-config";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const SignupPage: React.FC = () => {
+interface RoleSignupPageProps {
+  config: RoleAuthConfig;
+}
+
+export default function RoleSignupPage({ config }: RoleSignupPageProps) {
   const router = useRouter();
   const register = useAuthStore((state) => state.register);
   const apiError = useAuthStore((state) => state.error);
@@ -91,11 +96,11 @@ const SignupPage: React.FC = () => {
         fullName: fullName.trim(),
         email: email.trim(),
         password,
-        role: "customer",
+        role: config.role,
       });
 
       router.push(
-        `/home/auth/verify-email?email=${encodeURIComponent(result.user.email)}`
+        `${config.basePath}/verify-email?email=${encodeURIComponent(result.user.email)}`
       );
     } catch {
       // Store error is already handled for the UI.
@@ -105,7 +110,10 @@ const SignupPage: React.FC = () => {
   return (
     <AuthShell
       title="Create Your Account"
-      subtitle="Create your customer account to start booking services."
+      subtitle={config.signupSubtitle}
+      heroLines={config.heroLines}
+      heroAccentLineIndex={config.heroAccentLineIndex}
+      heroDescription={config.heroDescription}
     >
       <form onSubmit={handleSubmit}>
         <div className="mb-5 rounded-lg bg-[#00000080] px-1 py-1.5">
@@ -248,12 +256,10 @@ const SignupPage: React.FC = () => {
 
       <div className="mt-6 text-center text-sm text-white md:text-base">
         <span>Already have an account? </span>
-        <Link href="/home/auth/signin" className="font-semibold hover:underline">
+        <Link href={`${config.basePath}/signin`} className="font-semibold hover:underline">
           Log In
         </Link>
       </div>
     </AuthShell>
   );
-};
-
-export default SignupPage;
+}

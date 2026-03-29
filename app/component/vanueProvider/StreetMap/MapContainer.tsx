@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -22,36 +22,119 @@ interface Coordinates {
   lng: number;
 }
 
+interface LocationDetails extends Coordinates {
+  address: string;
+  city: string;
+  area: string;
+}
+
 interface MapContainerProps {
   onClose: () => void;
-  onLocationSelect: (lat: number, lng: number, address: string) => void;
+  onLocationSelect: (location: LocationDetails) => void;
   initialPosition?: Coordinates;
   initialAddress?: string;
+  initialCity?: string;
+  initialArea?: string;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({ 
   onClose, 
   onLocationSelect,
   initialPosition,
-  initialAddress 
+  initialAddress,
+  initialCity,
+  initialArea,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>(initialAddress || '');
+  const [city, setCity] = useState<string>(initialCity || '');
+  const [area, setArea] = useState<string>(initialArea || '');
   const [selectedCoords, setSelectedCoords] = useState<Coordinates | null>(initialPosition || null);
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
 
-  const handleMapSelect = (coords: Coordinates) => {
+  const reverseGeocode = async (coords: Coordinates) => {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}`,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to fetch location details from the map.');
+    }
+
+    const data = await response.json();
+    const address = data.address ?? {};
+    const fullAddress =
+      data.display_name ||
+      `Location at ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+    const detectedCity =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.state_district ||
+      address.county ||
+      '';
+    const detectedArea =
+      address.suburb ||
+      address.neighbourhood ||
+      address.quarter ||
+      address.city_district ||
+      address.hamlet ||
+      address.road ||
+      '';
+
+    return {
+      address: fullAddress,
+      city: detectedCity,
+      area: detectedArea,
+    };
+  };
+
+  const handleMapSelect = async (coords: Coordinates) => {
     setSelectedCoords(coords);
-    if (!searchQuery.trim()) {
-      setSearchQuery(`Location at ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+
+    setIsLoadingAddress(true);
+
+    try {
+      const locationDetails = await reverseGeocode(coords);
+      setSearchQuery(locationDetails.address);
+      setCity(locationDetails.city);
+      setArea(locationDetails.area);
+    } catch {
+      if (!searchQuery.trim()) {
+        setSearchQuery(`Location at ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+      }
+    } finally {
+      setIsLoadingAddress(false);
     }
   };
 
   const handleConfirm = () => {
     if (selectedCoords) {
-      const address = searchQuery.trim() || `Location at ${selectedCoords.lat.toFixed(6)}, ${selectedCoords.lng.toFixed(6)}`;
-      onLocationSelect(selectedCoords.lat, selectedCoords.lng, address);
+      const address =
+        searchQuery.trim() ||
+        `Location at ${selectedCoords.lat.toFixed(6)}, ${selectedCoords.lng.toFixed(6)}`;
+      onLocationSelect({
+        lat: selectedCoords.lat,
+        lng: selectedCoords.lng,
+        address,
+        city: city.trim(),
+        area: area.trim(),
+      });
       onClose();
     }
   };
+
+  useEffect(() => {
+    if (!selectedCoords || searchQuery.trim()) {
+      return;
+    }
+
+    void handleMapSelect(selectedCoords);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -111,6 +194,11 @@ const MapContainer: React.FC<MapContainerProps> = ({
                     <p className="text-sm text-gray-700">
                       {searchQuery || `Lat: ${selectedCoords.lat.toFixed(6)}, Lng: ${selectedCoords.lng.toFixed(6)}`}
                     </p>
+                    {isLoadingAddress ? (
+                      <p className="mt-2 text-xs text-emerald-700">
+                        Loading address details from the map...
+                      </p>
+                    ) : null}
                   </div>
                   
                   <div className="space-y-3">
@@ -135,6 +223,28 @@ const MapContainer: React.FC<MapContainerProps> = ({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Enter address or location name"
+                        className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Detected city"
+                        className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
+                      <input
+                        type="text"
+                        value={area}
+                        onChange={(e) => setArea(e.target.value)}
+                        placeholder="Detected area"
                         className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-emerald-500"
                       />
                     </div>

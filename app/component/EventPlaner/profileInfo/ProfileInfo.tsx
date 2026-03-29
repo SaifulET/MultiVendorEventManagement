@@ -1,178 +1,315 @@
 "use client";
 
-import React, { useState } from 'react';
-import { ChevronDown, ArrowRight, Briefcase, MapPin, Upload, BriefcaseBusinessIcon, Tag, Layers } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import React, { useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BriefcaseBusinessIcon,
+  ChevronDown,
+  Link2,
+  MapPin,
+  NotebookPen,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { useAuthStore } from "@/store/useAuthStore";
+
+const splitValues = (value: string) =>
+  value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim().replace(/^['"]+|['"]+$/g, ""))
+    .filter(Boolean);
+
+const normalizeBusinessType = (value: string) =>
+  value.trim() === "individual" ? "individual" : "company";
 
 export default function BusinessProfileForm() {
-  const [formData, setFormData] = useState({
-    serviceName: '',
-    serviceCategory: '',
-    serviceDescription: '',
-    coverageArea: '',
-    businessType: '',
-    nationalId: null as File | null,
-    companyName: '',
-    payoutMethod: 'stripe',
-    address: ''
-  });
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const apiError = useAuthStore((state) => state.error);
+  const successMessage = useAuthStore((state) => state.successMessage);
+  const clearError = useAuthStore((state) => state.clearError);
+  const clearSuccessMessage = useAuthStore((state) => state.clearSuccessMessage);
+  const submitEventPlannerOnboarding = useAuthStore(
+    (state) => state.submitEventPlannerOnboarding
+  );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
+  const [formData, setFormData] = useState({
+    plannerName: "",
+    description: "",
+    coverageArea: "",
+    address: "",
+    stripeAccountId: "",
+    businessType: "individual",
+    companyName: "",
+    documentUrls: "",
+  });
+  const [validationError, setValidationError] = useState("");
+
+  const formError = validationError || apiError;
+  const documentPreview = useMemo(
+    () => splitValues(formData.documentUrls),
+    [formData.documentUrls]
+  );
+
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+
+    if (validationError) {
+      setValidationError("");
+    }
+
+    if (apiError) {
+      clearError();
+    }
+
+    if (successMessage) {
+      clearSuccessMessage();
+    }
+
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
     }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData(prev => ({
-        ...prev,
-        nationalId: file
-      }));
+  const validateForm = () => {
+    if (!user?.id || !user.email) {
+      return "Please sign in again before submitting onboarding information.";
     }
-  };
-  const router = useRouter()
 
-  // Fix: Prevent default form submission and add validation
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Prevent default form submission
-    
-    // Validate required fields
-    if (!formData.serviceName || !formData.serviceCategory || 
-        !formData.serviceDescription || !formData.coverageArea) {
-      alert('Please fill in all required fields');
+    if (!formData.plannerName.trim()) {
+      return "Planner name is required.";
+    }
+
+    if (!formData.description.trim()) {
+      return "Description is required.";
+    }
+
+    if (!splitValues(formData.coverageArea).length) {
+      return "Please add at least one coverage area.";
+    }
+
+    if (!formData.address.trim()) {
+      return "Address is required.";
+    }
+
+    if (!formData.stripeAccountId.trim()) {
+      return "Stripe account ID is required.";
+    }
+
+    if (!documentPreview.length) {
+      return "Please add at least one document URL.";
+    }
+
+    return "";
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextValidationError = validateForm();
+    if (nextValidationError) {
+      setValidationError(nextValidationError);
       return;
     }
-    
-    // If everything is OK, redirect to signin page
-    router.push("/eventPlanner/dashboard/dashboard");
+
+    if (!user) {
+      setValidationError("Please sign in again before continuing.");
+      return;
+    }
+
+    try {
+      await submitEventPlannerOnboarding({
+        _id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        stripeAccountId: formData.stripeAccountId.trim(),
+        profileInfo: {
+          name: formData.plannerName.trim(),
+          description: formData.description.trim(),
+          coverageArea: splitValues(formData.coverageArea),
+          address: formData.address.trim(),
+          verification: {
+            businessType: normalizeBusinessType(formData.businessType),
+            companyName: formData.companyName.trim(),
+            nationalIdOrTradeLicenseFiles: documentPreview,
+          },
+        },
+      });
+
+      router.push("/eventPlanner/dashboard/dashboard");
+    } catch {
+      // Store error is already handled for the UI.
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-3xl">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 lg:p-10">
-          {/* Header */}
+    <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-[#B74140] rounded-lg flex items-center justify-center">
-                <BriefcaseBusinessIcon className="w-5 h-5 text-white"/>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#B74140]">
+                <BriefcaseBusinessIcon className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-2xl font-semibold text-gray-900">
-                Business Profile Information
+                Event Planner Profile Information
               </h1>
             </div>
-            <p className="text-sm text-gray-600 ml-[52px]">
-              Tell us about the services you provide
+            <p className="ml-[52px] text-sm text-gray-600">
+              Tell us about your event planning business and submit your
+              onboarding details.
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Service Name */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  Account Name
+                </label>
+                <input
+                  value={user?.fullName ?? ""}
+                  readOnly
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  Account Email
+                </label>
+                <input
+                  value={user?.email ?? ""}
+                  readOnly
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+                />
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="serviceName" className="block text-sm font-medium text-gray-900 mb-2">
-                Service Name<span className="text-red-500">*</span>
+              <label
+                htmlFor="stripeAccountId"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                Stripe Account ID<span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"/>
+                <Link2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  id="serviceName"
-                  name="serviceName"
-                  value={formData.serviceName}
+                  id="stripeAccountId"
+                  name="stripeAccountId"
+                  value={formData.stripeAccountId}
                   onChange={handleInputChange}
-                  placeholder="e.g., Professional Home Cleaning"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all"
+                  placeholder="e.g., acct_1Example123456789"
+                  className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                   required
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Choose a clear, descriptive name for your service</p>
             </div>
 
-            {/* Service Category */}
             <div>
-              <label htmlFor="serviceCategory" className="block text-sm font-medium text-gray-900 mb-2">
-                Service Category<span className="text-red-500">*</span>
+              <label
+                htmlFor="plannerName"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                Planner Name<span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className="relative">
-                  <Layers className="absolute left-3 top-6 transform -translate-y-1/2 w-5 h-5 text-gray-400"/>
-                </div>
-                <select
-                  id="serviceCategory"
-                  name="serviceCategory"
-                  value={formData.serviceCategory}
+                <NotebookPen className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  id="plannerName"
+                  name="plannerName"
+                  value={formData.plannerName}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all cursor-pointer"
+                  placeholder="e.g., Star Events"
+                  className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                   required
-                >
-                  <option value="">Select a category</option>
-                  <option value="cleaning">Cleaning Services</option>
-                  <option value="plumbing">Plumbing</option>
-                  <option value="electrical">Electrical Services</option>
-                  <option value="carpentry">Carpentry</option>
-                  <option value="painting">Painting</option>
-                  <option value="landscaping">Landscaping</option>
-                  <option value="other">Other</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-700 pointer-events-none" />
+                />
               </div>
             </div>
 
-            {/* Service Description */}
             <div>
-              <label htmlFor="serviceDescription" className="block text-sm font-medium text-gray-900 mb-2">
-                Service Description<span className="text-red-500">*</span>
+              <label
+                htmlFor="description"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                Description<span className="text-red-500">*</span>
               </label>
               <textarea
-                id="serviceDescription"
-                name="serviceDescription"
-                value={formData.serviceDescription}
+                id="description"
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Describe your service in detail. Include what's included, your expertise, and what makes your service unique..."
+                placeholder="Wedding and corporate event planning"
                 rows={5}
                 maxLength={500}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all resize-none"
+                className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1 text-right">{formData.serviceDescription.length}/500 characters</p>
-              <p className="text-xs text-gray-500 mt-1">Provide a detailed description to help customers understand your service</p>
+              <p className="mt-1 text-right text-xs text-gray-500">
+                {formData.description.length}/500 characters
+              </p>
             </div>
 
-            {/* Coverage Area */}
             <div>
-              <label htmlFor="coverageArea" className="block text-sm font-medium text-gray-900 mb-2">
+              <label
+                htmlFor="coverageArea"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
                 Coverage Area<span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <textarea
                   id="coverageArea"
                   name="coverageArea"
                   value={formData.coverageArea}
                   onChange={handleInputChange}
-                  placeholder="List the areas, neighborhoods, or zip codes you serve (e.g., Downtown, Midtown, 10001, 10002)"
+                  placeholder="Enter cities or areas separated by commas or new lines."
                   rows={3}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all resize-none"
+                  className="w-full resize-none rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                   required
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Specify all locations where you can provide this service</p>
             </div>
 
-            {/* Verification Section */}
+            <div>
+              <label
+                htmlFor="address"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                Address<span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="Banani, Dhaka"
+                rows={3}
+                className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                required
+              />
+            </div>
+
             <div className="pt-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Verification</h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Business Type */}
+              <h2 className="mb-6 text-lg font-semibold text-gray-900">
+                Verification
+              </h2>
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="businessType" className="block text-sm font-medium text-gray-900 mb-2">
-                    Business Type
+                  <label
+                    htmlFor="businessType"
+                    className="mb-2 block text-sm font-medium text-gray-900"
+                  >
+                    Business Type<span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -180,110 +317,97 @@ export default function BusinessProfileForm() {
                       name="businessType"
                       value={formData.businessType}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all cursor-pointer"
+                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                     >
-                      <option value="company">Company</option>
                       <option value="individual">Individual</option>
-                      <option value="llc">LLC</option>
-                      <option value="corporation">Corporation</option>
+                      <option value="company">Company</option>
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-700 pointer-events-none" />
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-700" />
                   </div>
                 </div>
 
-                {/* National ID / Trade License */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    National ID / Trade License
+                  <label
+                    htmlFor="companyName"
+                    className="mb-2 block text-sm font-medium text-gray-900"
+                  >
+                    Company Name
                   </label>
-                  <label className="w-full h-[46px] px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-500 flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors">
-                    <Upload className="w-4 h-4" />
-                    <span>{formData.nationalId ? formData.nationalId.name : 'Upload document'}</span>
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="hidden"
-                    />
-                  </label>
+                  <input
+                    type="text"
+                    id="companyName"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleInputChange}
+                    placeholder="Evenit Ltd"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Company Name */}
             <div>
-              <label htmlFor="companyName" className="block text-sm font-medium text-gray-900 mb-2">
-                Company Name
-              </label>
-              <input
-                type="text"
-                id="companyName"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleInputChange}
-                placeholder="Company Name"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all"
-              />
-            </div>
-
-            {/* Payment Information Section */}
-            <div className="pt-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Payment Information</h2>
-              
-              {/* Payout Method */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-900 mb-3">
-                  Payout Method
-                </label>
-                <div className="border border-gray-300 rounded-lg p-4 flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <rect width="32" height="32" rx="4" fill="#635BFF"/>
-                      <path d="M13.8 13.5c0-.9.7-1.4 1.9-1.4 1.7 0 3.9.5 5.6 1.4V9.7c-1.9-.7-3.7-1-5.6-1-4.6 0-7.7 2.4-7.7 6.4 0 6.2 8.5 5.2 8.5 7.9 0 1-.9 1.5-2.2 1.5-1.9 0-4.3-.8-6.2-1.8v3.9c2.1.9 4.2 1.3 6.2 1.3 4.7 0 8-2.3 8-6.4 0-6.7-8.5-5.5-8.5-8z" fill="white"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900 text-sm">Stripe</div>
-                    <div className="text-xs text-gray-500">Secure payments via Stripe</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bank Account / Card Info */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Bank Account / Card Info
-                </label>
-                <div className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-400 bg-gray-50">
-                  Account details will be collected via Stripe
-                </div>
-              </div>
-            </div>
-
-            {/* Address */}
-            <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-900 mb-2">
-                Address <span className="text-gray-500 font-normal">(optional but recommended)</span>
+              <label
+                htmlFor="documentUrls"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                National ID / Trade License URLs
+                <span className="text-red-500">*</span>
               </label>
               <textarea
-                id="address"
-                name="address"
-                value={formData.address}
+                id="documentUrls"
+                name="documentUrls"
+                value={formData.documentUrls}
                 onChange={handleInputChange}
-                placeholder="Full business address"
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B74140] focus:border-transparent transition-all resize-none"
+                placeholder="Paste one file URL per line, or separate them with commas."
+                rows={4}
+                className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                required
               />
+              <p className="mt-1 text-xs text-gray-500">
+                The onboarding API you shared expects document URLs, so this form
+                submits links instead of raw file uploads.
+              </p>
+              {documentPreview.length ? (
+                <div className="mt-3 rounded-lg bg-gray-50 p-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Documents to submit
+                  </p>
+                  <div className="space-y-1 text-sm text-gray-700">
+                    {documentPreview.map((url) => (
+                      <div key={url} className="truncate">
+                        {url}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-4 flex justify-end">
+            {formError ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {formError}
+              </div>
+            ) : null}
+
+            {successMessage ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {successMessage}
+              </div>
+            ) : null}
+
+            <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="bg-[#B74140] hover:bg-[#a33635] text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
+                disabled={isLoading}
+                className={`flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium text-white transition-colors duration-200 ${
+                  isLoading
+                    ? "cursor-not-allowed bg-[#B74140]/70"
+                    : "bg-[#B74140] hover:bg-[#a33635]"
+                }`}
               >
-                Save & Continue
-                <ArrowRight className="w-4 h-4" />
+                {isLoading ? "Submitting..." : "Save & Continue"}
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </form>
