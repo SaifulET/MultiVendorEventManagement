@@ -96,6 +96,8 @@ interface MediaItem {
   embedUrl?: string | null;
 }
 
+type VenueReview = NonNullable<VenueDetails['reviews']>[number];
+
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -201,7 +203,7 @@ const formatReviewDate = (value?: string) => {
   });
 };
 
-const getReviewName = (review: VenueDetails['reviews'][number], fallbackIndex: number) => {
+const getReviewName = (review: VenueReview, fallbackIndex: number) => {
   return (
     review.user?.fullName ||
     review.reviewer?.fullName ||
@@ -308,7 +310,7 @@ const VenueBookingPage: React.FC = () => {
       return [];
     }
 
-    const galleryImages = (venue.media?.galleryImages ?? [])
+    const galleryImages: MediaItem[] = (venue.media?.galleryImages ?? [])
       .filter((image): image is string => typeof image === 'string' && image.trim().length > 0)
       .map((image, index) => ({
         id: `image-${index}`,
