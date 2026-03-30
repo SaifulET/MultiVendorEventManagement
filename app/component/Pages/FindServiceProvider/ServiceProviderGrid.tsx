@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { serviceProvider, Filters } from './type';
+import { useEffect, useMemo, useState } from 'react';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 import ServiceProviderCard from './ServiceProviderCard';
+import { Filters, serviceProvider } from './type';
 
 interface serviceProviderProps {
   serviceProvider: serviceProvider[];
@@ -18,20 +20,31 @@ export default function ServiceProviderGrid({
 }: serviceProviderProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ✅ Filter providers
   const filteredVenues = useMemo(() => {
     return serviceProvider.filter((provider) => {
-      // Location filter
       if (
         filters.location &&
-        !provider.location
-          .toLowerCase()
-          .includes(filters.location.toLowerCase())
+        !provider.location.toLowerCase().includes(filters.location.toLowerCase())
       ) {
         return false;
       }
 
-      // Rating filter
+      if (filters.categories.length > 0) {
+        const normalizedCategory = provider.categories.toLowerCase();
+        const hasMatchingCategory = filters.categories.some((category) => {
+          const normalizedFilter = category.toLowerCase();
+
+          return (
+            normalizedCategory.includes(normalizedFilter) ||
+            normalizedFilter.includes(normalizedCategory)
+          );
+        });
+
+        if (!hasMatchingCategory) {
+          return false;
+        }
+      }
+
       if (filters.ratings.length > 0) {
         const hasMatchingRating = filters.ratings.some((rating) => {
           if (rating === '5.0') return provider.rating === 5.0;
@@ -40,15 +53,19 @@ export default function ServiceProviderGrid({
           return false;
         });
 
-        if (!hasMatchingRating) return false;
+        if (!hasMatchingRating) {
+          return false;
+        }
       }
 
-      // ✅ IMPORTANT
       return true;
     });
   }, [serviceProvider, filters]);
 
-  // ✅ Pagination (NOW OUTSIDE useMemo)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, serviceProvider]);
+
   const totalPages = Math.ceil(filteredVenues.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -61,18 +78,16 @@ export default function ServiceProviderGrid({
 
   return (
     <div>
-      {/* Results Count */}
       <div className="mb-6">
         <p className="text-slate-600">
           Showing{' '}
           <span className="font-semibold text-slate-900">
-            {filteredVenues.length}{' '}
-          Provider{filteredVenues.length !== 1 && 's'}
-          </span>
+            {filteredVenues.length}
+          </span>{' '}
+          provider{filteredVenues.length !== 1 && 's'}
         </p>
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[24px] mb-12">
         {currentVenues.map((provider) => (
           <ServiceProviderCard
@@ -82,15 +97,14 @@ export default function ServiceProviderGrid({
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="p-2 rounded-lg border border-slate-300 disabled:opacity-50"
+            className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={20} className="text-slate-600" />
           </button>
 
           {[...Array(totalPages)].map((_, index) => {
@@ -102,7 +116,7 @@ export default function ServiceProviderGrid({
                 className={`px-3 py-2 rounded-lg ${
                   currentPage === page
                     ? 'bg-[#B74140] text-white'
-                    : 'border border-slate-300'
+                    : 'border border-slate-300 text-slate-700'
                 }`}
               >
                 {page}
@@ -113,17 +127,16 @@ export default function ServiceProviderGrid({
           <button
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="p-2 rounded-lg border border-slate-300 disabled:opacity-50"
+            className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={20} className="text-slate-600" />
           </button>
         </div>
       )}
 
-      {/* No Results */}
       {filteredVenues.length === 0 && (
         <div className="text-center py-16">
-          <div className="text-6xl mb-4">🔍</div>
+          <div className="text-2xl font-semibold text-slate-400 mb-4">No matches</div>
           <h3 className="text-2xl font-bold">No providers found</h3>
           <p className="text-slate-600">
             Try adjusting your filters to see more results

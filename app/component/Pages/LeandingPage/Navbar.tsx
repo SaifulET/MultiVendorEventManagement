@@ -1,99 +1,23 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ChevronDown, MessageCircle, Bell, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Menu, X, MessageCircle, Bell, User } from 'lucide-react';
 import logo from "@/public/logo.svg";
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isServiceOpen, setIsServiceOpen] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const navLinks = [
     { name: 'Home', href: '/pages/homepage' },
     { name: 'Find Venues', href: '/pages/findVenues' },
     { name: 'Find Event Planners', href: '/pages/findEventPlanners' },
-    { name: 'Find Service', href: '/pages/findServiceProvider', hasDropdown: true },
+    { name: 'Find Service', href: '/pages/findServiceProvider' },
     { name: 'About Us', href: '/pages/aboutus' },
   ];
-
-  const serviceOptions = [
-    { name: 'Catering', value: 'catering' },
-    { name: 'Photography', value: 'photography' },
-    { name: 'Decoration', value: 'decoration' },
-    { name: 'Lighting', value: 'lighting' },
-    { name: 'Sound System', value: 'sound-system' },
-    { name: 'Entertainment', value: 'entertainment' },
-    { name: 'Transportation', value: 'transportation' },
-  ];
-
-  // Function to get display categories
-  const getDisplayCategories = () => {
-    if (serviceOptions.length <= 3) {
-      return serviceOptions;
-    }
-    
-    // First 2 items
-    const firstTwo = serviceOptions.slice(0, 2);
-    // Everything else becomes "Other Services"
-    const otherServices = { 
-      name: 'Other Services', 
-      value: 'other' 
-    };
-    
-    return [...firstTwo, otherServices];
-  };
-
-  // Handle dropdown hover with delay for better UX
-  const handleMouseEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    setIsServiceOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsServiceOpen(false);
-    }, 300);
-  };
-
-  // Handle service category click
-  const handleServiceClick = (serviceValue: string) => {
-    let url = `/pages/findServiceProvider`;
-    
-    if (serviceValue === 'other') {
-      // For "Other Services", don't filter by category initially
-      // Or you could pass a special parameter to show all other services
-      url = `/pages/findServiceProvider`;
-    } else {
-      url = `/pages/findServiceProvider?category=${serviceValue}`;
-    }
-    
-    router.push(url);
-    setIsServiceOpen(false);
-    setIsMobileMenuOpen(false);
-  };
-
-  // Handle mobile service click
-  const handleMobileServiceClick = (serviceValue: string) => {
-    let url = `/pages/findServiceProvider`;
-    
-    if (serviceValue === 'other') {
-      url = `/pages/findServiceProvider`;
-    } else {
-      url = `/pages/findServiceProvider?category=${serviceValue}`;
-    }
-    
-    router.push(url);
-    setIsServiceOpen(false);
-    setIsMobileMenuOpen(false);
-  };
 
   // Handle sign in/out
   const handleAuthClick = () => {
@@ -106,32 +30,6 @@ export default function Navbar() {
     }
     setIsMobileMenuOpen(false);
   };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsServiceOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
     <nav className="bg-[#fceded] shadow-sm sticky top-0 z-50">
@@ -146,58 +44,19 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center space-x-8">
             {navLinks.map((link) => (
               <div key={link.name} className="relative">
-                {link.hasDropdown ? (
-                  <div
-                    ref={dropdownRef}
-                    className="relative"
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <button className={`flex items-center space-x-1 transition-colors ${
-                      pathname.includes('/pages/findServiceProvider') 
-                        ? 'text-[#B74140]' 
-                        : 'text-gray-700 hover:text-[#B74140]'
-                    }`}>
-                      <span>{link.name}</span>
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                    {isServiceOpen && (
-                      <div 
-                        className="absolute top-full left-[-156px] mt-2 bg-white rounded-md shadow-lg py-2 z-50 min-w-[450px]"
-                        onMouseEnter={handleMouseEnter}
-                        onMouseLeave={handleMouseLeave}
-                      >
-                        <div className="grid grid-cols-3 gap-1 px-2">
-                          {getDisplayCategories().map((service) => (
-                            <button
-                              key={service.value}
-                              onClick={() => handleServiceClick(service.value)}
-                              className="text-left px-3 py-2 text-gray-700  hover:text-[#B74140] transition-colors rounded"
-                            >
-                              {service.name}
-                            </button>
-                          ))}
-                        </div>
-                        
-                      
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <a
-                    href={link.href}
-                    className={`relative transition-colors ${
-                      pathname === link.href 
-                        ? 'text-[#B74140]' 
-                        : 'text-gray-700 hover:text-[#B74140]'
-                    }`}
-                  >
-                    {link.name}
-                    {pathname === link.href && (
-                      <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#B74140]"></span>
-                    )}
-                  </a>
-                )}
+                <a
+                  href={link.href}
+                  className={`relative transition-colors ${
+                    pathname === link.href || (link.href === '/pages/findServiceProvider' && pathname.includes('/pages/findServiceProvider'))
+                      ? 'text-[#B74140]'
+                      : 'text-gray-700 hover:text-[#B74140]'
+                  }`}
+                >
+                  {link.name}
+                  {(pathname === link.href || (link.href === '/pages/findServiceProvider' && pathname.includes('/pages/findServiceProvider'))) && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#B74140]"></span>
+                  )}
+                </a>
               </div>
             ))}
           </div>
@@ -251,57 +110,22 @@ export default function Navbar() {
             <div className="flex flex-col space-y-4">
               {navLinks.map((link) => (
                 <div key={link.name}>
-                  {link.hasDropdown ? (
-                    <div>
-                      <button
-                        onClick={() => setIsServiceOpen(!isServiceOpen)}
-                        className={`flex items-center justify-between w-full transition-colors ${
-                          pathname.includes('/pages/findServiceProvider') 
-                            ? 'text-[#B74140]' 
-                            : 'text-gray-700 hover:text-[#B74140]'
-                        }`}
-                      >
-                        <span>{link.name}</span>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            isServiceOpen ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-                      {isServiceOpen && (
-                        <div className="mt-2 ml-4 space-y-2">
-                          {getDisplayCategories().map((service) => (
-                            <button
-                              key={service.value}
-                              onClick={() => handleMobileServiceClick(service.value)}
-                              className="block text-gray-600 hover:text-[#B74140] transition-colors"
-                            >
-                              {service.name}
-                            </button>
-                          ))}
-                          
-                         
-                        </div>
+                  <a
+                    href={link.href}
+                    className={`block transition-colors ${
+                      pathname === link.href || (link.href === '/pages/findServiceProvider' && pathname.includes('/pages/findServiceProvider'))
+                        ? 'text-[#B74140]'
+                        : 'text-gray-700 hover:text-[#B74140]'
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <span className="relative">
+                      {link.name}
+                      {(pathname === link.href || (link.href === '/pages/findServiceProvider' && pathname.includes('/pages/findServiceProvider'))) && (
+                        <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#B74140]"></span>
                       )}
-                    </div>
-                  ) : (
-                    <a
-                      href={link.href}
-                      className={`block transition-colors ${
-                        pathname === link.href 
-                          ? 'text-[#B74140]' 
-                          : 'text-gray-700 hover:text-[#B74140]'
-                      }`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <span className="relative">
-                        {link.name}
-                        {pathname === link.href && (
-                          <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#B74140]"></span>
-                        )}
-                      </span>
-                    </a>
-                  )}
+                    </span>
+                  </a>
                 </div>
               ))}
               

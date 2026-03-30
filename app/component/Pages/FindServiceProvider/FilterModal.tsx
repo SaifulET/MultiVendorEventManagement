@@ -1,57 +1,18 @@
 'use client';
 
-import { X, MapPin, Calendar, Users, Star, Wifi, Car, UtensilsCrossed, Music, Wind, Accessibility } from 'lucide-react';
+import { X, MapPin, Calendar, Star } from 'lucide-react';
 import { Filters } from './type';
-import { useEffect, useState, ChangeEvent } from 'react';
+import { useEffect } from 'react';
 
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
   filters: Filters;
   onFilterChange: (filters: Filters) => void;
+  availableCategories: string[];
 }
 
-// Simple geocoding function
-const geocodeLocation = async (location: string): Promise<{ lat: number; lng: number } | null> => {
-  const defaultCoords = { lat: 40.7489, lng: -73.9680 };
-  
-  if (!location.trim()) return defaultCoords;
-  
-  const locationMap: Record<string, { lat: number; lng: number }> = {
-    'manhattan': { lat: 40.7831, lng: -73.9712 },
-    'brooklyn': { lat: 40.6782, lng: -73.9442 },
-    'queens': { lat: 40.7282, lng: -73.7949 },
-    'downtown': { lat: 40.7589, lng: -73.9851 },
-    'midtown': { lat: 40.7549, lng: -73.9840 },
-    'new york': defaultCoords,
-    'nyc': defaultCoords,
-  };
-  
-  const lowerLocation = location.toLowerCase();
-  
-  for (const [key, coords] of Object.entries(locationMap)) {
-    if (lowerLocation.includes(key)) {
-      return coords;
-    }
-  }
-  
-  const coordMatch = location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-  if (coordMatch) {
-    return {
-      lat: parseFloat(coordMatch[1]),
-      lng: parseFloat(coordMatch[2])
-    };
-  }
-  
-  return defaultCoords;
-};
-
-export default function FilterModal({ isOpen, onClose, filters, onFilterChange }: FilterModalProps) {
-  const [showFullMap, setShowFullMap] = useState<boolean>(false);
-  const [mapPosition, setMapPosition] = useState<{ lat: number; lng: number }>({ 
-    lat: 40.7489, 
-    lng: -73.9680 
-  });
+export default function FilterModal({ isOpen, onClose, filters, onFilterChange, availableCategories }: FilterModalProps) {
 
   useEffect(() => {
     if (isOpen) {
@@ -78,25 +39,6 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange }
 
   const handleApply = () => {
     onClose();
-  };
-
-  const handleLocationSelect = (lat: number, lng: number) => {
-    setMapPosition({ lat, lng });
-    updateFilter('location', `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    console.log('Location selected:', { lat, lng });
-  };
-
- 
-  // Event handler with proper typing
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement>, 
-    key: keyof Filters, 
-    type: 'number' | 'string' = 'string'
-  ) => {
-    const value = type === 'number' 
-      ? (e.target.value ? parseInt(e.target.value) : undefined)
-      : e.target.value;
-    updateFilter(key, value as Filters[typeof key]);
   };
 
   if (!isOpen) return null;
@@ -180,7 +122,7 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange }
             <div className="space-y-3">
               <label className="text-sm font-semibold text-slate-700">Category</label>
               <div className="space-y-3">
-                {['Wedding Halls', 'Conference Centers', 'Outdoor Spaces', 'Restaurants'].map((category) => (
+                {availableCategories.map((category) => (
                   <label key={category} className="flex items-center gap-3 cursor-pointer group">
                     <input
                       type="checkbox"

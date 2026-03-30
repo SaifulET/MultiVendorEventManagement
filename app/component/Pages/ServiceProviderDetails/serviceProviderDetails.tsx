@@ -1,336 +1,893 @@
-"use client";
-import React, { useState } from "react";
-import { MapPin, Star, Award, Heart, MessageSquare } from "lucide-react";
-import bgimg from "@/public/bg1.svg";
-import Image from "next/image";
-import img from "@/public/profile.jpg"
-import { useRouter } from "next/navigation";
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  MapPin,
+  MessageSquare,
+  Play,
+  Star,
+  Tag,
+  Users,
+} from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+
+import { api, getApiErrorMessage } from '@/lib/api';
+
+type AvailabilityStatus = 'available' | 'booked' | 'pending';
+
+interface ServiceReview {
+  rating?: number | string;
+  comment?: string;
+  createdAt?: string;
+  user?: {
+    fullName?: string;
+  };
+  reviewer?: {
+    fullName?: string;
+  };
+  name?: string;
+}
+
+interface ServiceDetails {
+  _id: string;
+  information?: {
+    serviceName?: string;
+    name?: string;
+    title?: string;
+    category?: string;
+    serviceCategory?: string;
+    description?: string;
+    serviceArea?: string[] | string;
+    tags?: string[];
+  };
+  pricing?: {
+    amount?: number;
+    basePrice?: number;
+    hourlyRate?: number;
+    pricePerHour?: number;
+    pricingType?: string;
+    currency?: string;
+  };
+  settings?: {
+    amenities?: Record<string, boolean> | string[];
+    capacity?: number;
+    serviceArea?: string[] | string;
+    city?: string;
+    area?: string;
+  };
+  media?: {
+    galleryImages?: string[];
+    videoUrl?: string;
+    profileImage?: string;
+  };
+  availabilityOverrides?: Array<{
+    date?: string;
+    slots?: Array<{
+      hour?: number;
+      status?: string;
+    }>;
+  }>;
+  provider?: {
+    fullName?: string;
+    serviceProvider?: {
+      serviceName?: string;
+      serviceCategory?: string;
+      serviceDescription?: string;
+      coverageArea?: string[] | string;
+    };
+  };
+  ownerId?: {
+    fullName?: string;
+  };
+  reviews?: ServiceReview[];
+}
+
+interface ServiceDetailsResponse {
+  success: boolean;
+  data?: ServiceDetails | ServiceDetails[];
+}
+
 interface CalendarDay {
-  day: number;
-  status: "available" | "booked";
-  dayName: string;
+  date: number;
+  fullDate: string | null;
+  status: AvailabilityStatus;
+  isCurrentMonth: boolean;
 }
 
-interface Review {
-  name: string;
-  rating: number;
-  date: string;
-  text: string;
-  avatar: string;
+interface MediaItem {
+  id: string;
+  type: 'image' | 'video';
+  src: string;
+  thumbnail: string;
+  label: string;
+  embedUrl?: string | null;
 }
 
-const WeddingPlannerProfile: React.FC = () => {
-  const [currentMonth] = useState<string>("January 2024");
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
-  // Calendar data - example for a month
-  const calendarDays: Array<{
-    day: number;
-    status: "available" | "booked";
-    dayName: string;
-  }> = [
-    { day: 1, status: "available", dayName: "Thu" },
-    { day: 2, status: "booked", dayName: "Fri" },
-    { day: 3, status: "available", dayName: "Sat" },
-    { day: 4, status: "available", dayName: "Sun" },
-    { day: 5, status: "booked", dayName: "Mon" },
-    { day: 6, status: "available", dayName: "Tue" },
-    { day: 7, status: "available", dayName: "Wed" },
-    { day: 8, status: "available", dayName: "Thu" },
-    { day: 9, status: "available", dayName: "Fri" },
-    { day: 10, status: "available", dayName: "Sat" },
-    { day: 11, status: "available", dayName: "Sun" },
-    { day: 12, status: "available", dayName: "Mon" },
-    { day: 13, status: "available", dayName: "Tue" },
-    { day: 14, status: "available", dayName: "Wed" },
-    { day: 15, status: "booked", dayName: "Thu" },
-    { day: 16, status: "available", dayName: "Fri" },
-    { day: 17, status: "available", dayName: "Sat" },
-    { day: 18, status: "available", dayName: "Sun" },
-    { day: 19, status: "available", dayName: "Mon" },
-    { day: 20, status: "available", dayName: "Tue" },
-    { day: 21, status: "available", dayName: "Wed" },
-    { day: 22, status: "available", dayName: "Thu" },
-    { day: 23, status: "available", dayName: "Fri" },
-    { day: 24, status: "available", dayName: "Sat" },
-    { day: 25, status: "available", dayName: "Sun" },
-    { day: 26, status: "booked", dayName: "Mon" },
-    { day: 27, status: "available", dayName: "Tue" },
-    { day: 28, status: "available", dayName: "Wed" },
-    { day: 29, status: "available", dayName: "Thu" },
-    { day: 30, status: "available", dayName: "Fri" },
-    { day: 31, status: "available", dayName: "Sat" },
+const DEFAULT_IMAGE = '/pp1.svg';
+
+const formatCurrencyValue = (amount?: number, currency = 'BDT') => {
+  if (typeof amount !== 'number') {
+    return 'Price not listed';
+  }
+
+  return `${currency} ${amount.toLocaleString()}`;
+};
+
+const formatAmenityLabel = (value: string) =>
+  value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
+const getAmenities = (amenities?: Record<string, boolean> | string[]) => {
+  if (Array.isArray(amenities)) {
+    return amenities.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()));
+  }
+
+  if (!amenities || typeof amenities !== 'object') {
+    return [];
+  }
+
+  return Object.entries(amenities)
+    .filter(([, enabled]) => Boolean(enabled))
+    .map(([key]) => key);
+};
+
+const getYouTubeEmbedUrl = (url: string) => {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.hostname.includes('youtu.be')) {
+      const videoId = parsedUrl.pathname.replace('/', '');
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (parsedUrl.hostname.includes('youtube.com')) {
+      const videoId = parsedUrl.searchParams.get('v');
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const getAvailabilityStatus = (
+  slots?: Array<{
+    hour?: number;
+    status?: string;
+  }>
+): AvailabilityStatus => {
+  const normalizedStatuses = (slots ?? [])
+    .map((slot) => slot.status?.trim().toLowerCase())
+    .filter((status): status is string => Boolean(status));
+
+  if (normalizedStatuses.includes('available')) {
+    return 'available';
+  }
+
+  if (normalizedStatuses.includes('pending')) {
+    return 'pending';
+  }
+
+  if (normalizedStatuses.length > 0 && normalizedStatuses.every((status) => status === 'booked')) {
+    return 'booked';
+  }
+
+  return 'available';
+};
+
+const getDateKey = (year: number, month: number, day: number) =>
+  `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+const formatReviewDate = (value?: string) => {
+  if (!value) {
+    return 'Recently';
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Recently';
+  }
+
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const getReviewName = (review: ServiceReview, fallbackIndex: number) =>
+  review.user?.fullName ||
+  review.reviewer?.fullName ||
+  review.name ||
+  `Guest ${fallbackIndex + 1}`;
+
+const getReviewRating = (rating?: number | string) => {
+  if (typeof rating === 'number' && Number.isFinite(rating)) {
+    return Math.max(0, Math.min(5, Number(rating.toFixed(1))));
+  }
+
+  if (typeof rating === 'string') {
+    const parsed = Number(rating);
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.min(5, Number(parsed.toFixed(1))));
+    }
+  }
+
+  return 0;
+};
+
+const renderStars = (rating: number, size = 14) =>
+  Array.from({ length: 5 }, (_, index) => (
+    <Star
+      key={index}
+      size={size}
+      className={index < Math.round(rating) ? 'fill-[#FACC15] text-[#FACC15]' : 'fill-gray-300 text-gray-300'}
+    />
+  ));
+
+const getArrayValues = (value?: string[] | string) => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()));
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return [value];
+  }
+
+  return [];
+};
+
+const normalizeService = (
+  payload: ServiceDetails | ServiceDetails[] | undefined,
+  serviceId?: string
+) => {
+  if (Array.isArray(payload)) {
+    if (!payload.length) {
+      return null;
+    }
+
+    return payload.find((item) => item._id === serviceId) ?? payload[0];
+  }
+
+  if (payload && typeof payload === 'object') {
+    return payload;
+  }
+
+  return null;
+};
+
+export default function ServiceProviderDetails() {
+  const params = useParams<{ slug?: string | string[] }>();
+  const router = useRouter();
+  const serviceId = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
+
+  const [service, setService] = useState<ServiceDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+
+  useEffect(() => {
+    if (!serviceId) {
+      setIsLoading(false);
+      setError('Service not found.');
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchServiceDetails = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        const response = await api.get<ServiceDetailsResponse>(`/api/v1/public/services/${serviceId}`);
+        const normalizedService = normalizeService(response.data.data, serviceId);
+
+        if (!normalizedService) {
+          throw new Error('Service details are unavailable.');
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setService(normalizedService);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setService(null);
+        setError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchServiceDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [serviceId]);
+
+  const serviceName =
+    service?.information?.serviceName?.trim() ||
+    service?.information?.name?.trim() ||
+    service?.information?.title?.trim() ||
+    service?.provider?.serviceProvider?.serviceName?.trim() ||
+    'Untitled Service';
+  const serviceCategory =
+    service?.information?.category?.trim() ||
+    service?.information?.serviceCategory?.trim() ||
+    service?.provider?.serviceProvider?.serviceCategory?.trim() ||
+    'Service';
+  const providerName =
+    service?.provider?.fullName?.trim() ||
+    service?.ownerId?.fullName?.trim() ||
+    'Service Provider';
+  const description =
+    service?.information?.description?.trim() ||
+    service?.provider?.serviceProvider?.serviceDescription?.trim() ||
+    'Service details will be updated soon.';
+  const priceAmount =
+    typeof service?.pricing?.amount === 'number'
+      ? service.pricing.amount
+      : typeof service?.pricing?.hourlyRate === 'number'
+        ? service.pricing.hourlyRate
+        : typeof service?.pricing?.pricePerHour === 'number'
+          ? service.pricing.pricePerHour
+          : typeof service?.pricing?.basePrice === 'number'
+            ? service.pricing.basePrice
+            : undefined;
+  const currency = service?.pricing?.currency?.trim() || 'BDT';
+  const pricingType = service?.pricing?.pricingType?.trim() || 'custom';
+  const serviceAreas = Array.from(
+    new Set([
+      ...getArrayValues(service?.information?.serviceArea),
+      ...getArrayValues(service?.settings?.serviceArea),
+      ...getArrayValues(service?.provider?.serviceProvider?.coverageArea),
+      service?.settings?.area?.trim() || '',
+      service?.settings?.city?.trim() || '',
+    ].filter((item): item is string => Boolean(item && item.trim())))
+  );
+  const tags = Array.isArray(service?.information?.tags)
+    ? service.information.tags.filter((tag): tag is string => typeof tag === 'string' && Boolean(tag.trim()))
+    : [];
+  const amenities = getAmenities(service?.settings?.amenities);
+  const galleryImages = [
+    ...(Array.isArray(service?.media?.galleryImages)
+      ? service.media.galleryImages.filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))
+      : []),
+    ...(typeof service?.media?.profileImage === 'string' && service.media.profileImage.trim()
+      ? [service.media.profileImage]
+      : []),
   ];
-
- 
-
-  const reviews: Review[] = [
-    {
-      name: "Sarah Johnson",
-      rating: 5,
-      date: "2 weeks ago",
-      text: "Absolutely stunning venue! The staff was incredibly helpful and the space exceeded our expectations. Our wedding was perfect thanks to their attention to detail.",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    },
-    {
-      name: "Michael Chen",
-      rating: 4,
-      date: "1 month ago",
-      text: "Great venue for corporate events. The AV equipment was top-notch and the catering was excellent. Would definitely book again for future events.",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    },
-    {
-      name: "Emily Rodriguez",
-      rating: 5,
-      date: "3 weeks ago",
-      text: "Beautiful space with amazing city views. The event coordination team made everything seamless. Highly recommend for any special occasion.",
-      avatar:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
-    },
+  const videoUrl =
+    typeof service?.media?.videoUrl === 'string' && service.media.videoUrl.trim()
+      ? service.media.videoUrl
+      : '';
+  const videoEmbedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+  const mediaItems: MediaItem[] = [
+    ...galleryImages.map((image, index) => ({
+      id: `image-${index}`,
+      type: 'image' as const,
+      src: image,
+      thumbnail: image,
+      label: `Photo ${index + 1}`,
+    })),
+    ...(videoUrl
+      ? [{
+        id: 'video-0',
+        type: 'video' as const,
+        src: videoUrl,
+        thumbnail: galleryImages[0] || DEFAULT_IMAGE,
+        label: 'Video Tour',
+        embedUrl: videoEmbedUrl,
+      }]
+      : []),
   ];
+  const resolvedSelectedMediaId =
+    selectedMediaId && mediaItems.some((item) => item.id === selectedMediaId)
+      ? selectedMediaId
+      : mediaItems[0]?.id ?? null;
+  const selectedMedia =
+    mediaItems.find((item) => item.id === resolvedSelectedMediaId) ||
+    mediaItems[0] ||
+    null;
+  const reviews = Array.isArray(service?.reviews) ? service.reviews : [];
+  const reviewRatings = reviews
+    .map((review) => getReviewRating(review.rating))
+    .filter((rating) => Number.isFinite(rating));
+  const averageRating = reviewRatings.length
+    ? Number((reviewRatings.reduce((total, rating) => total + rating, 0) / reviewRatings.length).toFixed(1))
+    : 0;
+  const capacity =
+    typeof service?.settings?.capacity === 'number'
+      ? service.settings.capacity
+      : null;
+  const availabilityMap = new Map<string, AvailabilityStatus>();
 
-  const weekDays: string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const router = useRouter()
+  (service?.availabilityOverrides ?? []).forEach((override) => {
+    if (!override.date) {
+      return;
+    }
+
+    availabilityMap.set(override.date, getAvailabilityStatus(override.slots));
+  });
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const calendarDays: CalendarDay[] = [];
+
+  for (let emptyIndex = 0; emptyIndex < firstDayOfMonth; emptyIndex += 1) {
+    calendarDays.push({
+      date: 0,
+      fullDate: null,
+      status: 'available',
+      isCurrentMonth: false,
+    });
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateKey = getDateKey(currentYear, currentMonth, day);
+
+    calendarDays.push({
+      date: day,
+      fullDate: dateKey,
+      status: availabilityMap.get(dateKey) ?? 'available',
+      isCurrentMonth: true,
+    });
+  }
+
+  const handlePreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((previous) => previous - 1);
+      return;
+    }
+
+    setCurrentMonth((previous) => previous - 1);
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((previous) => previous + 1);
+      return;
+    }
+
+    setCurrentMonth((previous) => previous + 1);
+  };
+
+  const getAvailabilityClasses = (status: AvailabilityStatus) => {
+    switch (status) {
+      case 'booked':
+        return 'bg-red-50 text-red-600';
+      case 'pending':
+        return 'bg-amber-50 text-amber-600';
+      default:
+        return 'bg-emerald-50 text-emerald-700';
+    }
+  };
+
+  const bookHandler = () => {
+    if (!service?._id) {
+      return;
+    }
+
+    router.push(`/pages/findServiceProviderConfirmation/${service._id}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-16 md:px-12 lg:px-24">
+        <div className="mx-auto max-w-6xl animate-pulse space-y-6">
+          <div className="h-64 rounded-3xl bg-gray-200" />
+          <div className="h-40 rounded-3xl bg-gray-100" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="h-72 rounded-3xl bg-gray-100" />
+            <div className="h-72 rounded-3xl bg-gray-100" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !service) {
+    return (
+      <div className="px-6 py-16 md:px-12 lg:px-24">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-red-100 bg-red-50 p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Service details unavailable</h1>
+          <p className="mt-3 text-gray-600">{error || 'We could not load this service right now.'}</p>
+          <button
+            onClick={() => { router.push('/pages/findServiceProvider'); }}
+            className="mt-6 rounded-lg bg-[#B74140] px-6 py-3 text-white transition-colors hover:bg-[#9d3534]"
+          >
+            Back to services
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section with Background Image */}
-      <div className="relative h-[220px] md:h-[320px] ">
-        <Image
-          src={bgimg.src}
-          alt="Wedding venue"
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20"></div>
+    <div className="min-h-screen bg-[#FCFAF8]">
+      <div className="relative h-[240px] overflow-hidden md:h-[340px]">
+        {selectedMedia?.type === 'image' ? (
+          <img
+            src={selectedMedia.src}
+            alt={serviceName}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <img
+            src={selectedMedia?.thumbnail || DEFAULT_IMAGE}
+            alt={serviceName}
+            className="h-full w-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/25 to-black/55" />
+        <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-6xl flex-col gap-2 px-6 pb-8 text-white md:px-12 lg:px-0">
+          <span className="inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-sm backdrop-blur">
+            {serviceCategory}
+          </span>
+          <h1 className="text-3xl font-bold md:text-5xl">{serviceName}</h1>
+          <p className="max-w-3xl text-sm text-white/85 md:text-base">
+            {description}
+          </p>
+        </div>
       </div>
 
-      {/* Profile Card - Overlapping the hero image */}
-      <div className="px-[32px] md:px-[168px]">
-        <div className="relative -mt-16 md:-mt-20">
-          <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-              {/* Left Section: Profile Info */}
-              <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-                <Image
-                  src={img}
-                  alt="Marvin McKinney"
-                  width={128}
-                  height={128}
-                  className="rounded-full object-cover border-4 border-white shadow-md
-             w-24 h-24 md:w-32 md:h-32"
-                />
-
-                <div className="flex-1">
-                  <h1 className="font-inter font-bold text-[18px] md:text-[24px] leading-[32px] tracking-normal  text-gray-900">
-                    Marvin McKinney
-                  </h1>
-                  <p className="text-gray-600 mt-1">
-                    Premium Wedding & Event Planner
-                  </p>
-
-                  <div className="flex items-center gap-2 mt-2 text-gray-500">
-                    <MapPin className="w-4 h-4" />
-                    <span className="text-sm">
-                      New York, NY & Tri-State Area
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                        />
-                      ))}
-                    </div>
-                    <span className="font-semibold text-gray-900">4.9</span>
-                    <span className="text-gray-500 text-sm">(127 reviews)</span>
-                  </div>
+      <div className="mx-auto max-w-6xl px-6 pb-12 md:px-12 lg:px-0">
+        <div className="relative -mt-12 rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-sm md:-mt-16 md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#B7414014] text-2xl font-bold text-[#B74140]">
+                  {providerName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Provided by</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{providerName}</h2>
+                  <p className="text-sm text-gray-600">{serviceCategory}</p>
                 </div>
               </div>
 
-              {/* Right Section: Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 md:flex-shrink-0">
-                <button onClick={()=>{router.push("/home/dashboard/chat")}} className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <MessageSquare className="w-5 h-5" />
-                  <span>Contact Provider</span>
-                </button>
-                <button onClick={()=>{router.push("/pages/findServiceProviderConfirmation/confirmed-booking-slug")}} className="px-6 py-3 bg-[#B74140] text-white rounded-lg hover:bg-[#963533] transition-colors">
-                  Book Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div>
-          {/* Pricing */}
-          <div className="mt-[48px] flex items-center gap-[16px]">
-            <div className="text-[#B74140] text-[16px] font-bold">$</div>
-            <div className="flex flex-col">
-              <span className="font-inter font-normal text-[14px] leading-[20px] tracking-normal text-gray-600">
-                Starting from
-              </span>
-              <span className="font-inter font-semibold text-[18px] leading-[28px] tracking-normal text-gray-900">
-                $500/ hour
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* About My Services */}
-        <div className="mt-8 bg-white rounded-lg  border border-[#E5E7EB] p-6 md:p-8">
-          <h2 className="font-inter font-semibold text-[20px] leading-[1] tracking-normal text-gray-900 mb-4">
-            About my Services
-          </h2>
-          <p className="text-gray-600 leading-relaxed mb-6">
-            With over 10 years of experience in luxury event planning, I
-            specialize in creating unforgettable weddings and corporate events.
-            My attention to detail and personalized approach ensures every
-            celebration is perfectly tailored to your vision.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[#B741401A] rounded-lg flex items-center justify-center flex-shrink-0">
-                <Award className="w-6 h-6 text-[#B74140]" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  10+ Years Experience
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">Industry expertise</p>
+              <div className="mt-5 flex flex-wrap gap-4 text-sm text-gray-600">
+                <span className="inline-flex items-center gap-2">
+                  <MapPin size={16} className="text-[#B74140]" />
+                  {serviceAreas.length ? serviceAreas.join(', ') : 'Coverage area unavailable'}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Star size={16} className="fill-[#FACC15] text-[#FACC15]" />
+                  {averageRating > 0 ? averageRating.toFixed(1) : 'New'} ({reviews.length} reviews)
+                </span>
+                {capacity ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Users size={16} className="text-[#B74140]" />
+                    Up to {capacity} guests
+                  </span>
+                ) : null}
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[#B741401A] rounded-lg flex items-center justify-center flex-shrink-0">
-                <Heart className="w-6 h-6 text-[#B74140]" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  500+ Events Planned
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Proven track record
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-     
-
-        {/* Availability Calendar */}
-        <div className="mt-8 bg-white rounded-lg border border-[#E5E7EB] p-6 md:p-8">
-          <h2 className="font-inter font-semibold text-[20px] leading-[1] tracking-normal text-gray-900 mb-6">
-            Availability Calendar
-          </h2>
-
-          <div className="">
-            <div className="">
-              {/* Week Days Header */}
-              <div className="grid grid-cols-7 gap-2 mb-2">
-                {weekDays.map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-sm font-medium text-gray-600"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Grid - Updated for rectangular buttons */}
-              <div className="grid grid-cols-7 gap-2">
-                {calendarDays.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer  
-              h-10 md:h-12
-              ${
-                item.status === "available"
-                  ? item.day === 1
-                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                    : "bg-emerald-50 text-gray-900 hover:bg-emerald-100"
-                  : "bg-red-50 text-gray-900 hover:bg-red-100"
-              }`}
-                  >
-                    {item.day}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-emerald-500 rounded"></div>
-              <span className="text-gray-600">Available</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-100 rounded"></div>
-              <span className="text-gray-600">Booked</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Reviews & Ratings */}
-        <div className="mt-8 mb-12 bg-white rounded-lg  border border-[#E5E7EB] p-6 md:p-8">
-          <h2 className="font-inter font-semibold text-[20px] leading-[1] tracking-normal text-gray-900 mb-6">
-            Reviews & Ratings
-          </h2>
-
-          <div className="space-y-6">
-            {reviews.map((review, idx) => (
-              <div
-                key={idx}
-                className="pb-6 border-b border-gray-200 last:border-0 last:pb-0"
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <button
+                onClick={() => { router.push('/home/dashboard/chat'); }}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
               >
-                <div className="flex items-start gap-4">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                  />
+                <MessageSquare size={18} />
+                Contact Provider
+              </button>
+              <button
+                onClick={bookHandler}
+                className="rounded-lg bg-[#B74140] px-6 py-3 font-medium text-white transition-colors hover:bg-[#9d3534]"
+              >
+                Book Now
+              </button>
+            </div>
+          </div>
 
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-gray-900">
-                        {review.name}
-                      </h3>
-                      <span className="text-sm text-gray-500">
-                        {review.date}
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl bg-[#FAF4F3] p-5">
+              <div className="flex items-center gap-3">
+                <DollarSign className="text-[#B74140]" />
+                <div>
+                  <p className="text-sm text-gray-500">Pricing</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {formatCurrencyValue(priceAmount, currency)}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-gray-600">
+                {pricingType.charAt(0).toUpperCase() + pricingType.slice(1)} pricing
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-[#FAF4F3] p-5">
+              <div className="flex items-center gap-3">
+                <Calendar className="text-[#B74140]" />
+                <div>
+                  <p className="text-sm text-gray-500">Availability</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {service.availabilityOverrides?.length ? `${service.availabilityOverrides.length} updated dates` : 'Open availability'}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-gray-600">
+                Check the calendar below for booked and pending days.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-[#FAF4F3] p-5">
+              <div className="flex items-center gap-3">
+                <Tag className="text-[#B74140]" />
+                <div>
+                  <p className="text-sm text-gray-500">Tags</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {tags.length ? `${tags.length} specialties` : 'General service'}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-gray-600">
+                {tags.length ? tags.join(', ') : 'More service details will be added soon.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr,0.85fr]">
+          <div className="space-y-8">
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <h2 className="text-2xl font-semibold text-gray-900">About this service</h2>
+              <p className="mt-4 leading-7 text-gray-600">{description}</p>
+
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Service Area
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {serviceAreas.length ? serviceAreas.map((area) => (
+                      <span
+                        key={area}
+                        className="rounded-full bg-[#F7F1F0] px-3 py-2 text-sm text-gray-700"
+                      >
+                        {area}
                       </span>
-                    </div>
+                    )) : (
+                      <span className="text-sm text-gray-500">Coverage area unavailable</span>
+                    )}
+                  </div>
+                </div>
 
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < review.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    <p className="text-gray-600 leading-relaxed">
-                      {review.text}
-                    </p>
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Amenities
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {amenities.length ? amenities.map((amenity) => (
+                      <span
+                        key={amenity}
+                        className="rounded-full bg-[#F7F1F0] px-3 py-2 text-sm text-gray-700"
+                      >
+                        {formatAmenityLabel(amenity)}
+                      </span>
+                    )) : (
+                      <span className="text-sm text-gray-500">No amenities listed yet</span>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
+
+              {tags.length ? (
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Popular Tags
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[#E8D4D3] px-3 py-2 text-sm text-[#B74140]"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">Availability calendar</h2>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Availability is based on the service override dates from the API.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePreviousMonth}
+                    className="rounded-full border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50"
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="min-w-[140px] text-center font-semibold text-gray-900">
+                    {monthNames[currentMonth]} {currentYear}
+                  </span>
+                  <button
+                    onClick={handleNextMonth}
+                    className="rounded-full border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50"
+                    aria-label="Next month"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2 text-center text-sm font-medium text-gray-500">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="py-2">{day}</div>
+                ))}
+              </div>
+
+              <div className="mt-2 grid grid-cols-7 gap-2">
+                {calendarDays.map((item, index) => (
+                  <div
+                    key={`${item.fullDate ?? 'empty'}-${index}`}
+                    className={`flex h-12 items-center justify-center rounded-xl text-sm font-medium ${
+                      item.isCurrentMonth
+                        ? getAvailabilityClasses(item.status)
+                        : 'bg-transparent text-transparent'
+                    }`}
+                  >
+                    {item.isCurrentMonth ? item.date : ''}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-4 text-sm text-gray-600">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                  Available
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-amber-500" />
+                  Pending
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-red-400" />
+                  Booked
+                </span>
+              </div>
+            </section>
+          </div>
+
+          <div className="space-y-8">
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <h2 className="text-2xl font-semibold text-gray-900">Gallery</h2>
+
+              <div className="mt-5 overflow-hidden rounded-[24px] bg-[#F7F1F0]">
+                {selectedMedia?.type === 'video' && selectedMedia.embedUrl ? (
+                  <iframe
+                    src={selectedMedia.embedUrl}
+                    title={selectedMedia.label}
+                    className="h-[260px] w-full md:h-[320px]"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <img
+                    src={selectedMedia?.src || DEFAULT_IMAGE}
+                    alt={selectedMedia?.label || serviceName}
+                    className="h-[260px] w-full object-cover md:h-[320px]"
+                  />
+                )}
+              </div>
+
+              {mediaItems.length ? (
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {mediaItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setSelectedMediaId(item.id); }}
+                      className={`relative overflow-hidden rounded-2xl border transition-all ${
+                        item.id === selectedMedia?.id
+                          ? 'border-[#B74140] ring-2 ring-[#B7414026]'
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      <img
+                        src={item.thumbnail}
+                        alt={item.label}
+                        className="h-24 w-full object-cover"
+                      />
+                      {item.type === 'video' ? (
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white">
+                          <Play size={20} className="fill-white" />
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-gray-500">No media available for this service yet.</p>
+              )}
+            </section>
+
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">Reviews & ratings</h2>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {reviews.length ? `${reviews.length} customer reviews` : 'No reviews yet'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-gray-900">
+                    {averageRating > 0 ? averageRating.toFixed(1) : 'New'}
+                  </p>
+                  <div className="mt-1 flex items-center justify-end gap-1">
+                    {renderStars(averageRating, 16)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-5">
+                {reviews.length ? reviews.map((review, index) => {
+                  const reviewName = getReviewName(review, index);
+                  const reviewRating = getReviewRating(review.rating);
+
+                  return (
+                    <div
+                      key={`${reviewName}-${index}`}
+                      className="rounded-2xl border border-[#F0E7E6] bg-[#FFFCFB] p-5"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{reviewName}</h3>
+                          <p className="mt-1 text-sm text-gray-500">{formatReviewDate(review.createdAt)}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {renderStars(reviewRating)}
+                        </div>
+                      </div>
+                      <p className="mt-4 leading-7 text-gray-600">
+                        {review.comment?.trim() || 'Customer feedback will appear here soon.'}
+                      </p>
+                    </div>
+                  );
+                }) : (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    No customer reviews have been published for this service yet.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default WeddingPlannerProfile;
+}

@@ -3,7 +3,7 @@ import axios, { AxiosHeaders } from "axios";
 import { getStoredToken } from "@/lib/auth-storage";
 
 const FALLBACK_API_BASE_URL =
-  "https://eugene-herbal-recommendations-folks.trycloudflare.com";
+  "https://evenit-backend.onrender.com";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? FALLBACK_API_BASE_URL,

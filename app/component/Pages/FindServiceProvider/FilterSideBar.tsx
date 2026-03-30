@@ -1,59 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { MapPin, Calendar, Users, Star, Wifi, Car, UtensilsCrossed, Music, Wind, Accessibility, LucideIcon } from 'lucide-react';
+import { MapPin, Calendar, Star } from 'lucide-react';
 import { Filters } from './type';
 
 interface FilterSidebarProps {
   filters: Filters;
   onFilterChange: (filters: Filters) => void;
+  availableCategories: string[];
 }
 
-// Simple geocoding function - in production, use a proper geocoding API
-const geocodeLocation = async (location: string): Promise<{ lat: number; lng: number } | null> => {
-  // Default NYC coordinates
-  const defaultCoords = { lat: 40.7489, lng: -73.9680 };
-  
-  if (!location.trim()) return defaultCoords;
-  
-  // Simple mapping for demo - in production, use Nominatim or Google Geocoding API
-  const locationMap: Record<string, { lat: number; lng: number }> = {
-    'manhattan': { lat: 40.7831, lng: -73.9712 },
-    'brooklyn': { lat: 40.6782, lng: -73.9442 },
-    'queens': { lat: 40.7282, lng: -73.7949 },
-    'downtown': { lat: 40.7589, lng: -73.9851 },
-    'midtown': { lat: 40.7549, lng: -73.9840 },
-    'new york': defaultCoords,
-    'nyc': defaultCoords,
-  };
-  
-  const lowerLocation = location.toLowerCase();
-  
-  // Check if it's in our map
-  for (const [key, coords] of Object.entries(locationMap)) {
-    if (lowerLocation.includes(key)) {
-      return coords;
-    }
-  }
-  
-  // Try to parse as coordinates (e.g., "40.7589, -73.9851")
-  const coordMatch = location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-  if (coordMatch) {
-    return {
-      lat: parseFloat(coordMatch[1]),
-      lng: parseFloat(coordMatch[2])
-    };
-  }
-  
-  return defaultCoords;
-};
-
-
-
-export default function FilterSidebar({ filters, onFilterChange }: FilterSidebarProps) {
-  const [showFullMap, setShowFullMap] = useState<boolean>(false);
-  const [mapPosition, setMapPosition] = useState<{ lat: number; lng: number }>({ lat: 40.7489, lng: -73.9680 });
-
+export default function FilterSidebar({ filters, onFilterChange, availableCategories }: FilterSidebarProps) {
   const updateFilter = <K extends keyof Filters>(key: K, value: Filters[K]): void => {
     onFilterChange({ ...filters, [key]: value });
   };
@@ -65,24 +21,6 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
       : [...current, value];
     onFilterChange({ ...filters, [key]: updated });
   };
-
-  const handleLocationSelect = (lat: number, lng: number): void => {
-    setMapPosition({ lat, lng });
-    // Update the location filter with coordinates
-    updateFilter('location', `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    console.log('Location selected:', { lat, lng });
-  };
-
-  const handleShowOnMap = async (): Promise<void> => {
-    // Geocode the location input before showing map
-    const coords = await geocodeLocation(filters.location);
-    if (coords) {
-      setMapPosition(coords);
-    }
-    setShowFullMap(true);
-  };
-
-
 
   return (
     <>
@@ -146,7 +84,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
           <div className="space-y-3">
             <label className="text-sm font-semibold text-slate-700">Category</label>
             <div className="space-y-2">
-              {['Wedding Halls', 'Conference Centers', 'Outdoor Spaces', 'Restaurants'].map((category) => (
+              {availableCategories.map((category) => (
                 <label key={category} className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"

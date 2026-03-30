@@ -4,12 +4,12 @@ export interface serviceProvider {
   location: string;
   rating: number;
   reviews: number;
-  categories:string;
+  categories: string;
+  categoryList: string[];
   price: number;
   image: string;
-  
+
   status: 'available' | 'booked' | 'unavailable';
- 
 }
 
 export interface Filters {
@@ -18,7 +18,6 @@ export interface Filters {
   date: string;
   categories: string[];
   ratings: string[];
-  
 }
 
 export type VenueStatus = 'available' | 'booked' | 'unavailable';

@@ -1,345 +1,507 @@
-"use client";
-import React, { useState } from "react";
-import { MapPin, Star, Award, Heart, MessageSquare } from "lucide-react";
-import bgimg from "@/public/bg1.svg";
-import Image from "next/image";
-import img from "@/public/profile.jpg"
-import { useRouter } from "next/navigation";
-interface CalendarDay {
-  day: number;
-  status: "available" | "booked";
-  dayName: string;
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import {
+  BriefcaseBusiness,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Mail,
+  MapPin,
+  MessageSquare,
+  ShieldCheck,
+  Star,
+  Tag,
+} from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
+
+import { api, getApiErrorMessage } from '@/lib/api';
+import bgimg from '@/public/bg1.svg';
+import plannerImg from '@/public/pp1.svg';
+
+interface EventPlannerProfileInfo {
+  verification?: {
+    businessType?: string;
+    companyName?: string;
+    nationalIdOrTradeLicenseFiles?: string[];
+  };
+  name?: string;
+  description?: string;
+  coverageArea?: string[];
+  address?: string;
 }
 
-interface Review {
-  name: string;
-  rating: number;
-  date: string;
-  text: string;
-  avatar: string;
+interface EventPlannerDetails {
+  _id: string;
+  isBlocked?: boolean;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  serviceCategories?: string[];
+  isEmailVerified?: boolean;
+  createdAt?: string;
+  onboarding?: {
+    verification?: {
+      businessType?: string;
+      companyName?: string;
+      nationalIdOrTradeLicenseUrl?: string;
+    };
+    submittedAt?: string;
+    eventProvider?: {
+      _id?: string;
+      fullName?: string;
+      email?: string;
+      profileInfo?: EventPlannerProfileInfo;
+    };
+  };
 }
 
-const WeddingPlannerProfile: React.FC = () => {
-  const [currentMonth] = useState<string>("January 2024");
+interface EventPlannerDetailsResponse {
+  success: boolean;
+  data?: EventPlannerDetails | EventPlannerDetails[];
+}
 
-  // Calendar data - example for a month
-  const calendarDays: Array<{
-    day: number;
-    status: "available" | "booked";
-    dayName: string;
-  }> = [
-    { day: 1, status: "available", dayName: "Thu" },
-    { day: 2, status: "booked", dayName: "Fri" },
-    { day: 3, status: "available", dayName: "Sat" },
-    { day: 4, status: "available", dayName: "Sun" },
-    { day: 5, status: "booked", dayName: "Mon" },
-    { day: 6, status: "available", dayName: "Tue" },
-    { day: 7, status: "available", dayName: "Wed" },
-    { day: 8, status: "available", dayName: "Thu" },
-    { day: 9, status: "available", dayName: "Fri" },
-    { day: 10, status: "available", dayName: "Sat" },
-    { day: 11, status: "available", dayName: "Sun" },
-    { day: 12, status: "available", dayName: "Mon" },
-    { day: 13, status: "available", dayName: "Tue" },
-    { day: 14, status: "available", dayName: "Wed" },
-    { day: 15, status: "booked", dayName: "Thu" },
-    { day: 16, status: "available", dayName: "Fri" },
-    { day: 17, status: "available", dayName: "Sat" },
-    { day: 18, status: "available", dayName: "Sun" },
-    { day: 19, status: "available", dayName: "Mon" },
-    { day: 20, status: "available", dayName: "Tue" },
-    { day: 21, status: "available", dayName: "Wed" },
-    { day: 22, status: "available", dayName: "Thu" },
-    { day: 23, status: "available", dayName: "Fri" },
-    { day: 24, status: "available", dayName: "Sat" },
-    { day: 25, status: "available", dayName: "Sun" },
-    { day: 26, status: "booked", dayName: "Mon" },
-    { day: 27, status: "available", dayName: "Tue" },
-    { day: 28, status: "available", dayName: "Wed" },
-    { day: 29, status: "available", dayName: "Thu" },
-    { day: 30, status: "available", dayName: "Fri" },
-    { day: 31, status: "available", dayName: "Sat" },
-  ];
+const getArrayValues = (value?: string[]) =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    : [];
 
-  const portfolioImages: string[] = [
-    "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1519167758481-83f29da8c2a6?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=400&h=400&fit=crop",
-  ];
+const normalizePlanner = (
+  payload: EventPlannerDetails | EventPlannerDetails[] | undefined,
+  plannerId?: string
+) => {
+  if (Array.isArray(payload)) {
+    if (!payload.length) {
+      return null;
+    }
 
-  const reviews: Review[] = [
-    {
-      name: "Sarah Johnson",
-      rating: 5,
-      date: "2 weeks ago",
-      text: "Absolutely stunning venue! The staff was incredibly helpful and the space exceeded our expectations. Our wedding was perfect thanks to their attention to detail.",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    },
-    {
-      name: "Michael Chen",
-      rating: 4,
-      date: "1 month ago",
-      text: "Great venue for corporate events. The AV equipment was top-notch and the catering was excellent. Would definitely book again for future events.",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    },
-    {
-      name: "Emily Rodriguez",
-      rating: 5,
-      date: "3 weeks ago",
-      text: "Beautiful space with amazing city views. The event coordination team made everything seamless. Highly recommend for any special occasion.",
-      avatar:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
-    },
-  ];
+    return payload.find((item) => item._id === plannerId) ?? payload[0];
+  }
 
-  const weekDays: string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const router = useRouter()
+  if (payload && typeof payload === 'object') {
+    return payload;
+  }
+
+  return null;
+};
+
+const formatDisplayDate = (value?: string) => {
+  if (!value) {
+    return 'Not available';
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Not available';
+  }
+
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const formatLabel = (value?: string) => {
+  if (!value?.trim()) {
+    return 'Not specified';
+  }
+
+  return value
+    .replace(/[_-]/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+};
+
+const renderStars = (rating: number) =>
+  Array.from({ length: 5 }, (_, index) => (
+    <Star
+      key={index}
+      className={index < Math.round(rating) ? 'h-4 w-4 fill-yellow-400 text-yellow-400' : 'h-4 w-4 text-gray-300'}
+    />
+  ));
+
+export default function WeddingPlannerProfile() {
+  const params = useParams<{ slug?: string | string[] }>();
+  const router = useRouter();
+  const plannerId = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
+
+  const [planner, setPlanner] = useState<EventPlannerDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!plannerId) {
+      setIsLoading(false);
+      setError('Event planner not found.');
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchPlanner = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        const response = await api.get<EventPlannerDetailsResponse>(`/api/v1/public/event-planners/${plannerId}`);
+        const normalizedPlanner = normalizePlanner(response.data.data, plannerId);
+
+        if (!normalizedPlanner) {
+          throw new Error('Event planner details are unavailable.');
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPlanner(normalizedPlanner);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setPlanner(null);
+        setError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchPlanner();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [plannerId]);
+
+  const profileInfo = planner?.onboarding?.eventProvider?.profileInfo;
+  const categories = getArrayValues(planner?.serviceCategories);
+  const plannerName =
+    profileInfo?.name?.trim() ||
+    planner?.fullName?.trim() ||
+    planner?.onboarding?.eventProvider?.fullName?.trim() ||
+    'Untitled Event Planner';
+  const description =
+    profileInfo?.description?.trim() ||
+    'This event planner has not added a public description yet.';
+  const coverageArea = getArrayValues(profileInfo?.coverageArea);
+  const address = profileInfo?.address?.trim() || '';
+  const businessType =
+    profileInfo?.verification?.businessType?.trim() ||
+    planner?.onboarding?.verification?.businessType?.trim() ||
+    '';
+  const companyName =
+    profileInfo?.verification?.companyName?.trim() ||
+    planner?.onboarding?.verification?.companyName?.trim() ||
+    '';
+  const email =
+    planner?.email?.trim() ||
+    planner?.onboarding?.eventProvider?.email?.trim() ||
+    'Email unavailable';
+  const locationLabel = [
+    ...coverageArea,
+    address,
+  ].filter((value, index, values): value is string => {
+    if (!value?.trim()) {
+      return false;
+    }
+
+    return values.findIndex((item) => item === value) === index;
+  }).join(', ');
+
+  const bookHandler = () => {
+    if (!planner?._id) {
+      return;
+    }
+
+    router.push(`/pages/findEventPlannerConfirmation/${planner._id}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-16 md:px-12 lg:px-24">
+        <div className="mx-auto max-w-6xl animate-pulse space-y-6">
+          <div className="h-64 rounded-3xl bg-gray-200" />
+          <div className="h-40 rounded-3xl bg-gray-100" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="h-72 rounded-3xl bg-gray-100" />
+            <div className="h-72 rounded-3xl bg-gray-100" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !planner) {
+    return (
+      <div className="px-6 py-16 md:px-12 lg:px-24">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-red-100 bg-red-50 p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Event planner details unavailable</h1>
+          <p className="mt-3 text-gray-600">{error || 'We could not load this planner right now.'}</p>
+          <button
+            onClick={() => { router.push('/pages/findEventPlanners'); }}
+            className="mt-6 rounded-lg bg-[#B74140] px-6 py-3 text-white transition-colors hover:bg-[#9d3534]"
+          >
+            Back to planners
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section with Background Image */}
-      <div className="relative h-[220px] md:h-[320px] ">
+    <div className="min-h-screen bg-[#FCFAF8]">
+      <div className="relative h-[220px] overflow-hidden md:h-[320px]">
         <Image
-          src={bgimg.src}
-          alt="Wedding venue"
+          src={bgimg}
+          alt="Event planner background"
           fill
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30" />
       </div>
 
-      {/* Profile Card - Overlapping the hero image */}
-      <div className="px-[32px] md:px-[168px]">
+      <div className="mx-auto max-w-6xl px-[32px] pb-12 md:px-[64px]">
         <div className="relative -mt-16 md:-mt-20">
-          <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-              {/* Left Section: Profile Info */}
-              <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
+          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-sm md:p-8">
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
                 <Image
-                  src={img}
-                  alt="Marvin McKinney"
+                  src={plannerImg}
+                  alt={plannerName}
                   width={128}
                   height={128}
-                  className="rounded-full object-cover border-4 border-white shadow-md
-             w-24 h-24 md:w-32 md:h-32"
+                  className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-md md:h-32 md:w-32"
                 />
 
                 <div className="flex-1">
-                  <h1 className="font-inter font-bold text-[18px] md:text-[24px] leading-[32px] tracking-normal  text-gray-900">
-                    Marvin McKinney
-                  </h1>
-                  <p className="text-gray-600 mt-1">
-                    Premium Wedding & Event Planner
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="font-inter text-[24px] font-bold leading-[32px] text-gray-900">
+                      {plannerName}
+                    </h1>
+                    {planner.isEmailVerified ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Verified
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p className="mt-1 text-gray-600">
+                    {categories.length ? categories.join(', ') : 'Event Planner'}
                   </p>
 
-                  <div className="flex items-center gap-2 mt-2 text-gray-500">
-                    <MapPin className="w-4 h-4" />
+                  <div className="mt-2 flex items-center gap-2 text-gray-500">
+                    <MapPin className="h-4 w-4" />
                     <span className="text-sm">
-                      New York, NY & Tri-State Area
+                      {locationLabel || 'Coverage area unavailable'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="mt-2 flex items-center gap-2">
                     <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                        />
-                      ))}
+                      {renderStars(0)}
                     </div>
-                    <span className="font-semibold text-gray-900">4.9</span>
-                    <span className="text-gray-500 text-sm">(127 reviews)</span>
+                    <span className="font-semibold text-gray-900">New</span>
+                    <span className="text-sm text-gray-500">(0 reviews)</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right Section: Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 md:flex-shrink-0">
-                <button onClick={()=>{router.push("/home/dashboard/chat")}} className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <MessageSquare className="w-5 h-5" />
-                  <span>Contact Provider</span>
+              <div className="flex flex-col gap-3 sm:flex-row md:flex-shrink-0">
+                <button
+                  onClick={() => { router.push('/home/dashboard/chat'); }}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-6 py-3 transition-colors hover:bg-gray-50"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  <span>Contact Planner</span>
                 </button>
-                <button onClick={()=>{router.push("/pages/findEventPlannerConfirmation/details")}} className="px-6 py-3 bg-[#B74140] text-white rounded-lg hover:bg-[#963533] transition-colors">
+                <button
+                  onClick={bookHandler}
+                  className="rounded-lg bg-[#B74140] px-6 py-3 text-white transition-colors hover:bg-[#963533]"
+                >
                   Book Now
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-        <div>
-          {/* Pricing */}
-          <div className="mt-[48px] flex items-center gap-[16px]">
-            <div className="text-[#B74140] text-[16px] font-bold">$</div>
-            <div className="flex flex-col">
-              <span className="font-inter font-normal text-[14px] leading-[20px] tracking-normal text-gray-600">
-                Starting from
-              </span>
-              <span className="font-inter font-semibold text-[18px] leading-[28px] tracking-normal text-gray-900">
-                $500/ hour
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* About My Services */}
-        <div className="mt-8 bg-white rounded-lg  border border-[#E5E7EB] p-6 md:p-8">
-          <h2 className="font-inter font-semibold text-[20px] leading-[1] tracking-normal text-gray-900 mb-4">
-            About my Services
-          </h2>
-          <p className="text-gray-600 leading-relaxed mb-6">
-            With over 10 years of experience in luxury event planning, I
-            specialize in creating unforgettable weddings and corporate events.
-            My attention to detail and personalized approach ensures every
-            celebration is perfectly tailored to your vision.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[#B741401A] rounded-lg flex items-center justify-center flex-shrink-0">
-                <Award className="w-6 h-6 text-[#B74140]" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  10+ Years Experience
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">Industry expertise</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[#B741401A] rounded-lg flex items-center justify-center flex-shrink-0">
-                <Heart className="w-6 h-6 text-[#B74140]" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  500+ Events Planned
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Proven track record
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-       
-
-        {/* Availability Calendar */}
-        <div className="mt-8 bg-white rounded-lg border border-[#E5E7EB] p-6 md:p-8">
-          <h2 className="font-inter font-semibold text-[20px] leading-[1] tracking-normal text-gray-900 mb-6">
-            Availability Calendar
-          </h2>
-
-          <div className="">
-            <div className="">
-              {/* Week Days Header */}
-              <div className="grid grid-cols-7 gap-2 mb-2">
-                {weekDays.map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-sm font-medium text-gray-600"
-                  >
-                    {day}
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl bg-[#FAF4F3] p-5">
+                <div className="flex items-center gap-3">
+                  <Mail className="text-[#B74140]" />
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="text-base font-semibold text-gray-900">{email}</p>
                   </div>
-                ))}
+                </div>
               </div>
 
-              {/* Calendar Grid - Updated for rectangular buttons */}
-              <div className="grid grid-cols-7 gap-2">
-                {calendarDays.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer  
-              h-10 md:h-12
-              ${
-                item.status === "available"
-                  ? item.day === 1
-                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                    : "bg-emerald-50 text-gray-900 hover:bg-emerald-100"
-                  : "bg-red-50 text-gray-900 hover:bg-red-100"
-              }`}
-                  >
-                    {item.day}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-emerald-500 rounded"></div>
-              <span className="text-gray-600">Available</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-100 rounded"></div>
-              <span className="text-gray-600">Booked</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Reviews & Ratings */}
-        <div className="mt-8 mb-12 bg-white rounded-lg  border border-[#E5E7EB] p-6 md:p-8">
-          <h2 className="font-inter font-semibold text-[20px] leading-[1] tracking-normal text-gray-900 mb-6">
-            Reviews & Ratings
-          </h2>
-
-          <div className="space-y-6">
-            {reviews.map((review, idx) => (
-              <div
-                key={idx}
-                className="pb-6 border-b border-gray-200 last:border-0 last:pb-0"
-              >
-                <div className="flex items-start gap-4">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                  />
-
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-gray-900">
-                        {review.name}
-                      </h3>
-                      <span className="text-sm text-gray-500">
-                        {review.date}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < review.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    <p className="text-gray-600 leading-relaxed">
-                      {review.text}
+              <div className="rounded-2xl bg-[#FAF4F3] p-5">
+                <div className="flex items-center gap-3">
+                  <Building2 className="text-[#B74140]" />
+                  <div>
+                    <p className="text-sm text-gray-500">Company</p>
+                    <p className="text-base font-semibold text-gray-900">
+                      {companyName || 'Independent planner'}
                     </p>
                   </div>
                 </div>
               </div>
-            ))}
+
+              <div className="rounded-2xl bg-[#FAF4F3] p-5">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="text-[#B74140]" />
+                  <div>
+                    <p className="text-sm text-gray-500">Business Type</p>
+                    <p className="text-base font-semibold text-gray-900">
+                      {formatLabel(businessType)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr,0.85fr]">
+          <div className="space-y-8">
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <h2 className="text-2xl font-semibold text-gray-900">About this planner</h2>
+              <p className="mt-4 leading-7 text-gray-600">{description}</p>
+
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Coverage Area
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {coverageArea.length ? coverageArea.map((area) => (
+                      <span
+                        key={area}
+                        className="rounded-full bg-[#F7F1F0] px-3 py-2 text-sm text-gray-700"
+                      >
+                        {area}
+                      </span>
+                    )) : (
+                      <span className="text-sm text-gray-500">Coverage area unavailable</span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Service Categories
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {categories.length ? categories.map((category) => (
+                      <span
+                        key={category}
+                        className="rounded-full bg-[#F7F1F0] px-3 py-2 text-sm text-gray-700"
+                      >
+                        {category}
+                      </span>
+                    )) : (
+                      <span className="text-sm text-gray-500">No public categories listed yet</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {address ? (
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Address
+                  </h3>
+                  <p className="mt-3 text-gray-600">{address}</p>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <h2 className="text-2xl font-semibold text-gray-900">Booking readiness</h2>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-[#F0E7E6] bg-[#FFFCFB] p-5">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="text-[#B74140]" />
+                    <div>
+                      <p className="text-sm text-gray-500">Joined</p>
+                      <p className="font-semibold text-gray-900">
+                        {formatDisplayDate(planner.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#F0E7E6] bg-[#FFFCFB] p-5">
+                  <div className="flex items-center gap-3">
+                    <BriefcaseBusiness className="text-[#B74140]" />
+                    <div>
+                      <p className="text-sm text-gray-500">Profile Submitted</p>
+                      <p className="font-semibold text-gray-900">
+                        {formatDisplayDate(planner.onboarding?.submittedAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#F0E7E6] bg-[#FFFCFB] p-5">
+                  <div className="flex items-center gap-3">
+                    <Tag className="text-[#B74140]" />
+                    <div>
+                      <p className="text-sm text-gray-500">Status</p>
+                      <p className="font-semibold text-gray-900">
+                        {planner.isBlocked ? 'Currently unavailable' : 'Open for inquiries'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="space-y-8">
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <h2 className="text-2xl font-semibold text-gray-900">Planner summary</h2>
+              <div className="mt-5 space-y-4 text-sm text-gray-600">
+                <div className="flex items-start gap-3 rounded-2xl bg-[#FAF4F3] p-4">
+                  <Mail className="mt-0.5 h-4 w-4 text-[#B74140]" />
+                  <div>
+                    <p className="font-medium text-gray-900">Public contact</p>
+                    <p>{email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-2xl bg-[#FAF4F3] p-4">
+                  <MapPin className="mt-0.5 h-4 w-4 text-[#B74140]" />
+                  <div>
+                    <p className="font-medium text-gray-900">Coverage + address</p>
+                    <p>{locationLabel || 'Coverage area unavailable'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-2xl bg-[#FAF4F3] p-4">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-[#B74140]" />
+                  <div>
+                    <p className="font-medium text-gray-900">Verification</p>
+                    <p>{planner.isEmailVerified ? 'Email verified' : 'Verification pending'}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
+              <h2 className="text-2xl font-semibold text-gray-900">Reviews & ratings</h2>
+              <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                Reviews are not included in the current public event planner API yet, so this section will fill automatically once the backend starts returning them.
+              </div>
+            </section>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default WeddingPlannerProfile;
+}
