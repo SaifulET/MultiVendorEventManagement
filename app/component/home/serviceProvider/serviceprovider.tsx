@@ -43,7 +43,7 @@ const VenueProviderPage: FC = () => {
       location: "Gulshan, Dhaka",
       capacity: 500,
       rating: 4.9,
-      price: "$85,000",
+      price: "£85,000",
       image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=400&h=300&fit=crop"
     },
     {
@@ -51,7 +51,7 @@ const VenueProviderPage: FC = () => {
       location: "Banani, Dhaka",
       capacity: 300,
       rating: 4.7,
-      price: "$65,000",
+      price: "£65,000",
       image: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&h=300&fit=crop"
     },
     {
@@ -59,7 +59,7 @@ const VenueProviderPage: FC = () => {
       location: "Uttara, Dhaka",
       capacity: 400,
       rating: 4.8,
-      price: "$75,000",
+      price: "£75,000",
       image: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400&h=300&fit=crop"
     },
     {
@@ -67,7 +67,7 @@ const VenueProviderPage: FC = () => {
       location: "Dhanmondi, Dhaka",
       capacity: 200,
       rating: 4.9,
-      price: "$55,000",
+      price: "£55,000",
       image: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&h=300&fit=crop"
     },
     {
@@ -75,7 +75,7 @@ const VenueProviderPage: FC = () => {
       location: "Mirpur, Dhaka",
       capacity: 350,
       rating: 4.6,
-      price: "$60,000",
+      price: "£60,000",
       image: "https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=400&h=300&fit=crop"
     },
     {
@@ -83,7 +83,7 @@ const VenueProviderPage: FC = () => {
       location: "Bashundhara, Dhaka",
       capacity: 150,
       rating: 4.8,
-      price: "$40,000",
+      price: "£40,000",
       image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop"
     }
   ];

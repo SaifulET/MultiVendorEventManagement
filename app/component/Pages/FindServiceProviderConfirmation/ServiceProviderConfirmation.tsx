@@ -527,11 +527,11 @@ const ServiceProviderConfirmation: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax (10%)</span>
-                  <span className="font-medium">${priceDetails.tax.toFixed(2)}</span>
+                  <span className="font-medium">£{priceDetails.tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-200">
                   <span className="text-gray-600">Price:</span>
-                  <span className="font-bold text-lg">${priceDetails.total.toFixed(2)}</span>
+                  <span className="font-bold text-lg">£{priceDetails.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

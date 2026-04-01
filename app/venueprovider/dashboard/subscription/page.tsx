@@ -127,7 +127,7 @@ export default function SubscriptionManagement() {
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-[#E5E7EB]">
                   <p className="text-rose-100 font-inter font-normal text-[14px] leading-[20px] tracking-[0] mb-1">Amount</p>
                   <p className="text-white font-inter font-semibold text-[20px] leading-[28px] tracking-[0]">
-                    $49/month
+                    £49/month
                   </p>
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function SubscriptionManagement() {
                   <div className="mb-6 sm:mb-8">
                     <div className="flex items-baseline mb-1">
                       <span className="text-5xl sm:text-6xl font-bold text-slate-900">
-                        ${plan.price}
+                        £{plan.price}
                       </span>
                       <span className="text-slate-600 ml-2 text-lg">
                         /{plan.period}

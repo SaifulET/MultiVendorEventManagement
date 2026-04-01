@@ -72,7 +72,7 @@ const PaymentHistory = () => {
   ];
 
   const formatAmount = (amount: number) => {
-    return `$${amount.toLocaleString()}`;
+    return `£${amount.toLocaleString()}`;
   };
 
   const getTypeStyles = (type: string) => {

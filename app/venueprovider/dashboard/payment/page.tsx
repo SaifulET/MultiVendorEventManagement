@@ -209,7 +209,7 @@ export default function PaymentRecords() {
 
       <td className="pl-[17px] pr-4 py-4 text-slate-700 text-sm">{record.eventDate}</td>
       <td className="pl-[17px] pr-4 py-4 text-slate-900 font-bold text-sm">
-        ${record.amount.toLocaleString()}
+        £{record.amount.toLocaleString()}
       </td>
       <td className="pl-[17px] pr-4 py-4">{getPaymentMethodIcon(record.paymentMethod)}</td>
       <td className="pl-[17px] pr-4 py-4">
@@ -253,7 +253,7 @@ export default function PaymentRecords() {
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Amount</div>
                       <div className="text-sm font-bold text-slate-900">
-                        ${record.amount.toLocaleString()}
+                        £{record.amount.toLocaleString()}
                       </div>
                     </div>
                     <div>

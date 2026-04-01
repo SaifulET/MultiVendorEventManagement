@@ -211,7 +211,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
               <span className="text-xs font-medium text-green-500">{monthlyRevenueChange}</span>
             </div>
             <p className="text-sm font-medium text-gray-600 mb-2">Monthly Revenue</p>
-            <p className="text-3xl font-bold text-gray-900">${monthlyRevenue.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-gray-900">£{monthlyRevenue.toLocaleString()}</p>
           </div>
 
           {/* Average Rating Card */}

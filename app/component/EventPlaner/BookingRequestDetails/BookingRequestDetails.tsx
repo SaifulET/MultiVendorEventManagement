@@ -238,20 +238,20 @@ const BookingRequestDetails: React.FC<{ booking?: BookingData }> = ({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Service Price</span>
                   <span className="font-semibold text-gray-900">
-                    ${booking.pricing.servicePrice.toFixed(2)}
+                    £{booking.pricing.servicePrice.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">TAX ({booking.pricing.taxRate}%)</span>
                   <span className="font-semibold text-gray-900">
-                    ${booking.pricing.tax.toFixed(2)}
+                    £{booking.pricing.tax.toFixed(2)}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex items-center justify-between">
                     <span className="text-base font-bold text-gray-900">Total Payable</span>
                     <span className="text-xl font-bold text-gray-900">
-                      ${booking.pricing.total.toFixed(2)}
+                      £{booking.pricing.total.toFixed(2)}
                     </span>
                   </div>
                 </div>

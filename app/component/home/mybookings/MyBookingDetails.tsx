@@ -222,7 +222,7 @@ router.push('/home/viewvenueprofile/details');
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Venue Price</span>
-                  <span className="font-semibold">${bookingData.venue.price.toFixed(2)}</span>
+                  <span className="font-semibold">£{bookingData.venue.price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm items-center">
                   <span className="text-gray-600">Payment Method</span>
@@ -261,7 +261,7 @@ router.push('/home/viewvenueprofile/details');
               <div className="mb-4">
                 <p className="text-sm text-gray-600 mb-1">Refund Amount</p>
                 <p className="text-2xl font-bold text-[#3CCF91]">
-                  ${bookingData.payment.refundAmount.toFixed(2)} ({bookingData.payment.refundPercentage}%)
+                  £{bookingData.payment.refundAmount.toFixed(2)} ({bookingData.payment.refundPercentage}%)
                 </p>
               </div>
               <button 
@@ -289,7 +289,7 @@ router.push('/home/viewvenueprofile/details');
               </button>
             </div>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to cancel this booking? You will receive a refund of ${bookingData.payment.refundAmount.toFixed(2)} ({bookingData.payment.refundPercentage}%).
+              Are you sure you want to cancel this booking? You will receive a refund of £{bookingData.payment.refundAmount.toFixed(2)} ({bookingData.payment.refundPercentage}%).
             </p>
             <div className="flex gap-3">
               <button 

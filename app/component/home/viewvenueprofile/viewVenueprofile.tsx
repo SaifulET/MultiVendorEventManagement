@@ -239,7 +239,7 @@ const VenueProviderPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Starting from</div>
-                      <div className="text-base sm:text-lg font-bold text-gray-900">${venue.price.toLocaleString()}</div>
+                      <div className="text-base sm:text-lg font-bold text-gray-900">£{venue.price.toLocaleString()}</div>
                     </div>
                     <button className="px-4 py-2 bg-[#B74140] text-white text-sm rounded-lg hover:bg-[#a53836] transition-colors">
                       View Venue

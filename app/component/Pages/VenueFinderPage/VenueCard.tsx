@@ -132,7 +132,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
 
         <div className="flex items-center justify-between pt-4 border-t border-slate-200">
           <div>
-            <span className="text-2xl font-bold text-slate-900">${venue.price.toLocaleString()}</span>
+            <span className="text-2xl font-bold text-slate-900">£{venue.price.toLocaleString()}</span>
             <span className="text-slate-500 text-sm ml-1">/day</span>
           </div>
 

@@ -185,7 +185,7 @@ const router = useRouter();
                     </td>
                     <td className="px-6 py-4 text-gray-700">{venue.category}</td>
                
-                    <td className="px-6 py-4 font-semibold text-gray-900">${venue.price.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-semibold text-gray-900">£{venue.price.toLocaleString()}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         venue.status === 'Published' 
@@ -243,7 +243,7 @@ const router = useRouter();
                
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Price:</span>
-                  <span className="text-gray-900 font-bold">${venue.price.toLocaleString()}</span>
+                  <span className="text-gray-900 font-bold">£{venue.price.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Created:</span>

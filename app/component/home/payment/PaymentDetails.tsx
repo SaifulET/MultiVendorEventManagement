@@ -175,11 +175,11 @@ const PaymentDetails = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Venue Price</span>
-                    <span className="font-semibold text-gray-900">$4,500.00</span>
+                    <span className="font-semibold text-gray-900">£4,500.00</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Tax (8.5%)</span>
-                    <span className="font-semibold text-gray-900">$401.63</span>
+                    <span className="font-semibold text-gray-900">£401.63</span>
                   </div>
                 </div>
               </div>
@@ -188,7 +188,7 @@ const PaymentDetails = () => {
               <div className="pt-4 border-t-2 border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-base font-bold text-gray-900">Total Paid</span>
-                  <span className="text-xl md:text-2xl font-bold text-[#2563EB]">$5,126.63</span>
+                  <span className="text-xl md:text-2xl font-bold text-[#2563EB]">£5,126.63</span>
                 </div>
               </div>
 

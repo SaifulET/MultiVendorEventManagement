@@ -59,7 +59,7 @@ const BookingConfirmation: React.FC = () => {
               Amount Paid
             </span>
             <span className="text-right font-bold text-base md:text-lg">
-              $45,000
+              £45,000
             </span>
           </div>
         </div>

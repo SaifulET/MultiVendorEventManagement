@@ -46,7 +46,7 @@ const ProfilePage: React.FC = () => {
     fullName: 'Sarah Johnson',
     email: 'sarah.johnson@email.com',
     phone: '+1 (555) 123-4567',
-    currency: 'USD ($)',
+    currency: 'GBP (£)',
     location: 'San Francisco, CA'
   });
 
@@ -332,7 +332,7 @@ const ProfilePage: React.FC = () => {
                       : 'border-slate-200 bg-slate-50 text-slate-600'
                   } transition-all outline-none appearance-none cursor-pointer`}
                 >
-                  <option>USD ($)</option>
+                  <option>GBP (£)</option>
                   <option>EUR (€)</option>
                   <option>GBP (£)</option>
                   <option>JPY (¥)</option>

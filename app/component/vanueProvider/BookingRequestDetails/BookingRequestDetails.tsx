@@ -177,7 +177,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-base text-gray-600">Subtotal</span>
                   <span className="text-base text-gray-900">
-                    ${booking.pricing.subtotal.toLocaleString()}.00
+                    £{booking.pricing.subtotal.toLocaleString()}.00
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -185,7 +185,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
                     Tax ({booking.pricing.taxRate}%)
                   </span>
                   <span className="text-base text-gray-900">
-                    ${booking.pricing.tax.toLocaleString()}.00
+                    £{booking.pricing.tax.toLocaleString()}.00
                   </span>
                 </div>
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -193,7 +193,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
                     Total Amount
                   </span>
                   <span className="text-lg font-bold text-gray-900">
-                    ${booking.pricing.total.toLocaleString()}.00
+                    £{booking.pricing.total.toLocaleString()}.00
                   </span>
                 </div>
               </div>
@@ -223,7 +223,7 @@ const BookingRequestDetails: React.FC<BookingRequestDetailsProps> = ({
                         Deposit Required
                       </p>
                       <p className="text-sm text-gray-600">
-                        {booking.payment.depositPercentage}% deposit (${booking.payment.depositAmount.toLocaleString()}) due upon acceptance
+                        {booking.payment.depositPercentage}% deposit (£{booking.payment.depositAmount.toLocaleString()}) due upon acceptance
                       </p>
                     </div>
                     <span className="px-3 py-1 bg-yellow-200 text-yellow-900 text-sm font-medium rounded-full">

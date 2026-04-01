@@ -406,7 +406,7 @@ const router = useRouter();
                 </div>
                 <div className="flex justify-between py-3 pt-4 text-lg font-bold border-t border-gray-200">
                   <span>Total</span>
-                  <span>$1,701</span>
+                  <span>£1,701</span>
                 </div>
               </div>
             </div>

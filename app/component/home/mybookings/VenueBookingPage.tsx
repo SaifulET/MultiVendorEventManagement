@@ -291,7 +291,7 @@ const handleViwServiceProvider = (e: React.MouseEvent<HTMLButtonElement>): void 
               <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm sm:text-base font-semibold text-gray-900">Total Price</span>
-                  <span className="text-xl sm:text-2xl font-bold text-gray-900">${bookingData.venue.price}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-gray-900">£{bookingData.venue.price}</span>
                 </div>
                 <div className="inline-flex items-center gap-1.5 bg-[#3CCF91] text-white text-xs font-semibold px-[6px] sm:px-[8px] py-[3px] sm:py-[4px] rounded-full">
                   <Check className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -306,7 +306,7 @@ const handleViwServiceProvider = (e: React.MouseEvent<HTMLButtonElement>): void 
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-gray-600">Price</span>
-                  <span className="text-lg sm:text-xl font-bold text-gray-900">${bookingData.venue.price}</span>
+                  <span className="text-lg sm:text-xl font-bold text-gray-900">£{bookingData.venue.price}</span>
                 </div>
                 <div className="flex justify-between text-xs sm:text-sm items-center">
                   <span className="text-gray-600">Payment Method</span>
@@ -344,7 +344,7 @@ const handleViwServiceProvider = (e: React.MouseEvent<HTMLButtonElement>): void 
               </button>
             </div>
             <p className="text-sm sm:text-base text-gray-600 mb-4">
-              Are you sure you want to cancel this booking? You will receive a refund of ${bookingData.payment.refundAmount.toFixed(2)} ({bookingData.payment.refundPercentage}%).
+              Are you sure you want to cancel this booking? You will receive a refund of £{bookingData.payment.refundAmount.toFixed(2)} ({bookingData.payment.refundPercentage}%).
             </p>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button 
