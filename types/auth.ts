@@ -91,7 +91,7 @@ export interface ServiceProviderOnboardingPayload {
   _id: string;
   name: string;
   email: string;
-  stripeAccountId: string;
+  stripeAccountId?: string;
   profileInfo: ServiceProviderProfileInfoPayload;
   services: unknown[];
 }
@@ -114,7 +114,7 @@ export interface EventPlannerOnboardingPayload {
   _id: string;
   fullName: string;
   email: string;
-  stripeAccountId: string;
+  stripeAccountId?: string;
   profileInfo: EventPlannerProfileInfoDetailsPayload;
 }
 
@@ -122,7 +122,7 @@ export interface VenueProviderOnboardingPayload {
   _id: string;
   fullName: string;
   email: string;
-  stripeAccountId: string;
+  stripeAccountId?: string;
   businessName: string;
   businessType: string;
   legalBusinessName: string;

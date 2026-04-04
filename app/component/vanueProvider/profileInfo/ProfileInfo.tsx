@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowRight, BriefcaseBusinessIcon, ChevronDown, Link2, Mail, Phone } from "lucide-react";
+import { ArrowRight, BriefcaseBusinessIcon, ChevronDown, Mail, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/store/useAuthStore";
@@ -22,7 +22,6 @@ export default function BusinessProfileForm() {
   );
 
   const [formData, setFormData] = useState({
-    stripeAccountId: "",
     businessName: "",
     businessType: "individual",
     legalBusinessName: "",
@@ -60,10 +59,6 @@ export default function BusinessProfileForm() {
   const validateForm = () => {
     if (!user?.id || !user.email) {
       return "Please sign in again before submitting onboarding information.";
-    }
-
-    if (!formData.stripeAccountId.trim()) {
-      return "Stripe account ID is required.";
     }
 
     if (!formData.businessName.trim()) {
@@ -112,7 +107,6 @@ export default function BusinessProfileForm() {
         _id: user.id,
         fullName: user.fullName,
         email: user.email,
-        stripeAccountId: formData.stripeAccountId.trim(),
         businessName: formData.businessName.trim(),
         businessType: normalizeBusinessType(formData.businessType),
         legalBusinessName: formData.legalBusinessName.trim(),
@@ -167,28 +161,6 @@ export default function BusinessProfileForm() {
                   value={user?.email ?? ""}
                   readOnly
                   className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="stripeAccountId"
-                className="mb-2 block text-sm font-medium text-gray-900"
-              >
-                Stripe Account ID<span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Link2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  id="stripeAccountId"
-                  name="stripeAccountId"
-                  value={formData.stripeAccountId}
-                  onChange={handleInputChange}
-                  placeholder="e.g., acct_1Example123456789"
-                  className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
-                  required
                 />
               </div>
             </div>

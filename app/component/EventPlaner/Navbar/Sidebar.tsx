@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,8 +8,6 @@ import {
   LayoutDashboard,
   BookCheck,
   Crown,
-  Briefcase,
-  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -35,11 +31,6 @@ const MENU = [
         href: "/eventPlanner/dashboard/subscription",
       },
       
-      {
-        label: "Payments",
-        icon: CreditCard,
-        href: "/eventPlanner/dashboard/payment",
-      },
       {
         label: "Profile & Settings",
         icon: Settings,

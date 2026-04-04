@@ -11,15 +11,15 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 const navLinks = [
   { name: 'Home', href: '/pages/homepage' },
-  { name: 'Find Venues', href: '/pages/findVenues' },
-  { name: 'Find Event Planners', href: '/pages/findEventPlanners' },
+  { name: 'Find Venue', href: '/pages/findVenues' },
+  { name: 'Find Eventplanner', href: '/pages/findEventPlanners' },
   { name: 'Find Service', href: '/pages/findServiceProvider' },
-  { name: 'About Us', href: '/pages/aboutus' },
+  { name: 'About', href: '/pages/aboutus' },
 ];
 
 const isLinkActive = (pathname: string, href: string) =>
   pathname === href ||
-  (href === '/pages/findServiceProvider' && pathname.includes('/pages/findServiceProvider'));
+  pathname.startsWith(`${href}/`);
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

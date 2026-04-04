@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +7,6 @@ import logo from "@/public/logo.svg";
 import {
   LayoutDashboard,
   Calendar,
-  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -25,11 +23,6 @@ const MENU = [
         label: "My Bookings",
         icon: Calendar,
         href: "/home/dashboard/mybookings",
-      },
-      {
-        label: "Payments",
-        icon: CreditCard,
-        href: "/home/dashboard/payment",
       },
       {
         label: "Profile & Settings",

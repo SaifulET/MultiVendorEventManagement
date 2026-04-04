@@ -6,7 +6,6 @@ import {
   BriefcaseBusinessIcon,
   ChevronDown,
   Layers,
-  Link2,
   MapPin,
   Tag,
 } from "lucide-react";
@@ -55,7 +54,6 @@ export default function BusinessProfileForm() {
     coverageArea: "",
     businessType: "individual",
     companyName: "",
-    stripeAccountId: "",
     documentUrls: "",
   });
   const [validationError, setValidationError] = useState("");
@@ -111,10 +109,6 @@ export default function BusinessProfileForm() {
       return "Please add at least one coverage area.";
     }
 
-    if (!formData.stripeAccountId.trim()) {
-      return "Stripe account ID is required.";
-    }
-
     if (!formData.businessType.trim()) {
       return "Business type is required.";
     }
@@ -145,7 +139,6 @@ export default function BusinessProfileForm() {
         _id: user.id,
         name: user.fullName,
         email: user.email,
-        stripeAccountId: formData.stripeAccountId.trim(),
         profileInfo: {
           serviceName: formData.serviceName.trim(),
           serviceCategory: formData.serviceCategory.trim(),
@@ -206,28 +199,6 @@ export default function BusinessProfileForm() {
                   value={user?.email ?? ""}
                   readOnly
                   className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="stripeAccountId"
-                className="mb-2 block text-sm font-medium text-gray-900"
-              >
-                Stripe Account ID<span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Link2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  id="stripeAccountId"
-                  name="stripeAccountId"
-                  value={formData.stripeAccountId}
-                  onChange={handleInputChange}
-                  placeholder="e.g., acct_1Example123456789"
-                  className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
-                  required
                 />
               </div>
             </div>

@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,7 +9,6 @@ import {
   BookCheck,
   Crown,
   Building2,
-  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -38,11 +35,6 @@ const MENU = [
         label: "My Venue",
         icon: Building2,
         href: "/venueprovider/dashboard/myVanue",
-      },
-      {
-        label: "Payments",
-        icon: CreditCard,
-        href: "/venueprovider/dashboard/payment",
       },
       {
         label: "Profile & Settings",

@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,7 +9,6 @@ import {
   BookCheck,
   Crown,
   Briefcase,
-  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -38,11 +35,6 @@ const MENU = [
         label: "My Service",
         icon: Briefcase,
         href: "/serviceprovider/dashboard/myServices",
-      },
-      {
-        label: "Payments",
-        icon: CreditCard,
-        href: "/serviceprovider/dashboard/payment",
       },
       {
         label: "Profile & Settings",
