@@ -76,10 +76,10 @@ export interface ForgotPasswordPayload {
 export interface ServiceProviderVerificationPayload {
   businessType: string;
   companyName: string;
-  nationalIdOrTradeLicenseFiles: string[];
 }
 
 export interface ServiceProviderProfileInfoPayload {
+  nidOrTradeLicenseNumber: string;
   serviceName: string;
   serviceCategory: string;
   serviceDescription: string;
@@ -99,10 +99,10 @@ export interface ServiceProviderOnboardingPayload {
 export interface EventPlannerVerificationPayload {
   businessType: string;
   companyName: string;
-  nationalIdOrTradeLicenseFiles: string[];
 }
 
 export interface EventPlannerProfileInfoDetailsPayload {
+  nidOrTradeLicenseNumber: string;
   name: string;
   description: string;
   coverageArea: string[];

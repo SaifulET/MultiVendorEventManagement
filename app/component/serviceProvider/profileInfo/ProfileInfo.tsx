@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusinessIcon,
@@ -54,16 +54,12 @@ export default function BusinessProfileForm() {
     coverageArea: "",
     businessType: "individual",
     companyName: "",
-    documentUrls: "",
+    nidNumber: "",
   });
+  const [documentPhoto, setDocumentPhoto] = useState<File | null>(null);
   const [validationError, setValidationError] = useState("");
 
   const formError = validationError || apiError;
-
-  const documentPreview = useMemo(
-    () => splitValues(formData.documentUrls),
-    [formData.documentUrls]
-  );
 
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -86,6 +82,22 @@ export default function BusinessProfileForm() {
       ...current,
       [name]: value,
     }));
+  };
+
+  const handleDocumentPhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (validationError) {
+      setValidationError("");
+    }
+
+    if (apiError) {
+      clearError();
+    }
+
+    if (successMessage) {
+      clearSuccessMessage();
+    }
+
+    setDocumentPhoto(event.target.files?.[0] ?? null);
   };
 
   const validateForm = () => {
@@ -113,8 +125,12 @@ export default function BusinessProfileForm() {
       return "Business type is required.";
     }
 
-    if (!documentPreview.length) {
-      return "Please add at least one document URL.";
+    if (!formData.nidNumber.trim()) {
+      return "National ID / trade license number is required.";
+    }
+
+    if (!documentPhoto) {
+      return "National ID / trade license image is required.";
     }
 
     return "";
@@ -135,11 +151,12 @@ export default function BusinessProfileForm() {
     }
 
     try {
-      await submitServiceProviderOnboarding({
+      const requestPayload = {
         _id: user.id,
         name: user.fullName,
         email: user.email,
         profileInfo: {
+          nidOrTradeLicenseNumber: formData.nidNumber.trim(),
           serviceName: formData.serviceName.trim(),
           serviceCategory: formData.serviceCategory.trim(),
           serviceDescription: formData.serviceDescription.trim(),
@@ -147,11 +164,23 @@ export default function BusinessProfileForm() {
           verification: {
             businessType: normalizeBusinessType(formData.businessType),
             companyName: formData.companyName.trim(),
-            nationalIdOrTradeLicenseFiles: documentPreview,
           },
         },
         services: [],
-      });
+      };
+
+      const multipartPayload = new FormData();
+      multipartPayload.append("payload", JSON.stringify(requestPayload));
+
+      if (documentPhoto) {
+        multipartPayload.append(
+          "nationalIdOrTradeLicenseFiles",
+          documentPhoto,
+          documentPhoto.name
+        );
+      }
+
+      await submitServiceProviderOnboarding(multipartPayload);
 
       router.push("/serviceprovider/dashboard/dashboard");
     } catch {
@@ -351,39 +380,53 @@ export default function BusinessProfileForm() {
 
             <div>
               <label
-                htmlFor="documentUrls"
+                htmlFor="nidNumber"
                 className="mb-2 block text-sm font-medium text-gray-900"
               >
-                National ID / Trade License URLs
+                National ID / Trade License Number
                 <span className="text-red-500">*</span>
               </label>
-              <textarea
-                id="documentUrls"
-                name="documentUrls"
-                value={formData.documentUrls}
+              <input
+                type="text"
+                id="nidNumber"
+                name="nidNumber"
+                value={formData.nidNumber}
                 onChange={handleInputChange}
-                placeholder="Paste one file URL per line, or separate them with commas."
-                rows={4}
-                className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                inputMode="numeric"
+                placeholder="Enter your NID or trade license number"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
-                The onboarding API you shared expects document URLs, so this form
-                submits links instead of raw file uploads.
+                This field now accepts a number instead of a document URL.
               </p>
-              {documentPreview.length ? (
-                <div className="mt-3 rounded-lg bg-gray-50 p-3">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Documents to submit
-                  </p>
-                  <div className="space-y-1 text-sm text-gray-700">
-                    {documentPreview.map((url) => (
-                      <div key={url} className="truncate">
-                        {url}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="documentPhoto"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                Document Photo
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="file"
+                id="documentPhoto"
+                name="documentPhoto"
+                accept="image/*"
+                onChange={handleDocumentPhotoChange}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-[#B74140] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#a33635]"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This image is uploaded as the multipart file field named{" "}
+                <span className="font-medium">
+                  nationalIdOrTradeLicenseFiles
+                </span>
+                .
+              </p>
+              {documentPhoto ? (
+                <p className="mt-2 text-sm text-gray-700">{documentPhoto.name}</p>
               ) : null}
             </div>
 

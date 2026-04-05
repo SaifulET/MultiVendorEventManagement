@@ -16,12 +16,17 @@ export const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
+  const headers = new AxiosHeaders(config.headers);
+
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    headers.delete("Content-Type");
+  }
 
   if (!token) {
+    config.headers = headers;
     return config;
   }
 
-  const headers = new AxiosHeaders(config.headers);
   headers.set("Authorization", `Bearer ${token}`);
   config.headers = headers;
 

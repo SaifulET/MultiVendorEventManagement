@@ -1,60 +1,44 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import {
   Briefcase,
+  Camera,
+  Check,
   Mail,
+  Phone,
   RefreshCcw,
-  ShieldCheck,
   Tags,
   User,
+  X,
 } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-import { api, getApiErrorMessage } from '@/lib/api';
+import {
+  emptyProfileSettingsData,
+  fetchAuthMeProfile,
+  formatRole,
+  type ProfileSettingsData,
+} from '@/lib/auth-me';
+import { getApiErrorMessage } from '@/lib/api';
 import profileImage from '@/public/profile.jpg';
 
-interface MeResponse {
-  success: boolean;
-  data: {
-    userId: string;
-    email: string;
-    fullName: string;
-    role: string;
-    serviceCategories?: string[];
-    onboarding?: Record<string, unknown>;
-  };
+interface EditableProfile extends ProfileSettingsData {
+  mobileNumber: string;
 }
 
-interface ProfileData {
-  userId: string;
-  email: string;
-  fullName: string;
-  role: string;
-  serviceCategories: string[];
-  onboarding: Record<string, unknown>;
-}
-
-const emptyProfile: ProfileData = {
-  userId: '',
-  email: '',
-  fullName: '',
-  role: '',
-  serviceCategories: [],
-  onboarding: {},
+const emptyEditableProfile: EditableProfile = {
+  ...emptyProfileSettingsData,
+  mobileNumber: '',
 };
-
-const formatRole = (role: string) =>
-  role
-    .split('_')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<ProfileData>(emptyProfile);
+  const [profile, setProfile] = useState<EditableProfile>(emptyEditableProfile);
+  const [draftProfile, setDraftProfile] = useState<EditableProfile>(emptyEditableProfile);
+  const [savedProfilePhoto, setSavedProfilePhoto] = useState(profileImage.src);
+  const [draftProfilePhoto, setDraftProfilePhoto] = useState(profileImage.src);
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -68,28 +52,65 @@ export default function ProfilePage() {
       setIsLoading(true);
       setError('');
 
-      const response = await api.get<MeResponse>('/api/v1/auth/me');
-      const user = response.data.data;
+      const data = await fetchAuthMeProfile();
+      const nextProfile = {
+        ...data,
+        mobileNumber: '',
+      };
 
-      setProfile({
-        userId: user.userId ?? '',
-        email: user.email ?? '',
-        fullName: user.fullName ?? '',
-        role: user.role ?? '',
-        serviceCategories: Array.isArray(user.serviceCategories) ? user.serviceCategories : [],
-        onboarding: user.onboarding ?? {},
-      });
+      setProfile(nextProfile);
+      setDraftProfile(nextProfile);
     } catch (fetchError) {
-      const message = getApiErrorMessage(fetchError);
-      setError(message);
+      setError(getApiErrorMessage(fetchError));
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProfile();
+    void fetchProfile();
   }, []);
+
+  const handleProfileChange = (
+    field: keyof Pick<EditableProfile, 'fullName' | 'email' | 'mobileNumber'>,
+    value: string
+  ) => {
+    setDraftProfile((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const updateDraftImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setDraftProfilePhoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleStartEditing = () => {
+    setDraftProfile(profile);
+    setDraftProfilePhoto(savedProfilePhoto);
+    setIsEditing(true);
+  };
+
+  const handleCancelEditing = () => {
+    setDraftProfile(profile);
+    setDraftProfilePhoto(savedProfilePhoto);
+    setIsEditing(false);
+  };
+
+  const handleSaveChanges = () => {
+    setProfile(draftProfile);
+    setSavedProfilePhoto(draftProfilePhoto);
+    setIsEditing(false);
+  };
 
   return (
     <div className="min-h-screen pb-10">
@@ -99,15 +120,23 @@ export default function ProfilePage() {
         </p>
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <div className="overflow-hidden rounded-full border-4 border-white/40">
-              <Image
-                src={profileImage}
+            <div className="relative overflow-hidden rounded-full border-4 border-white/40">
+              <img
+                src={isEditing ? draftProfilePhoto : savedProfilePhoto}
                 alt="Profile avatar"
-                width={88}
-                height={88}
                 className="h-[88px] w-[88px] object-cover"
-                priority
               />
+              {isEditing ? (
+                <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/30 transition-colors hover:bg-black/40">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={updateDraftImage}
+                    className="hidden"
+                  />
+                  <Camera className="h-5 w-5 text-white" />
+                </label>
+              ) : null}
             </div>
             <div>
               <h1 className="text-3xl font-bold">
@@ -119,14 +148,47 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={fetchProfile}
-            className="inline-flex items-center gap-2 self-start rounded-xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Refresh
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={fetchProfile}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Refresh
+            </button>
+
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCancelEditing}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveChanges}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                >
+                  <Check className="h-4 w-4" />
+                  Save Changes
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartEditing}
+                disabled={isLoading}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-[#B74140] transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <User className="h-4 w-4" />
+                Edit Profile
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -155,27 +217,64 @@ export default function ProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
         <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
-          <h2 className="mb-6 text-xl font-bold text-slate-900">Personal Information</h2>
+          <h2 className="mb-6 text-xl font-bold text-slate-900">Profile Information</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
+              <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
                 <User className="h-4 w-4" />
                 Full Name
-              </div>
-              <p className="text-base font-semibold text-slate-900">
-                {isLoading ? 'Loading...' : profile.fullName || 'Not available'}
-              </p>
+              </label>
+              <input
+                type="text"
+                value={isEditing ? draftProfile.fullName : profile.fullName}
+                onChange={(event) => handleProfileChange('fullName', event.target.value)}
+                disabled={!isEditing}
+                className={`w-full rounded-lg border px-4 py-3 text-base font-semibold outline-none transition-all ${
+                  isEditing
+                    ? 'border-[#E5E7EB] bg-white text-slate-900 focus:border-[#B74140] focus:ring-2 focus:ring-[#B7414020]'
+                    : 'border-transparent bg-transparent px-0 py-0 text-slate-900'
+                }`}
+                placeholder="Full name"
+              />
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
+              <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
                 <Mail className="h-4 w-4" />
                 Email
-              </div>
-              <p className="text-base font-semibold text-slate-900">
-                {isLoading ? 'Loading...' : profile.email || 'Not available'}
-              </p>
+              </label>
+              <input
+                type="email"
+                value={isEditing ? draftProfile.email : profile.email}
+                onChange={(event) => handleProfileChange('email', event.target.value)}
+                disabled={!isEditing}
+                className={`w-full rounded-lg border px-4 py-3 text-base font-semibold outline-none transition-all ${
+                  isEditing
+                    ? 'border-[#E5E7EB] bg-white text-slate-900 focus:border-[#B74140] focus:ring-2 focus:ring-[#B7414020]'
+                    : 'border-transparent bg-transparent px-0 py-0 text-slate-900'
+                }`}
+                placeholder="Email address"
+              />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
+                <Phone className="h-4 w-4" />
+                Mobile Number
+              </label>
+              <input
+                type="tel"
+                value={isEditing ? draftProfile.mobileNumber : profile.mobileNumber}
+                onChange={(event) => handleProfileChange('mobileNumber', event.target.value)}
+                disabled={!isEditing}
+                className={`w-full rounded-lg border px-4 py-3 text-base font-semibold outline-none transition-all ${
+                  isEditing
+                    ? 'border-[#E5E7EB] bg-white text-slate-900 focus:border-[#B74140] focus:ring-2 focus:ring-[#B7414020]'
+                    : 'border-transparent bg-transparent px-0 py-0 text-slate-900'
+                }`}
+                placeholder="Enter mobile number"
+              />
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -185,16 +284,6 @@ export default function ProfilePage() {
               </div>
               <p className="text-base font-semibold text-slate-900">
                 {isLoading ? 'Loading...' : formatRole(profile.role || 'user')}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
-                <ShieldCheck className="h-4 w-4" />
-                User ID
-              </div>
-              <p className="break-all text-base font-semibold text-slate-900">
-                {isLoading ? 'Loading...' : profile.userId || 'Not available'}
               </p>
             </div>
           </div>

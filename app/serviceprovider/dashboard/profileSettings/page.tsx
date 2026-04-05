@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, type ChangeEvent } from 'react';
-import { Camera, Check, Lock, Mail, Phone, Trash2, User, X } from 'lucide-react';
+import React, { useEffect, useState, type ChangeEvent } from 'react';
+import { Camera, Check, Lock, Mail, Phone, RefreshCcw, Trash2, User, X } from 'lucide-react';
 
+import { fetchAuthMeProfile, formatRole } from '@/lib/auth-me';
+import { getApiErrorMessage } from '@/lib/api';
 import cover from '@/public/bg.svg';
 import profileimg from '@/public/profile.jpg';
 
@@ -10,6 +12,7 @@ interface Profile {
   fullName: string;
   email: string;
   phone: string;
+  role: string;
 }
 
 interface Passwords {
@@ -24,15 +27,42 @@ const ProfilePage: React.FC = () => {
   const [coverPhoto, setCoverPhoto] = useState(cover.src);
   const [profilePhoto, setProfilePhoto] = useState(profileimg.src);
   const [profile, setProfile] = useState<Profile>({
-    fullName: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
-    phone: '+1 (555) 123-4567',
+    fullName: '',
+    email: '',
+    phone: '',
+    role: '',
   });
   const [passwords, setPasswords] = useState<Passwords>({
     current: '',
     new: '',
     confirm: '',
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      const data = await fetchAuthMeProfile();
+
+      setProfile((current) => ({
+        ...current,
+        fullName: data.fullName,
+        email: data.email,
+        role: data.role,
+      }));
+    } catch (fetchError) {
+      setError(getApiErrorMessage(fetchError));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadProfile();
+  }, []);
 
   const handleProfileChange = (field: keyof Profile, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -74,9 +104,18 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="min-h-screen font-sans">
       <div className="h-[404px] overflow-hidden">
-        <div className="flex justify-end pb-[28px]">
+        <div className="flex flex-wrap justify-end gap-3 pb-[28px]">
+          <button
+            onClick={loadProfile}
+            disabled={isLoading}
+            className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-[20px] py-[16px] font-medium text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Refresh
+          </button>
+
           {isEditing ? (
-            <div className="flex gap-[28px]">
+            <>
               <button
                 onClick={() => setIsEditing(false)}
                 className="rounded-lg border border-[#E5E7EB] bg-white px-[24px] py-[16px] font-medium text-slate-700 transition-all hover:bg-slate-100"
@@ -90,13 +129,14 @@ const ProfilePage: React.FC = () => {
                 <Check className="h-4 w-4" />
                 Save Changes
               </button>
-            </div>
+            </>
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="rounded-lg bg-[#B74140] px-[24px] py-[16px] font-medium text-white shadow-lg transition-all hover:bg-[#812321]"
+              disabled={isLoading}
+              className="rounded-lg bg-[#B74140] px-[24px] py-[16px] font-medium text-white shadow-lg transition-all hover:bg-[#812321] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Edit profile
+              Edit Profile
             </button>
           )}
         </div>
@@ -146,16 +186,25 @@ const ProfilePage: React.FC = () => {
 
       <div className="-mt-8 px-8 pb-12">
         <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold text-slate-900">Smiths Home Services</h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center">
-              {'★★★★★'.split('').map((star, index) => (
-                <span key={`${star}-${index}`} className="text-lg text-yellow-400">★</span>
-              ))}
-            </div>
-            <span className="font-medium text-slate-600">4.9 (127 reviews)</span>
+          <h1 className="mb-2 text-3xl font-bold text-slate-900">
+            {isLoading ? 'Loading profile...' : profile.fullName || 'Your profile'}
+          </h1>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <span>{profile.email || 'Your account details are shown below.'}</span>
+            {profile.role ? (
+              <span className="rounded-full bg-[#B7414014] px-3 py-1 font-semibold text-[#B74140]">
+                {formatRole(profile.role)}
+              </span>
+            ) : null}
           </div>
         </div>
+
+        {error ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+            <p className="font-semibold text-red-700">Could not load your profile.</p>
+            <p className="mt-1 text-sm text-red-600">{error}</p>
+          </div>
+        ) : null}
 
         <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
           <h2 className="mb-6 text-xl font-bold text-slate-900">Profile Information</h2>
@@ -197,8 +246,8 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Phone Number</label>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Mobile Number</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
@@ -206,6 +255,7 @@ const ProfilePage: React.FC = () => {
                   value={profile.phone}
                   onChange={(event) => handleProfileChange('phone', event.target.value)}
                   disabled={!isEditing}
+                  placeholder="Not returned by /api/v1/auth/me"
                   className={`w-full rounded-lg border py-3 pl-11 pr-4 outline-none transition-all ${
                     isEditing
                       ? 'border-[#E5E7EB] bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200'
@@ -214,6 +264,7 @@ const ProfilePage: React.FC = () => {
                 />
               </div>
             </div>
+
           </div>
         </div>
 
@@ -229,7 +280,7 @@ const ProfilePage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900">Password</h3>
-                    <p className="mt-0.5 text-sm text-slate-500">••••••••••</p>
+                    <p className="mt-0.5 text-sm text-slate-500">..........</p>
                   </div>
                 </div>
                 <button

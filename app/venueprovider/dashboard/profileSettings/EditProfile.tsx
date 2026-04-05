@@ -9,22 +9,28 @@ interface EditProfileProps {
   onSave?: (data: {
     fullName: string;
     email: string;
+    phone: string;
+    profileImage: string;
   }) => void;
   onCancel?: () => void;
   initialData?: {
     fullName: string;
     email: string;
+    phone: string;
+    profileImage: string;
   };
 }
 
 export default function EditProfile({ onSave, onCancel, initialData }: EditProfileProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState(
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop'
+    initialData?.profileImage ||
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop'
   );
   const [formData, setFormData] = useState({
     fullName: initialData?.fullName || 'Michael Anderson',
     email: initialData?.email || 'sarah.johnson@email.com',
+    phone: initialData?.phone || '',
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -53,7 +59,7 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
             Cancel
           </button>
           <button
-            onClick={() => onSave?.(formData)}
+            onClick={() => onSave?.({ ...formData, profileImage })}
             className="rounded-lg border border-[#E5E7EB] bg-[#B74140] px-6 py-2.5 font-semibold text-white transition-all duration-300 hover:bg-[#772322]"
           >
             Save Changes
@@ -147,6 +153,21 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
                 }
                 className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
                 placeholder="Enter email address"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Mobile Number
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(event) =>
+                  setFormData({ ...formData, phone: event.target.value })
+                }
+                className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
+                placeholder="Enter mobile number"
               />
             </div>
           </div>

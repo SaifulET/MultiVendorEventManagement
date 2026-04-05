@@ -32,10 +32,10 @@ interface AuthState {
   login: (payload: LoginPayload) => Promise<AuthSuccessData>;
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<string>;
   submitServiceProviderOnboarding: (
-    payload: ServiceProviderOnboardingPayload
+    payload: ServiceProviderOnboardingPayload | FormData
   ) => Promise<RegisterResponseData>;
   submitEventPlannerOnboarding: (
-    payload: EventPlannerOnboardingPayload
+    payload: EventPlannerOnboardingPayload | FormData
   ) => Promise<RegisterResponseData>;
   submitVenueProviderOnboarding: (
     payload: VenueProviderOnboardingPayload
