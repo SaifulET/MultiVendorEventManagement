@@ -1,529 +1,660 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Check, MapPin, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import {
+  Accessibility,
+  ArrowLeftIcon,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Music,
+  Plus,
+  Presentation,
+  Shield,
+  Snowflake,
+  Upload,
+  Utensils,
+  Wifi,
+  X,
+} from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 
-interface VenueForm {
-  venueName: string;
-  venueCategory: string;
-  description: string;
-  fullAddress: string;
-  city: string;
-  postCode: string;
-  pricePerPerson: string;
-  guestCapacity: string;
-  amenities: string[];
-  images: string[];
-  videoLinks: string[];
+import { api, getApiErrorMessage } from '@/lib/api';
+
+type OverrideStatus = 'available' | 'pending' | 'booked';
+
+interface VenueDetail {
+  _id: string;
+  information?: {
+    venueName?: string;
+    venueType?: string;
+    description?: string;
+    addressLine?: string;
+    city?: string;
+    area?: string;
+  };
+  pricing?: {
+    basePrice?: number;
+    currency?: string;
+    discount?: { type?: string; value?: number };
+    amenities?: Record<string, boolean>;
+  };
+  capacity?: { maximumGuests?: number };
+  media?: { galleryImages?: string[]; videoUrl?: string };
+  availabilityOverrides?: Array<{
+    date?: string;
+    slots?: Array<{ hour?: number; status?: string }>;
+  }>;
 }
 
-const categories = [
-  'Banquet Hall',
-  'Wedding Hall',
-  'Conference Hall',
-  'Outdoor Venue',
-  'Rooftop Venue',
-  'Restaurant'
+interface VenueDetailResponse {
+  success: boolean;
+  data?: VenueDetail;
+}
+
+interface AvailabilityOverride {
+  date: string;
+  slots: Array<{ hour: number; status: OverrideStatus }>;
+}
+
+interface UploadPreview {
+  file: File;
+  previewUrl: string;
+}
+
+interface VenueFormState {
+  venueName: string;
+  venueType: string;
+  description: string;
+  addressLine: string;
+  city: string;
+  area: string;
+  basePrice: string;
+  currency: string;
+  discountType: string;
+  discountValue: string;
+  maximumGuests: string;
+  videoUrl: string;
+  galleryImages: string[];
+  amenities: Record<string, boolean>;
+  availabilityOverrides: AvailabilityOverride[];
+}
+
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const amenityDefinitions = [
+  { id: 'wifi', label: 'Wi-Fi', icon: <Wifi className="h-4 w-4" /> },
+  { id: 'parking', label: 'Parking', icon: <Car className="h-4 w-4" /> },
+  { id: 'airConditioned', label: 'AC', icon: <Snowflake className="h-4 w-4" /> },
+  { id: 'catering', label: 'Catering', icon: <Utensils className="h-4 w-4" /> },
+  { id: 'audioVideo', label: 'Audio/Video', icon: <Music className="h-4 w-4" /> },
+  { id: 'security', label: 'Security', icon: <Shield className="h-4 w-4" /> },
+  { id: 'accessible', label: 'Accessible', icon: <Accessibility className="h-4 w-4" /> },
+  { id: 'stage', label: 'Sound System', icon: <Presentation className="h-4 w-4" /> },
 ];
 
-const amenitiesList = [
-  { id: 'parking', label: 'Parking', icon: '🅿️' },
-  { id: 'ac', label: 'AC', icon: '❄️' },
-  { id: 'generator', label: 'Generator', icon: '⚡' },
-  { id: 'sound', label: 'Sound System', icon: '🔊' },
-  { id: 'washroom', label: 'Washroom', icon: '🚻' },
-  { id: 'accessibility', label: 'Accessibility', icon: '♿' },
-  { id: 'wifi', label: 'WiFi', icon: '📶' },
-  { id: 'catering', label: 'Catering', icon: '🍽️' },
-  { id: 'projector', label: 'Projector', icon: '📽️' }
-];
+const createEmptyFormState = (): VenueFormState => ({
+  venueName: '',
+  venueType: '',
+  description: '',
+  addressLine: '',
+  city: '',
+  area: '',
+  basePrice: '',
+  currency: 'BDT',
+  discountType: 'percentage',
+  discountValue: '',
+  maximumGuests: '',
+  videoUrl: '',
+  galleryImages: [],
+  amenities: {},
+  availabilityOverrides: [],
+});
 
-export default function EditVenue() {
-  const [formData, setFormData] = useState<VenueForm>({
-    venueName: 'Grand Ballroom Heritage Hall',
-    venueCategory: 'Banquet Hall',
-    description: 'Elegant banquet hall perfect for weddings, corporate events, and special celebrations. Features stunning architecture and modern amenities.',
-    fullAddress: '123 Heritage Street, Gulshan-2, Dhaka 1212',
-    city: 'Dhaka',
-    postCode: '1212',
-    pricePerPerson: '85000',
-    guestCapacity: '500',
-    amenities: ['parking', 'ac', 'generator', 'sound', 'washroom', 'wifi', 'projector'],
-    images: [
-      '🏛️',
-      '💒',
-      '🏢'
-    ],
-    videoLinks: ['https://youtube.com/watch?v=example']
-  });
+const normalizeStatus = (status?: string): OverrideStatus =>
+  status === 'booked' || status === 'pending' ? status : 'available';
 
-  const [currentMonth, setCurrentMonth] = useState(new Date(2024, 0, 1));
-  const [selectedDates, setSelectedDates] = useState<{[key: string]: 'available' | 'booked' | 'pending'}>({
-    '2024-1-1': 'available',
-    '2024-1-4': 'available',
-    '2024-1-6': 'available',
-    '2024-1-7': 'available',
-    '2024-1-9': 'available',
-    '2024-1-10': 'available',
-    '2024-1-11': 'available',
-    '2024-1-13': 'available',
-    '2024-1-16': 'available',
-    '2024-1-17': 'available',
-    '2024-1-18': 'available',
-    '2024-1-21': 'available',
-    '2024-1-23': 'available',
-    '2024-1-25': 'available',
-    '2024-1-27': 'available',
-    '2024-1-28': 'available',
-    '2024-1-30': 'available',
-    '2024-1-2': 'booked',
-    '2024-1-5': 'booked',
-    '2024-1-12': 'booked',
-    '2024-1-15': 'booked',
-    '2024-1-20': 'booked',
-    '2024-1-26': 'booked',
-    '2024-1-29': 'booked',
-    '2024-1-31': 'booked',
-    '2024-1-3': 'pending',
-    '2024-1-24': 'pending'
-  });
+const getOverrideSummaryStatus = (override?: AvailabilityOverride) => {
+  if (!override?.slots.length) return null;
+  if (override.slots.some((slot) => slot.status === 'booked')) return 'booked';
+  if (override.slots.some((slot) => slot.status === 'pending')) return 'pending';
+  return 'available';
+};
 
-  const handleInputChange = (field: keyof VenueForm, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+const getDateKey = (year: number, month: number, day: number) =>
+  `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+const getInitialMonthDate = (overrides: AvailabilityOverride[]) => {
+  const parsed = overrides[0]?.date ? new Date(overrides[0].date) : new Date();
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+const getCalendarCellClassName = (status: OverrideStatus | null, isSelected: boolean) => {
+  const selectedClass = isSelected ? ' ring-2 ring-[#B74140] ring-offset-1' : '';
+  if (status === 'booked') return `aspect-square rounded-lg bg-[#FDECEC] text-[#B74444] hover:bg-[#f9dede]${selectedClass}`;
+  if (status === 'pending') return `aspect-square rounded-lg bg-[#FFF4D6] text-[#946200] hover:bg-[#fdeec0]${selectedClass}`;
+  if (status === 'available') return `aspect-square rounded-lg bg-[#E8F8F0] text-[#2F855A] hover:bg-[#dcf1e7]${selectedClass}`;
+  return `aspect-square rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50${selectedClass}`;
+};
+
+const formatHourLabel = (hour: number) => `${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+
+const formatDisplayDate = (date: string) => {
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+export default function EditVenuePage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [formData, setFormData] = useState<VenueFormState>(createEmptyFormState);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [uploadPreviews, setUploadPreviews] = useState<UploadPreview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const venueId = params?.id;
+    if (!venueId) {
+      setError('Venue id is missing.');
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchVenue = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+        const response = await api.get<VenueDetailResponse>(`/api/v1/venue-provider/venues/${venueId}`);
+        const venue = response.data.data;
+        if (!venue) {
+          setError('Venue details were not found.');
+          return;
+        }
+
+        const availabilityOverrides = (venue.availabilityOverrides ?? [])
+          .filter((override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] => Boolean(override?.date))
+          .map((override) => ({
+            date: override.date?.trim() || '',
+            slots: (override.slots ?? []).map((slot) => ({
+              hour: typeof slot.hour === 'number' ? slot.hour : 0,
+              status: normalizeStatus(slot.status?.trim().toLowerCase()),
+            })),
+          }));
+
+        setFormData({
+          venueName: venue.information?.venueName?.trim() || '',
+          venueType: venue.information?.venueType?.trim() || '',
+          description: venue.information?.description?.trim() || '',
+          addressLine: venue.information?.addressLine?.trim() || '',
+          city: venue.information?.city?.trim() || '',
+          area: venue.information?.area?.trim() || '',
+          basePrice: typeof venue.pricing?.basePrice === 'number' ? String(venue.pricing.basePrice) : '',
+          currency: venue.pricing?.currency?.trim() || 'BDT',
+          discountType: venue.pricing?.discount?.type?.trim() || 'percentage',
+          discountValue: typeof venue.pricing?.discount?.value === 'number' ? String(venue.pricing.discount.value) : '',
+          maximumGuests: typeof venue.capacity?.maximumGuests === 'number' ? String(venue.capacity.maximumGuests) : '',
+          videoUrl: venue.media?.videoUrl?.trim() || '',
+          galleryImages: Array.isArray(venue.media?.galleryImages)
+            ? venue.media.galleryImages.filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))
+            : [],
+          amenities: venue.pricing?.amenities ?? {},
+          availabilityOverrides,
+        });
+
+        const initialMonth = getInitialMonthDate(availabilityOverrides);
+        setCurrentMonth(initialMonth);
+        setSelectedDateKey(availabilityOverrides[0]?.date ?? null);
+      } catch (fetchError) {
+        setError(getApiErrorMessage(fetchError));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVenue();
+  }, [params?.id]);
+
+  useEffect(() => () => {
+    uploadPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
+  }, [uploadPreviews]);
+
+  const handleInputChange = (field: keyof Omit<VenueFormState, 'galleryImages' | 'amenities' | 'availabilityOverrides'>, value: string) => {
+    setFormData((current) => ({ ...current, [field]: value }));
   };
 
   const handleAmenityToggle = (amenityId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      amenities: prev.amenities.includes(amenityId)
-        ? prev.amenities.filter(a => a !== amenityId)
-        : [...prev.amenities, amenityId]
-    }));
-  };
-  const router = useRouter();
-const HandleSave=()=>{
-  router.push("/venueprovider/dashboard/myVanue")
-}
-  const handleImageUpload = () => {
-    const newEmoji = ['🎭', '🎪', '🎨', '🎬', '🎤'][Math.floor(Math.random() * 5)];
-    setFormData(prev => ({ ...prev, images: [...prev.images, newEmoji] }));
-  };
-
-  const handleImageRemove = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+    setFormData((current) => ({
+      ...current,
+      amenities: { ...current.amenities, [amenityId]: !current.amenities[amenityId] },
     }));
   };
 
-  const addVideoLink = () => {
-    setFormData(prev => ({
-      ...prev,
-      videoLinks: [...prev.videoLinks, '']
+  const handleSlotStatusChange = (slotIndex: number, status: OverrideStatus) => {
+    if (!selectedDateKey) return;
+    setFormData((current) => ({
+      ...current,
+      availabilityOverrides: current.availabilityOverrides.map((override) =>
+        override.date !== selectedDateKey
+          ? override
+          : {
+              ...override,
+              slots: override.slots.map((slot, currentIndex) =>
+                currentIndex === slotIndex ? { ...slot, status } : slot
+              ),
+            }
+      ),
     }));
   };
 
-  const updateVideoLink = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      videoLinks: prev.videoLinks.map((link, i) => i === index ? value : link)
-    }));
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    const nextPreviews = files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
+    setUploadPreviews((current) => [...current, ...nextPreviews]);
+    event.target.value = '';
   };
 
-  const removeVideoLink = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      videoLinks: prev.videoLinks.filter((_, i) => i !== index)
-    }));
-  };
-
-  const getDaysInMonth = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    const days = [];
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-    return days;
-  };
-
-  const toggleDateStatus = (day: number) => {
-    const dateKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${day}`;
-    const currentStatus = selectedDates[dateKey];
-    
-    setSelectedDates(prev => {
-      const newDates = { ...prev };
-      if (!currentStatus) {
-        newDates[dateKey] = 'available';
-      } else if (currentStatus === 'available') {
-        newDates[dateKey] = 'booked';
-      } else if (currentStatus === 'booked') {
-        newDates[dateKey] = 'pending';
-      } else {
-        delete newDates[dateKey];
-      }
-      return newDates;
+  const removeUploadPreview = (index: number) => {
+    setUploadPreviews((current) => {
+      const target = current[index];
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return current.filter((_, currentIndex) => currentIndex !== index);
     });
   };
 
-  const getDateStatus = (day: number) => {
-    const dateKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${day}`;
-    return selectedDates[dateKey];
-  };
+  const availabilityMap = useMemo(
+    () => new Map(formData.availabilityOverrides.map((override) => [override.date, getOverrideSummaryStatus(override)])),
+    [formData.availabilityOverrides]
+  );
 
-  const changeMonth = (direction: number) => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + direction, 1));
-  };
+  const selectedOverride = useMemo(
+    () => formData.availabilityOverrides.find((override) => override.date === selectedDateKey) ?? null,
+    [formData.availabilityOverrides, selectedDateKey]
+  );
+
+  const displayedImages = useMemo(
+    () => [...formData.galleryImages, ...uploadPreviews.map((preview) => preview.previewUrl)],
+    [formData.galleryImages, uploadPreviews]
+  );
+
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
 
   return (
-    <div className="min-h-screen  ">
-      <div className="">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Venue</h1>
-          <button onClick={()=>{HandleSave()}} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#B74140] hover:bg-[#ad3c3a] text-white px-6 py-3 rounded-lg font-medium transition-colors">
-            <Check className="w-5 h-5" />
-            Publish Venue
-          </button>
-        </div>
+    <div className="min-h-screen p-8 md:px-20 xl:px-40">
+      <div>
+        <button className="mb-4 flex items-center gap-2" onClick={() => router.push('/venueprovider/dashboard/myVanue')}>
+          <ArrowLeftIcon className="h-7 w-7" />
+          <h1 className="text-[30px] font-bold leading-[36px] text-gray-900">Edit Venue</h1>
+        </button>
 
-        {/* Section 1: Basic Information */}
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              1
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-              <p className="text-sm text-gray-500">Enter the core details of your venue</p>
-            </div>
-          </div>
+        {isLoading ? (
+          <div className="rounded-xl border border-[#E5E7EB] bg-white p-10 text-center text-gray-500">Loading venue details...</div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Venue Information</h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Venue Name</label>
-              <input
-                type="text"
-                value={formData.venueName}
-                onChange={(e) => handleInputChange('venueName', e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Venue Category</label>
-              <select
-                value={formData.venueCategory}
-                onChange={(e) => handleInputChange('venueCategory', e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                rows={3}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2: Location */}
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              2
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Location</h2>
-              <p className="text-sm text-gray-500">Set your venues address and map location</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Address</label>
-              <input
-                type="text"
-                value={formData.fullAddress}
-                onChange={(e) => handleInputChange('fullAddress', e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Post Code</label>
-                <input
-                  type="text"
-                  value={formData.postCode}
-                  onChange={(e) => handleInputChange('postCode', e.target.value)}
-                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Map Location</label>
-              <div className="bg-gray-100 rounded-lg p-12 flex flex-col items-center justify-center border-2 border-dashed  border-[#E5E7EB]">
-                <MapPin className="w-12 h-12 text-red-500 mb-3" />
-                <p className="text-gray-700 font-medium mb-1">Click to set location pin</p>
-                <p className="text-sm text-gray-500">Drag the pin to adjust position</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Pricing & Capacity */}
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              3
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Pricing & Capacity</h2>
-              <p className="text-sm text-gray-500">Define pricing structure and venue capacity</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Per Person</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">£</span>
-                <input
-                  type="number"
-                  value={formData.pricePerPerson}
-                  onChange={(e) => handleInputChange('pricePerPerson', e.target.value)}
-                  className="w-full pl-8 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Guest Capacity</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={formData.guestCapacity}
-                  onChange={(e) => handleInputChange('guestCapacity', e.target.value)}
-                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">guests</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 4: Amenities */}
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              4
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Amenities</h2>
-              <p className="text-sm text-gray-500">Select available facilities and services</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {amenitiesList.map(amenity => (
-              <label
-                key={amenity.id}
-                className="flex items-center gap-3 p-4 border border-[#E5E7EB] rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.amenities.includes(amenity.id)}
-                  onChange={() => handleAmenityToggle(amenity.id)}
-                  className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                />
-                <span className="text-xl">{amenity.icon}</span>
-                <span className="text-sm font-medium text-gray-700">{amenity.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Section 5: Media */}
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              5
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Media Section</h2>
-              <p className="text-sm text-gray-500">Upload images and videos to showcase your venue</p>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Image Gallery</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {formData.images.map((img, index) => (
-                <div key={index} className="relative group aspect-square bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center text-6xl">
-                    {img}
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">Venue Name</label>
+                    <input
+                      type="text"
+                      value={formData.venueName}
+                      onChange={(event) => handleInputChange('venueName', event.target.value)}
+                      placeholder="Enter venue name"
+                      className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                    />
                   </div>
-                  <button
-                    onClick={() => handleImageRemove(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={handleImageUpload}
-                className="aspect-square border border-dashed  border-[#E5E7EB] rounded-lg flex flex-col items-center justify-center hover:border-red-500 hover:bg-red-50 transition-colors"
-              >
-                <svg className="w-8 h-8 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm text-gray-600">Upload Image</span>
-              </button>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Video Links</label>
-            <div className="space-y-3">
-              {formData.videoLinks.map((link, index) => (
-                <div key={index} className="flex gap-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">Venue Type</label>
+                    <select
+                      value={formData.venueType}
+                      onChange={(event) => handleInputChange('venueType', event.target.value)}
+                      className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                    >
+                      <option value="">Select venue type</option>
+                      <option value="Banquet">Banquet</option>
+                      <option value="Wedding Hall">Wedding Hall</option>
+                      <option value="Conference Room">Conference Room</option>
+                      <option value="Rooftop">Rooftop</option>
+                      <option value="Outdoor Garden">Outdoor Garden</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(event) => handleInputChange('description', event.target.value)}
+                      placeholder="Premium event venue in central Dhaka."
+                      rows={4}
+                      className="w-full resize-none rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Address Line</label>
+                      <input
+                        type="text"
+                        value={formData.addressLine}
+                        onChange={(event) => handleInputChange('addressLine', event.target.value)}
+                        placeholder="123 Main Road"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Map Location</label>
+                      <div className="flex h-[140px] items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-[#E5E7EB] bg-[#FAFAFA] text-center text-xs text-gray-500">
+                        Map selection is not available here yet.
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500">Venue location follows the add venue page layout.</div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">City</label>
+                      <input
+                        type="text"
+                        value={formData.city}
+                        onChange={(event) => handleInputChange('city', event.target.value)}
+                        placeholder="Collected from map or enter manually"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Area</label>
+                      <input
+                        type="text"
+                        value={formData.area}
+                        onChange={(event) => handleInputChange('area', event.target.value)}
+                        placeholder="Collected from map or enter manually"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Pricing</h2>
+
+                <div className="space-y-5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Base Price</label>
+                      <input
+                        type="number"
+                        value={formData.basePrice}
+                        onChange={(event) => handleInputChange('basePrice', event.target.value)}
+                        placeholder="5000"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Currency</label>
+                      <select
+                        value={formData.currency}
+                        onChange={(event) => handleInputChange('currency', event.target.value)}
+                        className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      >
+                        <option value="BDT">BDT</option>
+                        <option value="GBP">GBP</option>
+                        <option value="USD">USD</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Discount Type</label>
+                      <select
+                        value={formData.discountType}
+                        onChange={(event) => handleInputChange('discountType', event.target.value)}
+                        className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      >
+                        <option value="percentage">Percentage</option>
+                        <option value="fixed">Fixed</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Discount Value</label>
+                      <input
+                        type="number"
+                        value={formData.discountValue}
+                        onChange={(event) => handleInputChange('discountValue', event.target.value)}
+                        placeholder="10"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Amenities</h2>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  {amenityDefinitions.map((amenity) => (
+                    <button
+                      key={amenity.id}
+                      type="button"
+                      onClick={() => handleAmenityToggle(amenity.id)}
+                      className={`rounded-xl border p-4 transition-all ${formData.amenities[amenity.id] ? 'border-[#B74140] bg-[#B74140]/5' : 'border-[#E5E7EB]'}`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="text-gray-600">{amenity.icon}</div>
+                        <span className="text-sm font-medium text-gray-700">{amenity.label}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Capacity</h2>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">Maximum Guests</label>
                   <input
-                    type="url"
-                    value={link}
-                    onChange={(e) => updateVideoLink(index, e.target.value)}
-                    placeholder="https://youtube.com/watch?v=example"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    type="number"
+                    value={formData.maximumGuests}
+                    onChange={(event) => handleInputChange('maximumGuests', event.target.value)}
+                    placeholder="300"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
                   />
-                  <button
-                    onClick={() => removeVideoLink(index)}
-                    className="px-4 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
                 </div>
-              ))}
-              <button
-                onClick={addVideoLink}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium"
-              >
-                <Plus className="w-5 h-5" />
-                Add Video Link
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 6: Availability Calendar */}
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 mb-6">
-          <div className="flex items-start gap-3 mb-6">
-            <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-              6
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Availability Calendar</h2>
-              <p className="text-sm text-gray-500">Manage venue booking dates</p>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">
-                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => changeMonth(-1)}
-                  className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-gray-50"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => changeMonth(1)}
-                  className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-gray-50"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
               </div>
-            </div>
 
-            <div className="grid grid-cols-7 gap-2 mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-center text-sm font-medium text-gray-600 ">
-                  {day}
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Media</h2>
+
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">Venue Images</label>
+                    <div className="rounded-xl border-2 border-dashed border-[#E5E7EB] p-8 text-center">
+                      <Upload className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+                      <p className="mb-1 font-medium text-gray-700">Upload venue images</p>
+                      <p className="mb-4 text-sm text-gray-500">You can preview additional images here while editing.</p>
+                      <input
+                        type="file"
+                        id="venue-edit-images-upload"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="venue-edit-images-upload"
+                        className="inline-block cursor-pointer rounded-lg bg-[#B74140] px-6 py-2.5 text-white transition-colors hover:bg-[#862c2a]"
+                      >
+                        Choose Images
+                      </label>
+                    </div>
+
+                    {displayedImages.length ? (
+                      <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
+                        {displayedImages.map((image, index) => {
+                          const uploadIndex = index - formData.galleryImages.length;
+                          const isNewUpload = uploadIndex >= 0;
+
+                          return (
+                            <div key={`${image}-${index}`} className="group relative aspect-video overflow-hidden rounded-lg bg-gray-100">
+                              <Image src={image} alt={`Venue image ${index + 1}`} fill unoptimized className="object-cover" />
+                              {isNewUpload ? (
+                                <button
+                                  type="button"
+                                  onClick={() => removeUploadPreview(uploadIndex)}
+                                  className="absolute right-2 top-2 rounded-full bg-[#B74140] p-1 text-white opacity-0 transition-opacity hover:bg-[#862c2a] group-hover:opacity-100"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                        <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] text-gray-500">
+                          <Plus className="h-5 w-5" />
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">Video URL</label>
+                    <input
+                      type="text"
+                      value={formData.videoUrl}
+                      onChange={(event) => handleInputChange('videoUrl', event.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=abc123"
+                      className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                    />
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-2 text-center">
-              {getDaysInMonth().map((day, index) => {
-                if (day === null) {
-                  return <div key={index} className="w-[140px] h-[48px] " />;
-                }
-                const status = getDateStatus(day);
-                return (
-                  <button
-                    key={index}
-                    onClick={() => toggleDateStatus(day)}
-                    className={`w-[140px] h-[48px]  rounded-lg font-medium text-sm transition-colors ${
-                      status === 'available'
-                        ? 'bg-green-400 text-green-700 hover:bg-green-200'
-                        : status === 'booked'
-                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                        : status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                        : 'bg-green-100 text-green-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
+            <div className="space-y-6">
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Availability Overrides</h2>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-400 rounded"></div>
-                <span className="text-gray-700">Available</span>
+                <div className="mb-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">
+                      {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                        className="rounded p-1 outline-none transition-colors hover:bg-gray-100"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                        className="rounded p-1 outline-none transition-colors hover:bg-gray-100"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {dayLabels.map((label) => (
+                      <div key={label} className="py-2 text-center text-sm font-medium text-gray-600">
+                        {label}
+                      </div>
+                    ))}
+                    {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+                      <div key={`empty-${index}`} className="aspect-square" />
+                    ))}
+                    {Array.from({ length: daysInMonth }, (_, index) => {
+                      const day = index + 1;
+                      const dateKey = getDateKey(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                      const status = availabilityMap.get(dateKey) ?? null;
+                      const isSelected = selectedDateKey === dateKey;
+
+                      return (
+                        <button
+                          key={dateKey}
+                          type="button"
+                          onClick={() => setSelectedDateKey(dateKey)}
+                          className={getCalendarCellClassName(status, isSelected)}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <p className="mb-3 text-sm font-medium text-gray-900">
+                    {selectedDateKey ? `Hourly slots for ${formatDisplayDate(selectedDateKey)}` : 'Select a date to review hourly slots'}
+                  </p>
+
+                  {selectedOverride?.slots.length ? (
+                    <div className="space-y-2">
+                      {selectedOverride.slots.map((slot, index) => (
+                        <div key={`${slot.hour}-${index}`} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+                          <span className="text-sm font-medium text-gray-800">{formatHourLabel(slot.hour)}</span>
+                          <select
+                            value={slot.status}
+                            onChange={(event) => handleSlotStatusChange(index, normalizeStatus(event.target.value))}
+                            className="rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-sm outline-none transition-colors focus:border-gray-400"
+                          >
+                            <option value="available">Available</option>
+                            <option value="pending">Pending</option>
+                            <option value="booked">Booked</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No override slots for the selected day.</p>
+                  )}
+                </div>
+
+                {formData.availabilityOverrides.length ? (
+                  <div className="mt-4 space-y-2 border-t pt-4">
+                    <p className="text-sm font-medium text-gray-900">Saved Overrides</p>
+                    {formData.availabilityOverrides.map((override) => (
+                      <div key={override.date} className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                        <p className="font-medium text-gray-800">{formatDisplayDate(override.date)}</p>
+                        <p className="text-xs text-gray-500">{override.slots.length} slot{override.slots.length === 1 ? '' : 's'} saved</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-400 rounded"></div>
-                <span className="text-gray-700">Booked</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-yellow-400 rounded"></div>
-                <span className="text-gray-700">Pending Booking</span>
+
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Publish Settings</h2>
+                <p className="mb-4 text-sm text-gray-500">This page now follows the add venue layout. Update submission is not connected yet.</p>
+                <button
+                  type="button"
+                  onClick={() => router.push('/venueprovider/dashboard/myVanue')}
+                  className="w-full rounded-lg bg-[#B74140] py-3 font-semibold text-white transition-colors outline-none hover:bg-[#802423]"
+                >
+                  Back to Venue List
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

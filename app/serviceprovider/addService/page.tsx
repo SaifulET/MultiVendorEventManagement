@@ -1,137 +1,543 @@
-'use client';
+"use client";
 
-import React, { useState, ChangeEvent } from 'react';
-import dynamic from 'next/dynamic';
+import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
-  ChevronLeft, ChevronRight, MapPin, Upload, Plus, Wifi, Car,
-  Snowflake, Utensils, Mic, Shield, Accessibility, Music, X, ArrowLeftIcon
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
+  ArrowLeftIcon,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  Layers,
+  MapPin,
+  Plus,
+  Tag,
+  Upload,
+  Users,
+  Video,
+  X,
+} from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
+import { api, getApiErrorMessage } from "@/lib/api";
 
+type OverrideStatus = "available" | "pending" | "booked";
+type AmenityKey = "deliveryIncluded" | "setupIncluded" | "staffIncluded";
 
-interface AvailabilityStatus {
-  [key: number]: 'available' | 'pending' | 'booked' | null;
+interface AvailabilityOverride {
+  date: string;
+  slots: Array<{
+    hour: number;
+    status: OverrideStatus;
+  }>;
 }
 
+interface SelectedImage {
+  file: File;
+  previewUrl: string;
+}
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
 
-const VenueManagement: React.FC = () => {
-  const [currentMonth, setCurrentMonth] = useState<number>(11);
-  const [currentYear, setCurrentYear] = useState<number>(2024);
-  const [selectedLocation, setSelectedLocation] = useState<{
-    lat: number;
-    lng: number;
-    address: string;
-  } | null>(null);
-  const [selectedImages, setSelectedImages] = useState<string[]>([
-    '/api/placeholder/300/200',
-    '/api/placeholder/300/200',
-    '/api/placeholder/300/200'
-  ]);
-  const [videoLinks, setVideoLinks] = useState<string[]>(['']);
-  const [availability, setAvailability] = useState<AvailabilityStatus>({
-    8: 'available', 9: 'available', 10: 'available', 11: 'booked', 12: 'available',
-    13: 'available', 14: 'available', 15: 'available', 16: 'booked', 17: 'available',
-    18: 'available', 19: 'available', 20: 'available', 21: 'available', 22: 'available',
-    23: 'booked', 24: 'available', 25: 'available', 26: 'pending', 27: 'available',
-    28: 'available', 29: 'available', 30: 'available', 31: 'pending'
+interface ServiceResponseData {
+  _id: string;
+  publishStatus?: string;
+}
+
+const serviceCategories = [
+  "Catering",
+  "Photography",
+  "Videography",
+  "Decoration",
+  "Lighting",
+  "Sound",
+  "Entertainment",
+  "Transport",
+  "Makeup",
+  "Other",
+];
+
+const pricingTypes = [
+  { value: "package", label: "Package" },
+  { value: "hourly", label: "Hourly" },
+  { value: "custom", label: "Custom" },
+];
+
+const discountTypes = [
+  { value: "percentage", label: "Percentage" },
+  { value: "flat", label: "Flat amount" },
+];
+
+const amenityLabels: Array<{ id: AmenityKey; label: string }> = [
+  { id: "deliveryIncluded", label: "Delivery Included" },
+  { id: "setupIncluded", label: "Setup Included" },
+  { id: "staffIncluded", label: "Staff Included" },
+];
+
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const slotHours = Array.from({ length: 15 }, (_, index) => index + 8);
+
+const splitValues = (value: string) =>
+  value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim().replace(/^['"]+|['"]+$/g, ""))
+    .filter(Boolean);
+
+const formatDateKey = (year: number, month: number, day: number) =>
+  `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+const formatDisplayDate = (date: string) => {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${day} ${monthNames[month - 1]} ${year}`;
+};
+
+const createEmptySlotDraft = () =>
+  Object.fromEntries(slotHours.map((hour) => [hour, null])) as Record<
+    number,
+    OverrideStatus | null
+  >;
+
+const cycleSlotStatus = (status: OverrideStatus | null) => {
+  if (!status) {
+    return "available" as OverrideStatus;
+  }
+
+  if (status === "available") {
+    return "pending" as OverrideStatus;
+  }
+
+  return status === "pending" ? ("booked" as OverrideStatus) : null;
+};
+
+const getCalendarStatus = (override?: AvailabilityOverride) => {
+  if (!override?.slots.length) {
+    return null;
+  }
+
+  if (override.slots.some((slot) => slot.status === "booked")) {
+    return "booked";
+  }
+
+  if (override.slots.some((slot) => slot.status === "pending")) {
+    return "pending";
+  }
+
+  return "available";
+};
+
+const getCalendarStatusClassName = (status: OverrideStatus) => {
+  if (status === "available") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "pending") {
+    return "border-yellow-200 bg-yellow-50 text-yellow-700";
+  }
+
+  return "border-red-200 bg-red-50 text-red-700";
+};
+
+const getSlotButtonClassName = (status: OverrideStatus | null) => {
+  if (status === "available") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "pending") {
+    return "border-yellow-200 bg-yellow-50 text-yellow-700";
+  }
+
+  if (status === "booked") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  return "border-gray-200 bg-white text-gray-600 hover:border-gray-300";
+};
+
+const formatHour = (hour: number) => {
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const normalizedHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${normalizedHour}:00 ${suffix}`;
+};
+
+export default function AddServicePage() {
+  const router = useRouter();
+  const today = new Date();
+  const previewUrlsRef = useRef<string[]>([]);
+
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [slotDraft, setSlotDraft] = useState<Record<number, OverrideStatus | null>>(
+    createEmptySlotDraft()
+  );
+  const [availabilityOverrides, setAvailabilityOverrides] = useState<
+    AvailabilityOverride[]
+  >([]);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [amenities, setAmenities] = useState<Record<AmenityKey, boolean>>({
+    deliveryIncluded: true,
+    setupIncluded: true,
+    staffIncluded: false,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [formData, setFormData] = useState({
+    serviceName: "",
+    category: "",
+    description: "",
+    serviceArea: "",
+    tags: "",
+    amount: "",
+    pricingType: "package",
+    currency: "BDT",
+    discountType: "percentage",
+    discountValue: "",
+    capacity: "",
+    videoUrl: "",
   });
 
-  const daysInMonth: number = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth: number = new Date(currentYear, currentMonth, 1).getDay();
-  
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                      'July', 'August', 'September', 'October', 'November', 'December'];
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const selectedDateKey =
+    selectedDay === null ? null : formatDateKey(currentYear, currentMonth, selectedDay);
 
-  const getStatusColor = (status?: 'available' | 'pending' | 'booked' | null): string => {
-    if (status === 'available') return 'bg-emerald-400 hover:bg-emerald-500 text-white';
-    if (status === 'pending') return 'bg-yellow-400 hover:bg-yellow-500 text-white';
-    if (status === 'booked') return 'bg-red-400 hover:bg-red-500 text-white';
-    return 'text-gray-400 hover:bg-gray-50';
+  const draftSlots = slotHours
+    .map((hour) => {
+      const status = slotDraft[hour];
+      return status ? { hour, status } : null;
+    })
+    .filter(
+      (
+        slot
+      ): slot is {
+        hour: number;
+        status: OverrideStatus;
+      } => Boolean(slot)
+    );
+
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach((previewUrl) => {
+        URL.revokeObjectURL(previewUrl);
+      });
+    };
+  }, []);
+
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+
+    if (error) {
+      setError("");
+    }
+
+    if (successMessage) {
+      setSuccessMessage("");
+    }
+
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const { files } = event.target;
 
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>): void => {
-    const files = e.target.files;
-    if (!files) return;
-    
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImages(prev => [...prev, reader.result as string]);
+    if (!files?.length) {
+      return;
+    }
+
+    if (error) {
+      setError("");
+    }
+
+    if (successMessage) {
+      setSuccessMessage("");
+    }
+
+    const nextImages = Array.from(files).map((file) => {
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlsRef.current.push(previewUrl);
+
+      return {
+        file,
+        previewUrl,
       };
-      reader.readAsDataURL(file);
+    });
+
+    setSelectedImages((current) => [...current, ...nextImages]);
+    event.target.value = "";
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages((current) => {
+      const imageToRemove = current[index];
+
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.previewUrl);
+        previewUrlsRef.current = previewUrlsRef.current.filter(
+          (previewUrl) => previewUrl !== imageToRemove.previewUrl
+        );
+      }
+
+      return current.filter((_, imageIndex) => imageIndex !== index);
     });
   };
 
-  const removeImage = (index: number): void => {
-    setSelectedImages(prev => prev.filter((_, idx) => idx !== index));
+  const toggleAmenity = (amenityKey: AmenityKey) => {
+    if (error) {
+      setError("");
+    }
+
+    setAmenities((current) => ({
+      ...current,
+      [amenityKey]: !current[amenityKey],
+    }));
   };
 
-  const handleDayClick = (day: number): void => {
-    setAvailability(prev => {
-      const current = prev[day];
-      let next: 'available' | 'pending' | 'booked' | null;
-      
-      if (!current) next = 'available';
-      else if (current === 'available') next = 'pending';
-      else if (current === 'pending') next = 'booked';
-      else next = null;
-      
-      return { ...prev, [day]: next };
-    });
-  };
+  const handlePrevMonth = () => {
+    setSelectedDay(null);
+    setSlotDraft(createEmptySlotDraft());
 
-  const handlePrevMonth = (): void => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
+      setCurrentYear((year) => year - 1);
+      return;
     }
+
+    setCurrentMonth((month) => month - 1);
   };
 
-  const handleNextMonth = (): void => {
+  const handleNextMonth = () => {
+    setSelectedDay(null);
+    setSlotDraft(createEmptySlotDraft());
+
     if (currentMonth === 11) {
       setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
+      setCurrentYear((year) => year + 1);
+      return;
+    }
+
+    setCurrentMonth((month) => month + 1);
+  };
+
+  const handleDayClick = (day: number) => {
+    const nextDate = formatDateKey(currentYear, currentMonth, day);
+    const existingOverride = availabilityOverrides.find(
+      (override) => override.date === nextDate
+    );
+
+    setSelectedDay(day);
+    setError("");
+
+    if (!existingOverride) {
+      setSlotDraft(createEmptySlotDraft());
+      return;
+    }
+
+    const nextDraft = createEmptySlotDraft();
+    existingOverride.slots.forEach((slot) => {
+      nextDraft[slot.hour] = slot.status;
+    });
+    setSlotDraft(nextDraft);
+  };
+
+  const handleSlotClick = (hour: number) => {
+    setSlotDraft((current) => ({
+      ...current,
+      [hour]: cycleSlotStatus(current[hour]),
+    }));
+  };
+
+  const handleSaveOverride = () => {
+    if (!selectedDateKey) {
+      setError("Select a date before saving an availability override.");
+      return;
+    }
+
+    if (!draftSlots.length) {
+      setError("Select at least one hourly slot before saving the override.");
+      return;
+    }
+
+    setAvailabilityOverrides((current) => {
+      const nextOverride = {
+        date: selectedDateKey,
+        slots: draftSlots,
+      };
+
+      const existingIndex = current.findIndex(
+        (override) => override.date === selectedDateKey
+      );
+
+      if (existingIndex === -1) {
+        return [...current, nextOverride].sort((left, right) =>
+          left.date.localeCompare(right.date)
+        );
+      }
+
+      const nextOverrides = [...current];
+      nextOverrides[existingIndex] = nextOverride;
+      return nextOverrides;
+    });
+
+    setError("");
+    setSuccessMessage(`Availability override saved for ${formatDisplayDate(selectedDateKey)}.`);
+  };
+
+  const handleRemoveOverride = (date: string) => {
+    setAvailabilityOverrides((current) =>
+      current.filter((override) => override.date !== date)
+    );
+
+    if (selectedDateKey === date) {
+      setSelectedDay(null);
+      setSlotDraft(createEmptySlotDraft());
+    }
+
+    setSuccessMessage("Availability override removed.");
+  };
+
+  const validateForm = () => {
+    if (!formData.serviceName.trim()) {
+      return "Service name is required.";
+    }
+
+    if (!formData.category.trim()) {
+      return "Category is required.";
+    }
+
+    if (!formData.description.trim()) {
+      return "Description is required.";
+    }
+
+    if (!splitValues(formData.serviceArea).length) {
+      return "Add at least one service area.";
+    }
+
+    if (!formData.amount.trim() || Number(formData.amount) <= 0) {
+      return "Amount must be greater than zero.";
+    }
+
+    if (!formData.capacity.trim() || Number(formData.capacity) <= 0) {
+      return "Capacity must be greater than zero.";
+    }
+
+    return "";
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const multipartPayload = new FormData();
+      const requestPayload = {
+        information: {
+          serviceName: formData.serviceName.trim(),
+          category: formData.category.trim(),
+          description: formData.description.trim(),
+          serviceArea: splitValues(formData.serviceArea),
+          tags: splitValues(formData.tags),
+        },
+        pricing: {
+          amount: Number(formData.amount),
+          pricingType: formData.pricingType,
+          currency: formData.currency.trim() || "BDT",
+          discount: {
+            type: formData.discountType,
+            value: Number(formData.discountValue || 0),
+          },
+        },
+        settings: {
+          amenities,
+          capacity: Number(formData.capacity),
+        },
+        media: {
+          galleryImages: [],
+          videoUrl: formData.videoUrl.trim(),
+        },
+        availabilityOverrides,
+      };
+
+      multipartPayload.append("payload", JSON.stringify(requestPayload));
+
+      selectedImages.forEach((image) => {
+        multipartPayload.append("images", image.file, image.file.name);
+      });
+
+      const response = await api.post<ApiResponse<ServiceResponseData>>(
+        "/api/v1/service-provider/services",
+        multipartPayload
+      );
+
+      setSuccessMessage(response.data.message || "Service created successfully.");
+      router.push("/serviceprovider/dashboard/myServices");
+    } catch (submissionError) {
+      setError(getApiErrorMessage(submissionError));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-
-
-  const addVideoLink = (): void => {
-    setVideoLinks([...videoLinks, '']);
-  };
-
-  const updateVideoLink = (index: number, value: string): void => {
-    const newLinks = [...videoLinks];
-    newLinks[index] = value;
-    setVideoLinks(newLinks);
-  };
-
-  const removeVideoLink = (index: number): void => {
-    setVideoLinks(videoLinks.filter((_, idx) => idx !== index));
-  };
-
-  const renderCalendar = (): React.ReactElement[] => {
+  const renderCalendar = () => {
     const days: React.ReactElement[] = [];
-    const dayLabels: string[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+    for (let index = 0; index < firstDayOfMonth; index += 1) {
+      days.push(<div key={`empty-${index}`} className="aspect-square" />);
     }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const status = availability[day];
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const dateKey = formatDateKey(currentYear, currentMonth, day);
+      const existingOverride = availabilityOverrides.find(
+        (override) => override.date === dateKey
+      );
+      const calendarStatus = getCalendarStatus(existingOverride);
+      const isSelected = selectedDay === day;
+
       days.push(
         <button
           key={day}
+          type="button"
           onClick={() => handleDayClick(day)}
-          className={`aspect-square rounded-lg font-medium text-sm transition-colors outline-none ${getStatusColor(status)}`}
+          className={`aspect-square rounded-lg border text-sm font-medium transition-colors ${
+            isSelected
+              ? "border-[#B74140] bg-[#B74140] text-white"
+              : calendarStatus
+                ? getCalendarStatusClassName(calendarStatus)
+                : "border-gray-200 text-gray-700 hover:bg-gray-50"
+          }`}
         >
           {day}
         </button>
@@ -139,258 +545,507 @@ const VenueManagement: React.FC = () => {
     }
 
     return [
-      ...dayLabels.map(label => (
-        <div key={label} className="text-center text-sm font-medium text-gray-600 py-2">
+      ...dayLabels.map((label) => (
+        <div key={label} className="py-2 text-center text-sm font-medium text-gray-600">
           {label}
         </div>
       )),
-      ...days
+      ...days,
     ];
   };
 
- 
-
-  const route = useRouter();
-  
   return (
-    <div className="min-h-screen bg-gray-50 p-[32px] md:px-[160px] ">
-      <div>
-        <button className='flex' onClick={()=>{route.push("/serviceprovider/dashboard/myServices")}}>
-          <ArrowLeftIcon className='w-7 h-7'/> 
-          <h1 className="font-inter font-bold text-[30px] leading-[36px] tracking-[0] text-gray-900 mb-[24px] md:mb-[34px]">Add Your Service</h1>
+    <div className="min-h-screen p-8 md:px-20 xl:px-40">
+      <form onSubmit={handleSubmit}>
+        <button
+          type="button"
+          className="mb-4 flex items-center gap-2"
+          onClick={() => {
+            router.push("/serviceprovider/dashboard/myServices");
+          }}
+        >
+          <ArrowLeftIcon className="h-7 w-7" />
+          <h1 className="text-[30px] font-bold leading-[36px] text-gray-900">
+            Add Your Service
+          </h1>
         </button>
-       
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Form */}
-          <div className="lg:col-span-2 space-y-6 ">
-            {/* Venue Information */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-[24px]">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Service Information</h2>
-              
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">
+                Service Information
+              </h2>
+
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Service Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter service name"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Category
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Service Name
                   </label>
-
                   <div className="relative">
-                    <select
-                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg
-                                 outline-none focus:border-gray-400 transition-colors
-                                 appearance-none bg-white cursor-pointer"
-                    >
-                      <option>Select category</option>
-                      <option>Wedding Hall</option>
-                      <option>Conference Room</option>
-                      <option>Banquet Hall</option>
-                    </select>
-
-                    {/* Down Arrow */}
-                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-2">Full Service Description</label>
-                  <textarea  id="description"   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors" placeholder='Describe your service in detail...'></textarea>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Pricing</h2>
-              
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Per Hour</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <Tag className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                     <input
-                      type="number"
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                      type="text"
+                      name="serviceName"
+                      value={formData.serviceName}
+                      onChange={handleInputChange}
+                      placeholder="Enter service name"
+                      className="w-full rounded-lg border border-[#E5E7EB] py-2.5 pl-10 pr-4 outline-none transition-colors focus:border-gray-400"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Discount (%)</label>
-                  <input
-                    type="text"
-                    placeholder="Optional discount percentage"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Category
+                  </label>
+                  <div className="relative">
+                    <Layers className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white py-2.5 pl-10 pr-4 outline-none transition-colors focus:border-gray-400"
+                    >
+                      <option value="">Select category</option>
+                      {serviceCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={5}
+                    placeholder="Describe your service in detail"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Service Area
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                    <textarea
+                      name="serviceArea"
+                      value={formData.serviceArea}
+                      onChange={handleInputChange}
+                      rows={3}
+                      placeholder="Dhaka, Gazipur"
+                      className="w-full rounded-lg border border-[#E5E7EB] py-2.5 pl-10 pr-4 outline-none transition-colors focus:border-gray-400"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Separate multiple areas with commas or new lines.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Tags
+                  </label>
+                  <textarea
+                    name="tags"
+                    value={formData.tags}
+                    onChange={handleInputChange}
+                    rows={2}
+                    placeholder="wedding, corporate"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Gallery */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Gallery</h2>
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6">
-                <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-700 font-medium mb-1">Drag & drop images here</p>
-                <p className="text-gray-500 text-sm mb-4">or click to browse files</p>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">Pricing</h2>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Amount
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="number"
+                      min="0"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      placeholder="50000"
+                      className="w-full rounded-lg border border-[#E5E7EB] py-2.5 pl-10 pr-4 outline-none transition-colors focus:border-gray-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Pricing Type
+                  </label>
+                  <select
+                    name="pricingType"
+                    value={formData.pricingType}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                  >
+                    {pricingTypes.map((pricingType) => (
+                      <option key={pricingType.value} value={pricingType.value}>
+                        {pricingType.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Currency
+                  </label>
+                  <input
+                    type="text"
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleInputChange}
+                    placeholder="BDT"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Capacity
+                  </label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="number"
+                      min="0"
+                      name="capacity"
+                      value={formData.capacity}
+                      onChange={handleInputChange}
+                      placeholder="300"
+                      className="w-full rounded-lg border border-[#E5E7EB] py-2.5 pl-10 pr-4 outline-none transition-colors focus:border-gray-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Discount Type
+                  </label>
+                  <select
+                    name="discountType"
+                    value={formData.discountType}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                  >
+                    {discountTypes.map((discountType) => (
+                      <option key={discountType.value} value={discountType.value}>
+                        {discountType.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Discount Value
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="discountValue"
+                    value={formData.discountValue}
+                    onChange={handleInputChange}
+                    placeholder="10"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">
+                Service Settings
+              </h2>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {amenityLabels.map((amenity) => (
+                  <button
+                    key={amenity.id}
+                    type="button"
+                    onClick={() => toggleAmenity(amenity.id)}
+                    className={`rounded-lg border px-4 py-4 text-sm font-medium transition-colors ${
+                      amenities[amenity.id]
+                        ? "border-[#B74140] bg-[#B74140]/10 text-[#8C2D2C]"
+                        : "border-[#E5E7EB] bg-white text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {amenity.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">Gallery</h2>
+
+              <div className="mb-6 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center">
+                <Upload className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+                <p className="mb-1 font-medium text-gray-700">
+                  Upload service images
+                </p>
+                <p className="mb-4 text-sm text-gray-500">
+                  These files are sent as multipart `images`.
+                </p>
                 <input
                   type="file"
                   multiple
                   accept="image/*"
                   onChange={handleImageUpload}
                   className="hidden"
-                  id="file-upload"
+                  id="service-file-upload"
                 />
                 <label
-                  htmlFor="file-upload"
-                  className="inline-block px-6 py-2.5 bg-[#B74140] hover:bg-[#862c2a] text-white rounded-lg cursor-pointer transition-colors"
+                  htmlFor="service-file-upload"
+                  className="inline-block cursor-pointer rounded-lg bg-[#B74140] px-6 py-2.5 text-white transition-colors hover:bg-[#862c2a]"
                 >
                   Choose Files
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {selectedImages.map((img: string, idx: number) => (
-                  <div key={idx} className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 group">
-                    <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 bg-[#B74140] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity outline-none hover:bg-[#702120]"
+              {selectedImages.length ? (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  {selectedImages.map((image, index) => (
+                    <div
+                      key={`${image.file.name}-${index}`}
+                      className="group relative aspect-video overflow-hidden rounded-lg bg-gray-100"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                <label htmlFor="file-upload" className="aspect-video rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors outline-none cursor-pointer">
-                  <Plus className="w-8 h-8 text-gray-400" />
-                </label>
-              </div>
+                      <Image
+                        src={image.previewUrl}
+                        alt={`Service image ${index + 1}`}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute right-2 top-2 rounded-full bg-[#B74140] p-1 text-white opacity-0 transition-opacity hover:bg-[#702120] group-hover:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <label
+                    htmlFor="service-file-upload"
+                    className="flex aspect-video cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-gray-400"
+                  >
+                    <Plus className="h-8 w-8 text-gray-400" />
+                  </label>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+                  No images selected yet.
+                </div>
+              )}
             </div>
 
-            {/* Venue Video */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Venue Video (if have)</h2>
-              
-              <div className="space-y-4">
-                {videoLinks.map((link, index) => (
-                  <div key={index} className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-900 mb-2">YouTube Video URL {index + 1}</label>
-                      <input
-                        type="text"
-                        value={link}
-                        onChange={(e) => updateVideoLink(index, e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=xxxxx"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:border-gray-400 transition-colors"
-                      />
-                    </div>
-                    {videoLinks.length > 1 && (
-                      <button
-                        onClick={() => removeVideoLink(index)}
-                        className="mt-8 p-2.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors outline-none"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  onClick={addVideoLink}
-                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition-colors outline-none"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Another Video Link
-                </button>
-                <p className="text-xs text-gray-500">Only YouTube links are supported</p>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">Video</h2>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  YouTube Video URL
+                </label>
+                <div className="relative">
+                  <Video className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    name="videoUrl"
+                    value={formData.videoUrl}
+                    onChange={handleInputChange}
+                    placeholder="https://youtube.com/watch?v=abc123"
+                    className="w-full rounded-lg border border-[#E5E7EB] py-2.5 pl-10 pr-4 outline-none transition-colors focus:border-gray-400"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Calendar & Publish */}
           <div className="space-y-6">
-            {/* Availability Calendar */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Availability Calendar</h2>
-              
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">
+                Availability Calendar
+              </h2>
+
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">{monthNames[currentMonth]} {currentYear}</h3>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">
+                    {monthNames[currentMonth]} {currentYear}
+                  </h3>
                   <div className="flex gap-2">
-                    <button 
+                    <button
+                      type="button"
                       onClick={handlePrevMonth}
-                      className="p-1 hover:bg-gray-100 rounded outline-none transition-colors"
+                      className="rounded p-1 transition-colors hover:bg-gray-100"
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <ChevronLeft className="h-5 w-5" />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       onClick={handleNextMonth}
-                      className="p-1 hover:bg-gray-100 rounded outline-none transition-colors"
+                      className="rounded p-1 transition-colors hover:bg-gray-100"
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-1">
-                  {renderCalendar()}
-                </div>
+                <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-sm pt-4 border-t">
+              <div className="flex flex-wrap gap-4 border-t pt-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-emerald-400"></div>
+                  <div className="h-4 w-4 rounded bg-emerald-400" />
                   <span className="text-gray-700">Available</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-yellow-400"></div>
-                  <span className="text-gray-700">Pending Bookings</span>
+                  <div className="h-4 w-4 rounded bg-yellow-400" />
+                  <span className="text-gray-700">Pending</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-red-400"></div>
+                  <div className="h-4 w-4 rounded bg-red-400" />
                   <span className="text-gray-700">Booked</span>
                 </div>
               </div>
             </div>
 
-            {/* Publish Settings */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Publish Settings</h2>
-              
-              <button onClick={()=>{route.push("/venueprovider/dashboard/myVanue")}} className="w-full py-3 bg-[#B74140] hover:bg-[#802423] text-white font-semibold rounded-lg transition-colors outline-none">
-                Publish Venue
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-4 text-xl font-bold text-gray-900">
+                Daily Slots
+              </h2>
+
+              <p className="mb-4 text-sm text-gray-500">
+                {selectedDateKey
+                  ? `Editing ${formatDisplayDate(selectedDateKey)}`
+                  : "Choose a date from the calendar to set override slots."}
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                {slotHours.map((hour) => (
+                  <button
+                    key={hour}
+                    type="button"
+                    disabled={!selectedDateKey}
+                    onClick={() => handleSlotClick(hour)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${getSlotButtonClassName(
+                      slotDraft[hour]
+                    )}`}
+                  >
+                    {formatHour(hour)}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveOverride}
+                className="mt-4 w-full rounded-lg bg-[#B74140] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#862c2a]"
+              >
+                Save Availability Override
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-4 text-xl font-bold text-gray-900">
+                Saved Overrides
+              </h2>
+
+              {availabilityOverrides.length ? (
+                <div className="space-y-3">
+                  {availabilityOverrides.map((override) => {
+                    const overrideStatus = getCalendarStatus(override) ?? "available";
+
+                    return (
+                      <div
+                        key={override.date}
+                        className="rounded-lg border border-[#E5E7EB] p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {formatDisplayDate(override.date)}
+                            </p>
+                            <p className="mt-1 text-sm text-gray-500">
+                              {override.slots.length} slot
+                              {override.slots.length === 1 ? "" : "s"} updated
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-medium ${getCalendarStatusClassName(
+                              overrideStatus
+                            )}`}
+                          >
+                            {overrideStatus}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOverride(override.date)}
+                          className="mt-3 text-sm font-medium text-[#B74140] hover:text-[#862c2a]"
+                        >
+                          Remove override
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+                  No availability overrides added yet.
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+              <h2 className="mb-4 text-xl font-bold text-gray-900">
+                Publish Settings
+              </h2>
+
+              {error ? (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              ) : null}
+
+              {successMessage ? (
+                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {successMessage}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-lg bg-[#B74140] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#862c2a] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmitting ? "Creating Service..." : "Create Service"}
               </button>
             </div>
           </div>
         </div>
-      </div>
-
-   
+      </form>
     </div>
   );
-};
-
-export default VenueManagement;
+}

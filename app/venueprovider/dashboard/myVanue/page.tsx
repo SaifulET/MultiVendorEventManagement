@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search,
   Edit2,
-  Video,
+  Eye,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -48,8 +48,8 @@ interface VenueListMeta {
 
 interface VenueListResponse {
   success: boolean;
-  meta: VenueListMeta;
-  data: VenueApiItem[];
+  meta?: Partial<VenueListMeta>;
+  data?: VenueApiItem[];
 }
 
 interface VenueCardData {
@@ -119,9 +119,34 @@ const getStatusBadgeClasses = (status: string) => {
   return 'bg-red-100 text-red-700';
 };
 
+const normalizeMeta = (
+  meta: Partial<VenueListMeta> | undefined,
+  fallbackPage: number
+): VenueListMeta => {
+  const page = typeof meta?.page === 'number' && meta.page > 0 ? meta.page : fallbackPage;
+  const limit = typeof meta?.limit === 'number' && meta.limit > 0 ? meta.limit : ITEMS_PER_PAGE;
+  const total = typeof meta?.total === 'number' && meta.total >= 0 ? meta.total : 0;
+  const totalPages =
+    typeof meta?.totalPages === 'number' && meta.totalPages > 0
+      ? meta.totalPages
+      : total > 0
+        ? Math.max(1, Math.ceil(total / limit))
+        : 1;
+
+  return {
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage: Boolean(meta?.hasNextPage),
+    hasPrevPage: Boolean(meta?.hasPrevPage),
+  };
+};
+
 export default function VenueManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshIndex, setRefreshIndex] = useState(0);
   const [venues, setVenues] = useState<VenueApiItem[]>([]);
   const [meta, setMeta] = useState<VenueListMeta>({
     page: 1,
@@ -133,6 +158,7 @@ export default function VenueManagement() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -142,38 +168,28 @@ export default function VenueManagement() {
         setError('');
 
         const response = await api.get<VenueListResponse>(
-          '/api/v1/venue-provider/venues',
+          '/api/v1/venue-provider/my-venues',
           {
             params: {
               page: currentPage,
               limit: ITEMS_PER_PAGE,
-              sortBy: 'createdAt',
-              sortOrder: 'desc',
             },
           }
         );
-        console.log(response,"kdk")
 
         setVenues(Array.isArray(response.data.data) ? response.data.data : []);
-        setMeta(
-          response.data.meta ?? {
-            page: currentPage,
-            limit: ITEMS_PER_PAGE,
-            total: 0,
-            totalPages: 1,
-            hasNextPage: false,
-            hasPrevPage: false,
-          }
-        );
+        setMeta(normalizeMeta(response.data.meta, currentPage));
       } catch (fetchError) {
         setError(getApiErrorMessage(fetchError));
+        setVenues([]);
+        setMeta(normalizeMeta(undefined, currentPage));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchVenues();
-  }, [currentPage]);
+  }, [currentPage, refreshIndex]);
 
   const mappedVenues = useMemo<VenueCardData[]>(() => {
     return venues.map((venue) => {
@@ -239,6 +255,36 @@ export default function VenueManagement() {
 
   const handleEdit = (id: string) => {
     router.push(`/venueprovider/dashboard/myVanue/${id}`);
+  };
+
+  const handleView = (id: string) => {
+    router.push(`/venueprovider/dashboard/myVanue/view/${id}`);
+  };
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm('Delete this venue? This action cannot be undone.');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      setError('');
+
+      await api.delete(`/api/v1/venue-provider/venues/${id}`);
+
+      if (venues.length === 1 && currentPage > 1) {
+        setCurrentPage((page) => page - 1);
+        return;
+      }
+
+      setRefreshIndex((value) => value + 1);
+    } catch (deleteError) {
+      setError(getApiErrorMessage(deleteError));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const getPageNumbers = () => {
@@ -369,16 +415,20 @@ export default function VenueManagement() {
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
-                              className={`rounded-lg p-2 transition-colors ${
-                                venue.hasVideo
-                                  ? 'text-purple-600 hover:bg-purple-50'
-                                  : 'cursor-not-allowed text-gray-300'
-                              }`}
-                              disabled={!venue.hasVideo}
+                              onClick={() => handleView(venue.id)}
+                              className="rounded-lg p-2 text-purple-600 transition-colors hover:bg-purple-50"
                             >
-                              <Video className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </button>
-                            <button className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50">
+                            <button
+                              onClick={() => handleDelete(venue.id)}
+                              className={`rounded-lg p-2 transition-colors ${
+                                deletingId === venue.id
+                                  ? 'cursor-not-allowed text-gray-300'
+                                  : 'text-red-600 hover:bg-red-50'
+                              }`}
+                              disabled={deletingId === venue.id}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -453,17 +503,21 @@ export default function VenueManagement() {
                       <span className="text-sm font-medium">Edit</span>
                     </button>
                     <button
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 transition-colors ${
-                        venue.hasVideo
-                          ? 'bg-purple-50 text-purple-600 hover:bg-purple-100'
-                          : 'cursor-not-allowed bg-gray-50 text-gray-300'
-                      }`}
-                      disabled={!venue.hasVideo}
+                      onClick={() => handleView(venue.id)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-purple-50 px-4 py-2 text-purple-600 transition-colors hover:bg-purple-100"
                     >
-                      <Video className="h-4 w-4" />
-                      <span className="text-sm font-medium">Media</span>
+                      <Eye className="h-4 w-4" />
+                      <span className="text-sm font-medium">View</span>
                     </button>
-                    <button className="flex items-center justify-center rounded-lg bg-red-50 px-4 py-2 text-[#B74140] transition-colors hover:bg-red-100">
+                    <button
+                      onClick={() => handleDelete(venue.id)}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 transition-colors ${
+                        deletingId === venue.id
+                          ? 'cursor-not-allowed bg-gray-50 text-gray-300'
+                          : 'bg-red-50 text-[#B74140] hover:bg-red-100'
+                      }`}
+                      disabled={deletingId === venue.id}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>

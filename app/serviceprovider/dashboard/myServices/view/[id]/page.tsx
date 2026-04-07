@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { ArrowLeftIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ArrowLeftIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
@@ -10,7 +10,6 @@ import { api, getApiErrorMessage } from '@/lib/api';
 type OverrideStatus = 'available' | 'pending' | 'booked';
 
 interface ServiceDetail {
-  _id: string;
   information?: {
     serviceName?: string;
     category?: string;
@@ -32,6 +31,7 @@ interface ServiceDetail {
       status?: string;
     }>;
   }>;
+  publishStatus?: string;
 }
 
 interface ServiceDetailResponse {
@@ -45,17 +45,6 @@ interface AvailabilityOverride {
     hour: number;
     status: OverrideStatus;
   }>;
-}
-
-interface ServiceFormState {
-  serviceName: string;
-  category: string;
-  description: string;
-  amount: string;
-  currency: string;
-  videoUrl: string;
-  galleryImages: string[];
-  availabilityOverrides: AvailabilityOverride[];
 }
 
 const monthNames = [
@@ -74,17 +63,6 @@ const monthNames = [
 ];
 
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const createEmptyFormState = (): ServiceFormState => ({
-  serviceName: '',
-  category: '',
-  description: '',
-  amount: '',
-  currency: 'BDT',
-  videoUrl: '',
-  galleryImages: [],
-  availabilityOverrides: [],
-});
 
 const normalizeStatus = (status?: string): OverrideStatus =>
   status === 'booked' || status === 'pending' ? status : 'available';
@@ -141,10 +119,10 @@ const formatHourLabel = (hour: number) => {
   return `${normalizedHour}:00 ${suffix}`;
 };
 
-export default function EditServicePage() {
+export default function ViewServicePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [formData, setFormData] = useState<ServiceFormState>(createEmptyFormState);
+  const [service, setService] = useState<ServiceDetail | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,18 +141,13 @@ export default function EditServicePage() {
       try {
         setIsLoading(true);
         setError('');
-
         const response = await api.get<ServiceDetailResponse>(
           `/api/v1/service-provider/services/${serviceId}`
         );
-        const service = response.data.data;
+        const nextService = response.data.data ?? null;
+        setService(nextService);
 
-        if (!service) {
-          setError('Service details were not found.');
-          return;
-        }
-
-        const availabilityOverrides = (service.availabilityOverrides ?? [])
+        const overrides = (nextService?.availabilityOverrides ?? [])
           .filter((override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] => Boolean(override?.date))
           .map((override) => ({
             date: override.date?.trim() || '',
@@ -184,27 +157,8 @@ export default function EditServicePage() {
             })),
           }));
 
-        setFormData({
-          serviceName: service.information?.serviceName?.trim() || '',
-          category:
-            service.information?.category?.trim() ||
-            service.information?.serviceCategory?.trim() ||
-            '',
-          description: service.information?.description?.trim() || '',
-          amount: typeof service.pricing?.amount === 'number' ? String(service.pricing.amount) : '',
-          currency: service.pricing?.currency?.trim() || 'BDT',
-          videoUrl: service.media?.videoUrl?.trim() || '',
-          galleryImages: Array.isArray(service.media?.galleryImages)
-            ? service.media.galleryImages.filter(
-                (image): image is string => typeof image === 'string' && Boolean(image.trim())
-              )
-            : [],
-          availabilityOverrides,
-        });
-
-        const initialMonth = getInitialMonthDate(availabilityOverrides);
-        setCurrentMonth(initialMonth);
-        setSelectedDateKey(availabilityOverrides[0]?.date ?? null);
+        setCurrentMonth(getInitialMonthDate(overrides));
+        setSelectedDateKey(overrides[0]?.date ?? null);
       } catch (fetchError) {
         setError(getApiErrorMessage(fetchError));
       } finally {
@@ -215,23 +169,27 @@ export default function EditServicePage() {
     fetchService();
   }, [params?.id]);
 
-  const handleInputChange = (field: keyof Omit<ServiceFormState, 'galleryImages' | 'availabilityOverrides'>, value: string) => {
-    setFormData((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
+  const overrides = useMemo<AvailabilityOverride[]>(
+    () =>
+      (service?.availabilityOverrides ?? [])
+        .filter((override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] => Boolean(override?.date))
+        .map((override) => ({
+          date: override.date?.trim() || '',
+          slots: (override.slots ?? []).map((slot) => ({
+            hour: typeof slot.hour === 'number' ? slot.hour : 0,
+            status: normalizeStatus(slot.status?.trim().toLowerCase()),
+          })),
+        })),
+    [service]
+  );
 
   const availabilityMap = useMemo(() => {
-    return new Map(
-      formData.availabilityOverrides.map((override) => [override.date, getOverrideStatus(override)])
-    );
-  }, [formData.availabilityOverrides]);
+    return new Map(overrides.map((override) => [override.date, getOverrideStatus(override)]));
+  }, [overrides]);
 
   const selectedOverride = useMemo(
-    () =>
-      formData.availabilityOverrides.find((override) => override.date === selectedDateKey) ?? null,
-    [formData.availabilityOverrides, selectedDateKey]
+    () => overrides.find((override) => override.date === selectedDateKey) ?? null,
+    [overrides, selectedDateKey]
   );
 
   const daysInMonth = new Date(
@@ -245,53 +203,17 @@ export default function EditServicePage() {
     1
   ).getDay();
 
-  const handleMonthChange = (direction: number) => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + direction, 1)
-    );
-  };
-
-  const handleSlotStatusChange = (slotIndex: number, status: OverrideStatus) => {
-    if (!selectedDateKey) {
-      return;
-    }
-
-    setFormData((current) => ({
-      ...current,
-      availabilityOverrides: current.availabilityOverrides.map((override) =>
-        override.date !== selectedDateKey
-          ? override
-          : {
-              ...override,
-              slots: override.slots.map((slot, currentSlotIndex) =>
-                currentSlotIndex === slotIndex ? { ...slot, status } : slot
-              ),
-            }
-      ),
-    }));
-  };
-
   return (
     <div className="min-h-screen bg-[#FAFAFA] p-4 md:p-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            className="flex items-center gap-2 text-gray-900"
-            onClick={() => router.push('/serviceprovider/dashboard/myServices')}
-          >
-            <ArrowLeftIcon className="h-6 w-6" />
-            <span className="text-3xl font-bold">Edit Service</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push('/serviceprovider/dashboard/myServices')}
-            className="rounded-md bg-[#B74140] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#9d3837]"
-          >
-            Publish Service
-          </button>
-        </div>
+        <button
+          type="button"
+          className="mb-6 flex items-center gap-2 text-gray-900"
+          onClick={() => router.push('/serviceprovider/dashboard/myServices')}
+        >
+          <ArrowLeftIcon className="h-6 w-6" />
+          <span className="text-3xl font-bold">View Service</span>
+        </button>
 
         {isLoading ? (
           <div className="rounded-xl border border-[#E5E7EB] bg-white p-10 text-center text-gray-500">
@@ -301,7 +223,7 @@ export default function EditServicePage() {
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
-        ) : (
+        ) : service ? (
           <div className="space-y-6">
             <section className="rounded-xl border border-[#EDEDED] bg-white p-6">
               <div className="mb-5 flex items-start gap-3">
@@ -310,7 +232,7 @@ export default function EditServicePage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-                  <p className="text-sm text-gray-500">Enter the core details of your service</p>
+                  <p className="text-sm text-gray-500">Service details from your listing</p>
                 </div>
               </div>
 
@@ -320,9 +242,9 @@ export default function EditServicePage() {
                     Service Name
                   </label>
                   <input
-                    value={formData.serviceName}
-                    onChange={(e) => handleInputChange('serviceName', e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 outline-none focus:border-[#B74140]"
+                    readOnly
+                    value={service.information?.serviceName?.trim() || ''}
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] px-4 py-3 text-gray-700"
                   />
                 </div>
 
@@ -330,18 +252,15 @@ export default function EditServicePage() {
                   <label className="mb-2 block text-sm font-medium text-gray-700">
                     Service Category
                   </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 outline-none focus:border-[#B74140]"
-                  >
-                    <option value="">Select category</option>
-                    <option value="Home Cleaning">Home Cleaning</option>
-                    <option value="Catering">Catering</option>
-                    <option value="Photography">Photography</option>
-                    <option value="Decoration">Decoration</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <input
+                    readOnly
+                    value={
+                      service.information?.category?.trim() ||
+                      service.information?.serviceCategory?.trim() ||
+                      ''
+                    }
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] px-4 py-3 text-gray-700"
+                  />
                 </div>
 
                 <div>
@@ -349,10 +268,10 @@ export default function EditServicePage() {
                     Description
                   </label>
                   <textarea
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    readOnly
                     rows={5}
-                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 outline-none focus:border-[#B74140]"
+                    value={service.information?.description?.trim() || ''}
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] px-4 py-3 text-gray-700"
                   />
                 </div>
               </div>
@@ -365,7 +284,7 @@ export default function EditServicePage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Pricing</h2>
-                  <p className="text-sm text-gray-500">Define pricing structure</p>
+                  <p className="text-sm text-gray-500">Pricing structure</p>
                 </div>
               </div>
 
@@ -373,12 +292,12 @@ export default function EditServicePage() {
                 <label className="mb-2 block text-sm font-medium text-gray-700">Per Hour</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    {formData.currency || '$'}
+                    {service.pricing?.currency?.trim() || 'BDT'}
                   </span>
                   <input
-                    value={formData.amount}
-                    onChange={(e) => handleInputChange('amount', e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] py-3 pl-12 pr-4 outline-none focus:border-[#B74140]"
+                    readOnly
+                    value={typeof service.pricing?.amount === 'number' ? service.pricing.amount : ''}
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] py-3 pl-12 pr-4 text-gray-700"
                   />
                 </div>
               </div>
@@ -399,25 +318,25 @@ export default function EditServicePage() {
                   Image Gallery
                 </label>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  {formData.galleryImages.map((image, index) => (
-                    <div
-                      key={`${image}-${index}`}
-                      className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F7F7F7]"
-                    >
-                      <Image
-                        src={image}
-                        alt={`Service image ${index + 1}`}
-                        width={320}
-                        height={240}
-                        unoptimized
-                        className="h-40 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                  <div className="flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] text-gray-400">
-                    <Plus className="mb-2 h-6 w-6" />
-                    <span className="text-sm">Add Image</span>
-                  </div>
+                  {Array.isArray(service.media?.galleryImages) && service.media.galleryImages.length ? (
+                    service.media.galleryImages.map((image, index) => (
+                      <div
+                        key={`${image}-${index}`}
+                        className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F7F7F7]"
+                      >
+                        <Image
+                          src={image}
+                          alt={`Service image ${index + 1}`}
+                          width={320}
+                          height={240}
+                          unoptimized
+                          className="h-40 w-full object-cover"
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No gallery images available.</p>
+                  )}
                 </div>
               </div>
 
@@ -426,9 +345,9 @@ export default function EditServicePage() {
                   Video Link (YouTube / Vimeo)
                 </label>
                 <input
-                  value={formData.videoUrl}
-                  onChange={(e) => handleInputChange('videoUrl', e.target.value)}
-                  className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 outline-none focus:border-[#B74140]"
+                  readOnly
+                  value={service.media?.videoUrl?.trim() || ''}
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] px-4 py-3 text-gray-700"
                 />
               </div>
             </section>
@@ -438,14 +357,18 @@ export default function EditServicePage() {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Availability Calendar</h2>
                   <p className="text-sm text-gray-500">
-                    Availability overrides loaded from the selected service
+                    Availability overrides for this service
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <button
                     type="button"
-                    onClick={() => handleMonthChange(-1)}
+                    onClick={() =>
+                      setCurrentMonth(
+                        new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+                      )
+                    }
                     className="rounded p-1 transition-colors hover:bg-gray-100"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -455,7 +378,11 @@ export default function EditServicePage() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleMonthChange(1)}
+                    onClick={() =>
+                      setCurrentMonth(
+                        new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+                      )
+                    }
                     className="rounded p-1 transition-colors hover:bg-gray-100"
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -525,22 +452,18 @@ export default function EditServicePage() {
                     {selectedOverride.slots.map((slot, slotIndex) => (
                       <div
                         key={`${slot.hour}-${slotIndex}`}
-                        className="flex flex-col gap-3 rounded-lg border border-[#E5E7EB] bg-white p-3 md:flex-row md:items-center md:justify-between"
+                        className="flex flex-col gap-2 rounded-lg border border-[#E5E7EB] bg-white p-3 md:flex-row md:items-center md:justify-between"
                       >
                         <span className="text-sm font-medium text-gray-700">
                           {formatHourLabel(slot.hour)}
                         </span>
-                        <select
-                          value={slot.status}
-                          onChange={(e) =>
-                            handleSlotStatusChange(slotIndex, normalizeStatus(e.target.value))
-                          }
-                          className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#B74140]"
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(
+                            slot.status
+                          )}`}
                         >
-                          <option value="available">Available</option>
-                          <option value="pending">Pending</option>
-                          <option value="booked">Booked</option>
-                        </select>
+                          {slot.status}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -552,7 +475,7 @@ export default function EditServicePage() {
               </div>
             </section>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

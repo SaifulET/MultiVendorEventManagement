@@ -108,8 +108,8 @@ const slotHours = Array.from({ length: 15 }, (_, index) => index + 8);
 const amenities: AmenityDefinition[] = [
   { id: "parking", label: "Parking", icon: <Car className="h-6 w-6" /> },
   {
-    id: "ac",
-    label: "AC",
+    id: "airConditioned",
+    label: "Air Conditioned",
     icon: <Snowflake className="h-6 w-6" />,
   },
   { id: "stage", label: "Stage", icon: <Presentation className="h-6 w-6" /> },
@@ -566,20 +566,17 @@ export default function VenueManagement() {
           maximumGuests: Number(formData.maximumGuests),
         },
         media: {
+          galleryImages: [],
           videoUrl: formData.videoUrl.trim(),
         },
         availabilityOverrides,
       };
 
       selectedImages.forEach((image) => {
-        multipartPayload.append("image", image.file);
+        multipartPayload.append("images", image.file, image.file.name);
       });
 
       multipartPayload.append("payload", JSON.stringify(requestPayload));
-      multipartPayload.append(
-        "images",
-        selectedImages.map((image) => image.file.name).join(",")
-      );
 
       console.log("Add venue request body:", requestPayload);
       console.log(
