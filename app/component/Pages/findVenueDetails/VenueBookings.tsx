@@ -4,6 +4,7 @@ import { Bell } from 'lucide-react';
 import React, { useState } from 'react';
 import img from "@/public/bookingsummary.svg";
 import { useRouter } from 'next/navigation';
+import { formatDateDDMMYY } from '@/lib/date';
 interface TimeSlot {
   time: string;
   available: boolean;
@@ -77,12 +78,7 @@ const VenueBooking: React.FC = () => {
   };
 
   const formatDate = (date: Date | null): string => {
-    if (!date) return '';
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    return formatDateDDMMYY(date);
   };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {

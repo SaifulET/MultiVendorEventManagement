@@ -10,20 +10,20 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   {
-    question: 'How do I book a venue?',
-    answer: 'To book a venue, simply browse our venue listings, select your preferred location, choose your date and time, and complete the booking form. You\'ll receive a confirmation email once your booking is processed.'
+    question: 'How does EVENIT work?',
+    answer: 'EVENIT brings venues, staff, and event services together in one platform so you can discover options, compare providers, and manage bookings more easily.'
   },
   {
-    question: 'What types of services are available?',
-    answer: 'We offer a comprehensive range of services including catering, decoration, audio/visual equipment, photography, event planning, security services, and entertainment options. Custom packages can be tailored to your specific event needs.'
+    question: 'How can I book a venue or staff?',
+    answer: 'You can browse listings, choose the venue or service provider that fits your event, review the details, and submit your booking request directly through the platform.'
   },
   {
-    question: 'How do I join as a service provider?',
-    answer: 'To become a service provider, click on the "Join as Provider" button, fill out the registration form with your business details, submit required documents for verification, and once approved, you can start listing your services on our platform.'
+    question: 'Is the workforce verified?',
+    answer: 'Yes, EVENIT is designed to connect you with trusted and reviewed professionals so you can book with more confidence.'
   },
   {
-    question: 'Are there any booking fees?',
-    answer: 'Yes, we charge a small service fee for each booking which covers platform maintenance, payment processing, and customer support. The exact fee percentage will be displayed during checkout before you confirm your booking.'
+    question: 'Can I manage multiple events?',
+    answer: 'Yes, you can use EVENIT to coordinate multiple bookings, services, and event needs from one place, making event management simpler and more organized.'
   }
 ];
 

@@ -26,6 +26,7 @@ interface VenueApiItem {
   };
   pricing?: {
     basePrice?: number;
+    currency?: string;
     amenities?: Record<string, boolean> | string[];
   };
   capacity?: {
@@ -132,7 +133,7 @@ const mapVenueToCardData = (venue: VenueApiItem): Venue => {
   const pricing = venue.pricing ?? {};
   const capacity = venue.capacity ?? {};
   const media = venue.media ?? {};
-  const locationParts = [information.addressLine, information.area, information.city].filter(
+  const locationParts = [information.area, information.city].filter(
     (value): value is string => Boolean(value?.trim())
   );
   const firstImage =
@@ -151,6 +152,7 @@ const mapVenueToCardData = (venue: VenueApiItem): Venue => {
     reviews: Array.isArray(venue.reviews) ? venue.reviews.length : 0,
     capacity: typeof capacity.maximumGuests === 'number' ? capacity.maximumGuests : 0,
     price: typeof pricing.basePrice === 'number' ? pricing.basePrice : 0,
+    currency: pricing.currency?.trim() || 'BDT',
     image: firstImage,
     amenities: getVenueAmenities(pricing.amenities),
     status: getVenueStatus(venue),

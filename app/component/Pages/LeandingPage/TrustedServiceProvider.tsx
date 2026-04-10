@@ -13,7 +13,8 @@ interface ServiceProvider {
   location: string;
   rating: number;
   reviewCount: number;
-  pricePerHour: number;
+  price: number;
+  currency: string;
   imageUrl: string;
   category: string;
 }
@@ -30,17 +31,20 @@ interface ServiceApiItem {
     title?: string;
     serviceCategory?: string;
     category?: string;
+    serviceArea?: string[] | string;
     addressLine?: string;
     city?: string;
     area?: string;
   };
   pricing?: {
+    amount?: number;
     basePrice?: number;
     hourlyRate?: number;
     pricePerHour?: number;
+    currency?: string;
   };
   settings?: {
-    serviceArea?: string;
+    serviceArea?: string[] | string;
     city?: string;
     area?: string;
   };
@@ -64,6 +68,18 @@ interface ServiceListResponse {
 
 const FETCH_PAGE_SIZE = 50;
 const INITIAL_VISIBLE_COUNT = 3;
+
+const getArrayValues = (value?: string[] | string) => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()));
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return [value];
+  }
+
+  return [];
+};
 
 const getServiceRating = (reviews?: ServiceApiReview[]) => {
   const numericRatings = (reviews ?? [])
@@ -91,13 +107,18 @@ const mapServiceProvider = (service: ServiceApiItem): ServiceProvider => {
   const pricing = service.pricing ?? {};
   const settings = service.settings ?? {};
   const media = service.media ?? {};
-  const locationParts = [
+  const serviceAreas = Array.from(
+    new Set([
+      ...getArrayValues(information.serviceArea),
+      ...getArrayValues(settings.serviceArea),
+    ])
+  );
+  const fallbackLocationParts = [
+    information.addressLine,
     information.area,
     information.city,
     settings.area,
     settings.city,
-    settings.serviceArea,
-    information.addressLine,
   ].filter((value, index, values): value is string => {
     if (!value?.trim()) {
       return false;
@@ -125,17 +146,25 @@ const mapServiceProvider = (service: ServiceApiItem): ServiceProvider => {
       information.serviceCategory?.trim() ||
       information.category?.trim() ||
       'Service',
-    location: locationParts.length ? locationParts.join(', ') : 'Location unavailable',
+    location:
+      serviceAreas.length
+        ? serviceAreas.join(', ')
+        : fallbackLocationParts.length
+          ? fallbackLocationParts.join(', ')
+          : 'Location unavailable',
     rating: getServiceRating(service.reviews),
     reviewCount: Array.isArray(service.reviews) ? service.reviews.length : 0,
-    pricePerHour:
-      typeof pricing.hourlyRate === 'number'
-        ? pricing.hourlyRate
-        : typeof pricing.pricePerHour === 'number'
-          ? pricing.pricePerHour
-          : typeof pricing.basePrice === 'number'
-            ? pricing.basePrice
-            : 0,
+    price:
+      typeof pricing.amount === 'number'
+        ? pricing.amount
+        : typeof pricing.basePrice === 'number'
+          ? pricing.basePrice
+          : typeof pricing.pricePerHour === 'number'
+            ? pricing.pricePerHour
+            : typeof pricing.hourlyRate === 'number'
+              ? pricing.hourlyRate
+              : 0,
+    currency: pricing.currency?.trim() || 'BDT',
     imageUrl,
     category:
       information.serviceCategory?.trim() ||
@@ -228,9 +257,8 @@ const ServiceCard: React.FC<{ provider: ServiceProvider }> = ({ provider }) => {
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div>
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
-              {provider.pricePerHour.toLocaleString()}
+              {provider.price.toLocaleString()} {provider.currency}
             </span>
-            <span className="text-sm text-gray-500"> BDT/hr</span>
           </div>
           <button
             onClick={() => { router.push(`/pages/findServiceProvider/${provider.id}`); }}
@@ -273,6 +301,12 @@ export default function TrustedServiceProviderPage() {
             },
           });
 
+          console.log('[Homepage][Service Providers] GET /api/v1/public/services response:', {
+            page: typeof nextPage === 'number' ? nextPage : 1,
+            params: response.config?.params,
+            data: response.data,
+          });
+
           const responseData = Array.isArray(response.data.data) ? response.data.data : [];
 
           responseData.forEach((service) => {
@@ -297,12 +331,15 @@ export default function TrustedServiceProviderPage() {
           return;
         }
 
-        setProviders(collectedServices.map(mapServiceProvider));
+        const mappedProviders = collectedServices.map(mapServiceProvider);
+        console.log('[Homepage][Service Providers] mapped providers:', mappedProviders);
+        setProviders(mappedProviders);
       } catch (fetchError) {
         if (!isMounted) {
           return;
         }
 
+        console.error('[Homepage][Service Providers] GET /api/v1/public/services failed:', fetchError);
         setError(getApiErrorMessage(fetchError));
         setProviders([]);
       } finally {

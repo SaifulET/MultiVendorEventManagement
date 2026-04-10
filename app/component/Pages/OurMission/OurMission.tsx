@@ -16,15 +16,7 @@ export default function OurMission() {
         <div className="bg-gray-100 rounded-2xl md:px-[124px] p-[16px] md:py-[56px] shadow-sm mb-[54px]" style={{ backgroundColor: '#F5F5F5' }}>
           <div className="space-y-6 text-gray-700 text-center">
             <p className="text-base sm:text-lg leading-relaxed">
-             Our mission is to simplify event planning by creating a reliable digital platform where users can easily connect with trusted venues and professional service providers. We strive to make the entire process—from discovery to booking and payment—smooth, transparent, and stress-free.
-            </p>
-
-            <p className="text-base sm:text-lg leading-relaxed">
-              We are dedicated to reducing the complexity of event planning by providing intuitive tools, clear communication channels, and secure transactions. Our mission also includes supporting service providers and venue owners by giving them equal opportunities to reach new clients, manage their services efficiently, and receive timely payments.
-            </p>
-
-            <p className="text-base sm:text-lg leading-relaxed">
-              Every decision we make and every feature we build is guided by our commitment to improving the experience of all users while maintaining fairness, security, and long-term sustainability.
+              Evenit is dedicated to providing a comprehensive and integrated platform that empowers event hosts, planners, venue providers, and staff to collaborate seamlessly, streamline processes, and create memorable events that exceed expectations. We are committed to leveraging technology and industry expertise to deliver exceptional value to our users while fostering long-lasting relationships based on trust and mutual success.
             </p>
           </div>
         </div>

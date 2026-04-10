@@ -7,6 +7,7 @@ export interface serviceProvider {
   categories: string;
   categoryList: string[];
   price: number;
+  currency: string;
   image: string;
 
   status: 'available' | 'booked' | 'unavailable';

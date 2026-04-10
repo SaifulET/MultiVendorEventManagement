@@ -73,7 +73,7 @@ const generateSampleBookings = (count: number): Booking[] => {
   return Array.from({ length: count }, (_, i) => ({
     id: `booking-${i + 1}`,
     client: names[i % names.length],
-    date: `Jan ${5 + (i % 25)}, 2025`,
+    date: `${String(5 + (i % 25)).padStart(2, '0')}/01/25`,
     time: `${6 + (i % 6)}:00 PM - ${10 + (i % 3)}:00 PM`,
     venue: venues[i % venues.length],
     status: i < 5 ? 'pending' : statuses[i % 3]

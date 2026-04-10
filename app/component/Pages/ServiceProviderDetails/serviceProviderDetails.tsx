@@ -16,6 +16,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatDateDDMMYY } from '@/lib/date';
 
 type AvailabilityStatus = 'available' | 'booked' | 'pending';
 
@@ -191,21 +192,7 @@ const getDateKey = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
 const formatReviewDate = (value?: string) => {
-  if (!value) {
-    return 'Recently';
-  }
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Recently';
-  }
-
-  return parsed.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatDateDDMMYY(value, 'Recently');
 };
 
 const getReviewName = (review: ServiceReview, fallbackIndex: number) =>

@@ -6,6 +6,7 @@ import { ArrowLeftIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatDateDDMMYY } from '@/lib/date';
 
 type OverrideStatus = 'available' | 'pending' | 'booked';
 
@@ -444,7 +445,9 @@ export default function ViewServicePage() {
 
               <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                  {selectedDateKey ? `Override Slots for ${selectedDateKey}` : 'Override Slots'}
+                  {selectedDateKey
+                    ? `Override Slots for ${formatDateDDMMYY(selectedDateKey, selectedDateKey)}`
+                    : 'Override Slots'}
                 </h3>
 
                 {selectedOverride?.slots.length ? (

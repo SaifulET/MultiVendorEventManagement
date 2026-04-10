@@ -95,7 +95,7 @@ export default function ReviewForm() {
               <div className="flex items-center text-gray-500 mt-2">
                 <Calendar className="w-4 h-4 mr-2" />
                 <p className="text-xs md:text-sm">
-                  Booking Date: December 15, 2024
+                  Booking Date: 15/12/24
                 </p>
               </div>
             </div>

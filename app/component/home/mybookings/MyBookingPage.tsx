@@ -14,21 +14,21 @@ const MyBookingsPage = () => {
     {
       type: 'Venue',
       name: 'Grand Ballroom',
-      date: 'Dec 25, 2024',
+      date: '25/12/24',
       time: '6:00 PM',
       status: 'Confirmed'
     },
     {
       type: 'Service',
       name: 'Elite Photography',
-      date: 'Dec 20, 2024',
+      date: '20/12/24',
       time: '2:00 PM',
       status: 'Pending'
     },
     {
       type: 'Venue',
       name: 'Rooftop Garden',
-      date: 'Dec 15, 2024',
+      date: '15/12/24',
       time: '7:00 PM',
       status: 'Completed'
     }
@@ -165,7 +165,7 @@ const router= useRouter()
               </div>
 
               <h3 className="text-xl font-bold mb-2">Grand Ballroom</h3>
-              <p className="text-gray-700 mb-1">Dec 25, 2024 • 6:00 PM</p>
+              <p className="text-gray-700 mb-1">25/12/24 • 6:00 PM</p>
               <p className="text-gray-600 mb-3">Downtown Convention Center</p>
               
               <span className="inline-block px-3 py-1 rounded-full text-sm font-medium text-[#3CCF91] bg-[#3CCF91]/10 mb-4">

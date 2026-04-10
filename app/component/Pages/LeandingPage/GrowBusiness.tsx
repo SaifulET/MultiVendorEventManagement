@@ -23,6 +23,7 @@ export default function GrowBusinessSection({ backgroundImage = '/business-bg.jp
       id: 1,
       icon: icon1,
       title: 'Join as a Service Provider',
+      ctaText: 'Join Now',
       description: 'Offer your services to thousands of event hosts and get booked for weddings, corporate events, and celebrations.',
        link:"/serviceprovider/auth/signin",
       features: [
@@ -35,6 +36,7 @@ export default function GrowBusinessSection({ backgroundImage = '/business-bg.jp
       id: 2,
       icon: icon2,
       title: 'Join as a Event Planner',
+      ctaText: 'Start Earning',
       description: 'Step into events that need your expertise. Manage weddings, conferences, and private gatherings with precision and flair.',
       link:"/eventPlanner/auth/signin",
       features: [
@@ -47,6 +49,7 @@ export default function GrowBusinessSection({ backgroundImage = '/business-bg.jp
       id: 3,
       icon:icon3,
       title: 'Join as a Venue Provider',
+      ctaText: 'List Your Venue',
       description: 'List your venue and start accepting bookings for weddings, conferences, and private events.',
       link:"/venueprovider/auth/signin",
       features: [
@@ -127,7 +130,7 @@ text-white mb-[12px] ">
                 {/* CTA Button */}
               
                 <button onClick={()=>{router.push(service.link)}} className="w-full bg-[#B74140] hover:bg-[#9a3534] text-white font-semibold py-3 sm:py-3.5 rounded-lg transition-all duration-200 border border-[#E5E7EB] transform hover:-translate-y-0.5">
-                  Get Started
+                  {service.ctaText}
                 </button>
               </div>
             </div>

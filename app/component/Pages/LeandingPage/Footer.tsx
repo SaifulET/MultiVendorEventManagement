@@ -137,26 +137,26 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="mailto:hello@eventconnect.com" 
+                  href="mailto:info@evenit.com" 
                   className="flex items-start space-x-3 text-sm hover:text-red-400 transition-colors duration-200 group"
                 >
                   <Mail className="w-5 h-5 flex-shrink-0 mt-0.5 group-hover:text-red-400" />
-                  <span className="break-all">hello@eventconnect.com</span>
+                  <span className="break-all">info@evenit.com</span>
                 </Link>
               </li>
               <li>
                 <Link 
-                  href="tel:+15551234567" 
+                  href="tel:+4475035994271" 
                   className="flex items-start space-x-3 text-sm hover:text-red-400 transition-colors duration-200 group"
                 >
                   <Phone className="w-5 h-5 flex-shrink-0 mt-0.5 group-hover:text-red-400" />
-                  <span>+1 (555) 123-4567</span>
+                  <span>+4475035994271</span>
                 </Link>
               </li>
               <li>
                 <div className="flex items-start space-x-3 text-sm">
                   <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <span>123 Event Street, City, State</span>
+                  <span>London, UK</span>
                 </div>
               </li>
             </ul>
@@ -168,7 +168,7 @@ export default function Footer() {
           {/* Bottom Footer */}
           <div className="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 text-center md:text-left">
             <p className="text-sm text-gray-400">
-              © 2025 EventConnect. &nbsp;All rights reserved.&nbsp;
+              All rights reserved EVENIT 2026
             </p>
             <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-2 text-sm text-gray-400">
               <Link 

@@ -23,17 +23,20 @@ interface ServiceApiItem {
     title?: string;
     serviceCategory?: string;
     category?: string;
+    serviceArea?: string[] | string;
     addressLine?: string;
     city?: string;
     area?: string;
   };
   pricing?: {
+    amount?: number;
     basePrice?: number;
     hourlyRate?: number;
     pricePerHour?: number;
+    currency?: string;
   };
   settings?: {
-    serviceArea?: string;
+    serviceArea?: string[] | string;
     city?: string;
     area?: string;
   };
@@ -64,6 +67,18 @@ interface ServiceListResponse {
 
 const FETCH_PAGE_SIZE = 100;
 const DEFAULT_IMAGE = '/pp1.svg';
+
+const getArrayValues = (value?: string[] | string) => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()));
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return [value];
+  }
+
+  return [];
+};
 
 const getServiceRating = (reviews?: ServiceApiReview[]) => {
   const numericRatings = (reviews ?? [])
@@ -119,13 +134,18 @@ const mapServiceProvider = (service: ServiceApiItem): serviceProvider => {
   const pricing = service.pricing ?? {};
   const settings = service.settings ?? {};
   const media = service.media ?? {};
-  const locationParts = [
+  const serviceAreas = Array.from(
+    new Set([
+      ...getArrayValues(information.serviceArea),
+      ...getArrayValues(settings.serviceArea),
+    ])
+  );
+  const fallbackLocationParts = [
+    information.addressLine,
     information.area,
     information.city,
     settings.area,
     settings.city,
-    settings.serviceArea,
-    information.addressLine,
   ].filter((value, index, values): value is string => {
     if (!value?.trim()) {
       return false;
@@ -149,7 +169,16 @@ const mapServiceProvider = (service: ServiceApiItem): serviceProvider => {
       information.name?.trim() ||
       information.title?.trim() ||
       'Untitled Service',
-    location: locationParts.length ? locationParts.join(', ') : 'Location unavailable',
+    service:
+      information.serviceCategory?.trim() ||
+      information.category?.trim() ||
+      'Service',
+    location:
+      serviceAreas.length
+        ? serviceAreas.join(', ')
+        : fallbackLocationParts.length
+          ? fallbackLocationParts.join(', ')
+          : 'Location unavailable',
     rating: getServiceRating(service.reviews),
     reviews: Array.isArray(service.reviews) ? service.reviews.length : 0,
     categories:
@@ -157,13 +186,16 @@ const mapServiceProvider = (service: ServiceApiItem): serviceProvider => {
       information.category?.trim() ||
       'Service',
     price:
-      typeof pricing.hourlyRate === 'number'
-        ? pricing.hourlyRate
-        : typeof pricing.pricePerHour === 'number'
-          ? pricing.pricePerHour
-          : typeof pricing.basePrice === 'number'
-            ? pricing.basePrice
-            : 0,
+      typeof pricing.amount === 'number'
+        ? pricing.amount
+        : typeof pricing.basePrice === 'number'
+          ? pricing.basePrice
+          : typeof pricing.pricePerHour === 'number'
+            ? pricing.pricePerHour
+            : typeof pricing.hourlyRate === 'number'
+              ? pricing.hourlyRate
+              : 0,
+    currency: pricing.currency?.trim() || 'BDT',
     image: firstImage,
     status: getServiceStatus(service),
   };

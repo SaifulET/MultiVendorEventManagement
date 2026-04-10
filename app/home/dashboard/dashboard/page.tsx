@@ -59,7 +59,7 @@ const defaultBookings: Booking[] = [
       email: 'sarah.j@email.com',
       avatar: 'https://i.pravatar.cc/150?img=1'
     },
-    date: 'Dec 28, 2024',
+    date: '28/12/24',
     time: '6:00 PM - 11:00 PM',
     service: {
       name: 'Grand Ballroom',
@@ -74,7 +74,7 @@ const defaultBookings: Booking[] = [
       email: 'm.chen@company.com',
       avatar: 'https://i.pravatar.cc/150?img=12'
     },
-    date: 'Dec 30, 2024',
+    date: '30/12/24',
     time: '2:00 PM - 8:00 PM',
     service: {
       name: 'Garden Terrace',
@@ -89,7 +89,7 @@ const defaultBookings: Booking[] = [
       email: 'emily.r@events.com',
       avatar: 'https://i.pravatar.cc/150?img=5'
     },
-    date: 'Jan 5, 2025',
+    date: '05/01/25',
     time: '10:00 AM - 4:00 PM',
     service: {
       name: 'Conference Hall A',
@@ -104,7 +104,7 @@ const defaultBookings: Booking[] = [
       email: 'david.park@startup.io',
       avatar: 'https://i.pravatar.cc/150?img=15'
     },
-    date: 'Jan 8, 2025',
+    date: '08/01/25',
     time: '7:00 PM - 12:00 AM',
     service: {
       name: 'Rooftop Lounge',
@@ -119,7 +119,7 @@ const defaultBookings: Booking[] = [
       email: 'lisa.t@creative.com',
       avatar: 'https://i.pravatar.cc/150?img=9'
     },
-    date: 'Jan 12, 2025',
+    date: '12/01/25',
     time: '5:00 PM - 10:00 PM',
     service: {
       name: 'Art Gallery Space',

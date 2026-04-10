@@ -16,15 +16,7 @@ export default function OurVision() {
         <div className="bg-gray-100 rounded-2xl md:px-[124px] p-[16px] md:py-[56px] shadow-sm mb-[54px]" style={{ backgroundColor: '#F5F5F5' }}>
           <div className="space-y-6 text-gray-700 text-center">
             <p className="text-base sm:text-lg leading-relaxed">
-             Our vision is to become the most trusted and innovative event booking platform, setting a new standard for how events are planned and managed. We envision a future where anyone can plan an event with confidence, clarity, and ease, regardless of size or complexity.
-            </p>
-
-            <p className="text-base sm:text-lg leading-relaxed">
-              We aim to create a strong digital ecosystem that supports collaboration between event hosts, venue providers, and service providers. By embracing technology and continuous innovation, we seek to eliminate uncertainty, increase transparency, and foster long-term partnerships within the event industry.
-            </p>
-
-            <p className="text-base sm:text-lg leading-relaxed">
-              Our vision extends beyond bookings—we want to build a platform that drives growth, supports local businesses, and enhances the overall quality of event experiences worldwide.
+              To become the leading and most trusted event management platform in the UK, revolutionizing the way events are planned, executed, and experienced by offering innovative solutions that prioritize convenience, transparency, and efficiency.
             </p>
           </div>
         </div>

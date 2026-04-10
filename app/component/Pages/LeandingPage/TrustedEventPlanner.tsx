@@ -216,6 +216,12 @@ export default function TrustedEventPlannerPage() {
             },
           });
 
+          console.log('[Homepage][Event Planners] GET /api/v1/public/event-planners response:', {
+            page: typeof nextPage === 'number' ? nextPage : 1,
+            params: response.config?.params,
+            data: response.data,
+          });
+
           const responseData = Array.isArray(response.data.data)
             ? response.data.data
             : response.data.data
@@ -244,12 +250,15 @@ export default function TrustedEventPlannerPage() {
           return;
         }
 
-        setPlanners(collectedPlanners.map(mapEventPlanner));
+        const mappedPlanners = collectedPlanners.map(mapEventPlanner);
+        console.log('[Homepage][Event Planners] mapped planners:', mappedPlanners);
+        setPlanners(mappedPlanners);
       } catch (fetchError) {
         if (!isMounted) {
           return;
         }
 
+        console.error('[Homepage][Event Planners] GET /api/v1/public/event-planners failed:', fetchError);
         setError(getApiErrorMessage(fetchError));
         setPlanners([]);
       } finally {

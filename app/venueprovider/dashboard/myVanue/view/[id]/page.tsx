@@ -18,6 +18,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatDateDDMMYY } from '@/lib/date';
 
 type OverrideStatus = 'available' | 'pending' | 'booked';
 
@@ -163,17 +164,7 @@ const formatHourLabel = (hour: number) => {
 };
 
 const formatDisplayDate = (date: string) => {
-  const parsed = new Date(date);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return date;
-  }
-
-  return parsed.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatDateDDMMYY(date, date);
 };
 
 export default function ViewVenuePage() {

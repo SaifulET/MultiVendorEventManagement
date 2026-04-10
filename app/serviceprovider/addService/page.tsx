@@ -19,6 +19,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { api, getApiErrorMessage } from "@/lib/api";
+import { formatDateDDMMYY } from "@/lib/date";
 
 type OverrideStatus = "available" | "pending" | "booked";
 type AmenityKey = "deliveryIncluded" | "setupIncluded" | "staffIncluded";
@@ -68,7 +69,7 @@ const pricingTypes = [
 
 const discountTypes = [
   { value: "percentage", label: "Percentage" },
-  { value: "flat", label: "Flat amount" },
+  { value: "fixed", label: "Fixed amount" },
 ];
 
 const amenityLabels: Array<{ id: AmenityKey; label: string }> = [
@@ -105,8 +106,7 @@ const formatDateKey = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
 const formatDisplayDate = (date: string) => {
-  const [year, month, day] = date.split("-").map(Number);
-  return `${day} ${monthNames[month - 1]} ${year}`;
+  return formatDateDDMMYY(date, date);
 };
 
 const createEmptySlotDraft = () =>

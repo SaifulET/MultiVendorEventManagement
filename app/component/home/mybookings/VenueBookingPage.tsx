@@ -64,8 +64,8 @@ const VenueBookingPage: React.FC = () => {
       price: 850.00
     },
     booking: {
-      date: "March 15, 2024",
-      eventDate: "March 15, 2024",
+      date: "15/03/24",
+      eventDate: "15/03/24",
       setupTime: "9:00 AM",
       guestCount: 150,
       capacity: 200,

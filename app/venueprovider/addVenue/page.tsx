@@ -23,6 +23,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import { api, getApiErrorMessage } from "@/lib/api";
+import { formatDateDDMMYY } from "@/lib/date";
 
 const MapContainer = dynamic(
   () => import("@/app/component/vanueProvider/StreetMap/MapContainer"),
@@ -124,8 +125,7 @@ const formatDateKey = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
 const formatDisplayDate = (date: string) => {
-  const [year, month, day] = date.split("-").map(Number);
-  return `${day} ${monthNames[month - 1]} ${year}`;
+  return formatDateDDMMYY(date, date);
 };
 
 const getStatusStyles = (status: OverrideStatus) => {

@@ -60,7 +60,7 @@ const defaultBooking: BookingDetails = {
   id: '1',
   title: 'Corporate Annual Gala',
   description: 'Premium event catering and venue services',
-  date: 'March 15, 2024',
+  date: '15/03/24',
   time: '7:00 PM - 11:00 PM',
   location: {
     venue: 'Grand Ballroom, Downtown Hotel',

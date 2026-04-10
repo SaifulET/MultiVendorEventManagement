@@ -7,6 +7,7 @@ export interface Venue {
   reviews: number;
   capacity: number;
   price: number;
+  currency: string;
   image: string;
   amenities: string[];
   status: 'available' | 'booked' | 'unavailable';

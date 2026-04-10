@@ -17,8 +17,8 @@ const VenueBookingPage = () => {
       price: 2500.00
     },
     booking: {
-      date: "December 10, 2024",
-      eventDate: "Wednesday, December 25, 2024",
+      date: "10/12/24",
+      eventDate: "25/12/24",
       setupTime: "5:00 PM - 6:00 PM",
       guestCount: 150,
       capacity: 200,
@@ -92,7 +92,7 @@ router.push('/home/viewvenueprofile/details');
                   <Check className="w-5 h-5 text-white"  />
                 </div>
                 <span className="text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">Booked</span>
-                <span className="text-xs text-gray-500 whitespace-nowrap">Dec 10, 2024</span>
+                <span className="text-xs text-gray-500 whitespace-nowrap">10/12/24</span>
               </div>
 
               {/* Confirmed */}
@@ -101,7 +101,7 @@ router.push('/home/viewvenueprofile/details');
                   <Check className="w-5 h-5 text-white"  />
                 </div>
                 <span className="text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">Confirmed</span>
-                <span className="text-xs text-gray-500 whitespace-nowrap">Dec 11, 2024</span>
+                <span className="text-xs text-gray-500 whitespace-nowrap">11/12/24</span>
               </div>
 
               {/* Upcoming - Current State */}
@@ -110,7 +110,7 @@ router.push('/home/viewvenueprofile/details');
                  <Clock  className="w-5 h-5 text-white"/>
                 </div>
                 <span className="text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">Upcoming</span>
-                <span className="text-xs text-gray-500 whitespace-nowrap">Dec 25, 2024</span>
+                <span className="text-xs text-gray-500 whitespace-nowrap">25/12/24</span>
               </div>
 
               {/* Completed */}

@@ -16,9 +16,9 @@ export default function HeroSlider() {
 
   const slides = [
     {
-      title: 'Book the Ideal Hall, Stress-Free',
+      title: 'Plan Your Perfect Event — Venues, Staff & Services in One Place',
       subtitle: 'VENUE PERFECTED',
-      description: 'Browse verified marriage halls and service providers and book the perfect space for your event—within your budget.',
+      description: 'From venues to verified staff and service providers, EVENIT simplifies every step of your event planning.',
       image: slider1
     },
     {

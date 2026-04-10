@@ -17,6 +17,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatDateDDMMYY } from '@/lib/date';
 import bgimg from '@/public/bg1.svg';
 import plannerImg from '@/public/pp1.svg';
 
@@ -87,21 +88,7 @@ const normalizePlanner = (
 };
 
 const formatDisplayDate = (value?: string) => {
-  if (!value) {
-    return 'Not available';
-  }
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Not available';
-  }
-
-  return parsed.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatDateDDMMYY(value, 'Not available');
 };
 
 const formatLabel = (value?: string) => {

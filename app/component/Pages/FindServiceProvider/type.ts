@@ -1,11 +1,13 @@
 export interface serviceProvider {
   id: string;
   name: string;
+  service: string;
   location: string;
   rating: number;
   reviews: number;
   categories:string;
   price: number;
+  currency: string;
   image: string;
   
   status: 'available' | 'booked' | 'unavailable';

@@ -33,7 +33,7 @@ interface BookingData {
 }
 
 const defaultBooking: BookingData = {
-  requestedDate: 'April 20, 2024',
+  requestedDate: '20/04/24',
   eventTime: '10:00 AM - 6:00 PM',
   eventType: 'Wedding Photography',
   duration: '8 Hours',

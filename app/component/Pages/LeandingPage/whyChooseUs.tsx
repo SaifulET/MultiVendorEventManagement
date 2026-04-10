@@ -29,16 +29,16 @@ const Feature: React.FC<FeatureProps> = ({ title, description }) => {
 const WhyChooseEvenit: React.FC = () => {
   const features = [
     {
-      title: 'All-in-One Solution',
-      description: 'Everything you need for your event from a single trusted provider',
+      title: 'All-in-One Event Platform',
+      description: 'Manage venues, staff, and services in one place',
     },
     {
-      title: 'Professional Quality',
-      description: 'Premium equipment and experienced staff for flawless execution',
+      title: 'Verified Professionals',
+      description: 'Work with trusted and reviewed service providers',
     },
     {
-      title: 'Flexible Packages',
-      description: 'Customizable services to fit your budget and vision',
+      title: 'Real-Time Coordination',
+      description: 'Track and manage your event from start to finish',
     },
   ];
 
@@ -47,7 +47,7 @@ const WhyChooseEvenit: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Title */}
         <h2 className="font-inter font-bold text-2xl sm:text-3xl md:text-4xl leading-tight md:leading-10 tracking-normal text-center text-gray-900 mb-6 sm:mb-8 md:mb-12">
-          Why Choose EVENT?
+          Why Choose EVENIT
         </h2>
 
         {/* Content Grid */}

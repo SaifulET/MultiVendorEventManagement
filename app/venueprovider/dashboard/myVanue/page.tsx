@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatDateDDMMYY } from '@/lib/date';
 
 interface VenueApiItem {
   _id: string;
@@ -80,21 +81,7 @@ const formatPublishStatus = (status?: string) => {
 };
 
 const formatCreatedDate = (value?: string) => {
-  if (!value) {
-    return 'N/A';
-  }
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return 'N/A';
-  }
-
-  return parsed.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatDateDDMMYY(value, 'N/A');
 };
 
 const formatCurrencyValue = (amount: number | null, currency: string) => {

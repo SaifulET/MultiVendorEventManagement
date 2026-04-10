@@ -39,7 +39,7 @@ const BookingConfirmation: React.FC = () => {
               Date
             </span>
             <span className="text-right font-medium text-sm md:text-base">
-              24 March 2025
+              24/03/25
             </span>
           </div>
 

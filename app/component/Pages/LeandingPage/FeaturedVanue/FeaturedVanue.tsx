@@ -13,6 +13,7 @@ interface Venue {
   rating: number;
   reviewCount: number;
   pricePerDay: number;
+  currency: string;
   imageUrl: string;
   category: string;
 }
@@ -32,6 +33,7 @@ interface VenueApiItem {
   };
   pricing?: {
     basePrice?: number;
+    currency?: string;
   };
   media?: {
     galleryImages?: string[];
@@ -95,6 +97,7 @@ const mapVenue = (venue: VenueApiItem): Venue => {
     rating: getVenueRating(venue.reviews),
     reviewCount: Array.isArray(venue.reviews) ? venue.reviews.length : 0,
     pricePerDay: typeof pricing.basePrice === 'number' ? pricing.basePrice : 0,
+    currency: pricing.currency?.trim() || 'BDT',
     imageUrl: firstImage,
     category: information.venueType?.trim() || 'Venue',
   };
@@ -180,9 +183,8 @@ const VenueCard: React.FC<{ venue: Venue }> = ({ venue }) => {
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div>
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
-              {venue.pricePerDay.toLocaleString()}
+              {venue.pricePerDay.toLocaleString()} {venue.currency}/Day
             </span>
-            <span className="text-sm text-gray-500"> BDT/day</span>
           </div>
           <button
             onClick={() => { router.push(`/pages/findVenues/${venue.id}`); }}
@@ -225,6 +227,12 @@ export default function FeaturedVenuesPage() {
             },
           });
 
+          console.log('[Homepage][Featured Venues] GET /api/v1/public/venues response:', {
+            page: typeof nextPage === 'number' ? nextPage : 1,
+            params: response.config?.params,
+            data: response.data,
+          });
+
           const responseData = Array.isArray(response.data.data) ? response.data.data : [];
 
           responseData.forEach((venue) => {
@@ -250,12 +258,14 @@ export default function FeaturedVenuesPage() {
         }
 
         const mappedVenues = collectedVenues.map(mapVenue);
+        console.log('[Homepage][Featured Venues] mapped venues:', mappedVenues);
         setVenues(mappedVenues);
       } catch (fetchError) {
         if (!isMounted) {
           return;
         }
 
+        console.error('[Homepage][Featured Venues] GET /api/v1/public/venues failed:', fetchError);
         setError(getApiErrorMessage(fetchError));
         setVenues([]);
       } finally {

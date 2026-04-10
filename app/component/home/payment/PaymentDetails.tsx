@@ -83,7 +83,7 @@ const PaymentDetails = () => {
                       
                       Event Date
                     </span>
-                    <p className="text-base font-semibold text-gray-900 flex items-center gap-1"><Calendar className="w-4 h-4 text-[#B74140]" />March 15, 2024</p>
+                    <p className="text-base font-semibold text-gray-900 flex items-center gap-1"><Calendar className="w-4 h-4 text-[#B74140]" />15/03/24</p>
                   </div>
                   <div>
                     <span className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
@@ -106,7 +106,7 @@ const PaymentDetails = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                 <div>
                   <span className="text-sm text-gray-500 block mb-1">Event Date</span>
-                  <p className="text-base font-semibold text-gray-900">Friday, March 15, 2024</p>
+                  <p className="text-base font-semibold text-gray-900">15/03/24</p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-500 block mb-1">Time Slot</span>
@@ -153,7 +153,7 @@ const PaymentDetails = () => {
                 </div>
                 <div className='mb-[16px]'>
                   <span className="text-xs text-gray-500 block mb-1">Payment Date & Time</span>
-                  <p className="text-sm font-semibold text-gray-900">Feb 18, 2024 at 3:42 PM</p>
+                  <p className="text-sm font-semibold text-gray-900">18/02/24 at 3:42 PM</p>
                 </div>
                 <div className='mb-[16px]'>
                   <span className="text-xs text-gray-500 block mb-1">Payment Method</span>

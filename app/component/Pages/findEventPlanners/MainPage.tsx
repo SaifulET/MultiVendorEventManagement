@@ -86,6 +86,7 @@ const mapEventPlanner = (planner: EventPlannerApiItem): serviceProvider => {
     categories: categoryList.length ? categoryList.join(', ') : 'Event Planner',
     categoryList: categoryList.length ? categoryList : ['Event Planner'],
     price: 0,
+    currency: '',
     image: DEFAULT_IMAGE,
     status: getPlannerStatus(planner),
   };

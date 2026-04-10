@@ -121,7 +121,7 @@ export default function SubscriptionManagement() {
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20">
                   <p className="text-rose-100 font-inter font-normal text-[14px] leading-[20px] tracking-[0] mb-1">Next Renewal</p>
                   <p className="text-white font-inter font-semibold text-[20px] leading-[28px] tracking-[0]">
-                    January 15, 2025
+                    15/01/25
                   </p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20">
