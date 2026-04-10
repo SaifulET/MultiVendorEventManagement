@@ -6,6 +6,7 @@ import { ArrowLeftIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_SYMBOL } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 type OverrideStatus = 'available' | 'pending' | 'booked';
@@ -293,7 +294,7 @@ export default function ViewServicePage() {
                 <label className="mb-2 block text-sm font-medium text-gray-700">Per Hour</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    {service.pricing?.currency?.trim() || 'BDT'}
+                    {GBP_CURRENCY_SYMBOL}
                   </span>
                   <input
                     readOnly

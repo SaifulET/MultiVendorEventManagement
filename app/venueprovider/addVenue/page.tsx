@@ -23,6 +23,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import { api, getApiErrorMessage } from "@/lib/api";
+import { GBP_CURRENCY_CODE, GBP_CURRENCY_LABEL } from "@/lib/currency";
 import { formatDateDDMMYY } from "@/lib/date";
 
 const MapContainer = dynamic(
@@ -248,7 +249,7 @@ export default function VenueManagement() {
     city: "",
     area: "",
     basePrice: "",
-    currency: "BDT",
+    currency: GBP_CURRENCY_CODE,
     discountType: "percentage",
     discountValue: "",
     maximumGuests: "",
@@ -820,9 +821,7 @@ export default function VenueManagement() {
                       onChange={handleInputChange}
                       className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
                     >
-                      <option value="BDT">BDT</option>
-                      <option value="GBP">GBP</option>
-                      <option value="USD">USD</option>
+                      <option value={GBP_CURRENCY_CODE}>{GBP_CURRENCY_LABEL}</option>
                     </select>
                   </div>
                 </div>

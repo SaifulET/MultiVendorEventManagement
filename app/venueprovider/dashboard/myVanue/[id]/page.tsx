@@ -21,6 +21,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE, GBP_CURRENCY_LABEL } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 type OverrideStatus = 'available' | 'pending' | 'booked';
@@ -103,7 +104,7 @@ const createEmptyFormState = (): VenueFormState => ({
   city: '',
   area: '',
   basePrice: '',
-  currency: 'BDT',
+  currency: GBP_CURRENCY_CODE,
   discountType: 'percentage',
   discountValue: '',
   maximumGuests: '',
@@ -192,7 +193,7 @@ export default function EditVenuePage() {
           city: venue.information?.city?.trim() || '',
           area: venue.information?.area?.trim() || '',
           basePrice: typeof venue.pricing?.basePrice === 'number' ? String(venue.pricing.basePrice) : '',
-          currency: venue.pricing?.currency?.trim() || 'BDT',
+          currency: GBP_CURRENCY_CODE,
           discountType: venue.pricing?.discount?.type?.trim() || 'percentage',
           discountValue: typeof venue.pricing?.discount?.value === 'number' ? String(venue.pricing.discount.value) : '',
           maximumGuests: typeof venue.capacity?.maximumGuests === 'number' ? String(venue.capacity.maximumGuests) : '',
@@ -415,9 +416,7 @@ export default function EditVenuePage() {
                         onChange={(event) => handleInputChange('currency', event.target.value)}
                         className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
                       >
-                        <option value="BDT">BDT</option>
-                        <option value="GBP">GBP</option>
-                        <option value="USD">USD</option>
+                        <option value={GBP_CURRENCY_CODE}>{GBP_CURRENCY_LABEL}</option>
                       </select>
                     </div>
                   </div>

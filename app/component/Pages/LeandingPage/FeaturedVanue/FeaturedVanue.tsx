@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE, formatPoundAmount } from '@/lib/currency';
 import img from '@/public/img.svg';
 
 interface Venue {
@@ -97,7 +98,7 @@ const mapVenue = (venue: VenueApiItem): Venue => {
     rating: getVenueRating(venue.reviews),
     reviewCount: Array.isArray(venue.reviews) ? venue.reviews.length : 0,
     pricePerDay: typeof pricing.basePrice === 'number' ? pricing.basePrice : 0,
-    currency: pricing.currency?.trim() || 'BDT',
+    currency: GBP_CURRENCY_CODE,
     imageUrl: firstImage,
     category: information.venueType?.trim() || 'Venue',
   };
@@ -183,7 +184,7 @@ const VenueCard: React.FC<{ venue: Venue }> = ({ venue }) => {
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div>
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
-              {venue.pricePerDay.toLocaleString()} {venue.currency}/Day
+              {formatPoundAmount(venue.pricePerDay, { suffix: '/Day' })}
             </span>
           </div>
           <button

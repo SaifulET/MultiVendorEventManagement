@@ -6,6 +6,7 @@ import { ArrowLeftIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE, GBP_CURRENCY_SYMBOL } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 type OverrideStatus = 'available' | 'pending' | 'booked';
@@ -81,7 +82,7 @@ const createEmptyFormState = (): ServiceFormState => ({
   category: '',
   description: '',
   amount: '',
-  currency: 'BDT',
+  currency: GBP_CURRENCY_CODE,
   videoUrl: '',
   galleryImages: [],
   availabilityOverrides: [],
@@ -193,7 +194,7 @@ export default function EditServicePage() {
             '',
           description: service.information?.description?.trim() || '',
           amount: typeof service.pricing?.amount === 'number' ? String(service.pricing.amount) : '',
-          currency: service.pricing?.currency?.trim() || 'BDT',
+          currency: GBP_CURRENCY_CODE,
           videoUrl: service.media?.videoUrl?.trim() || '',
           galleryImages: Array.isArray(service.media?.galleryImages)
             ? service.media.galleryImages.filter(
@@ -374,7 +375,7 @@ export default function EditServicePage() {
                 <label className="mb-2 block text-sm font-medium text-gray-700">Per Hour</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    {formData.currency || '$'}
+                    {GBP_CURRENCY_SYMBOL}
                   </span>
                   <input
                     value={formData.amount}

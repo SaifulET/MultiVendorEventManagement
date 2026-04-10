@@ -3,7 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import logo from "@/public/logo.svg";
-import profile from "@/public/profile.jpg"
+import profile from "@/public/profile.jpg";
 import {
   LayoutDashboard,
   BookCheck,
@@ -54,7 +54,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   };
 
   const handleLogout = () => {
-   router.push("/venueprovider/auth/signin");
+    router.push("/venueprovider/auth/signin");
   };
 
   const isActive = (route: string) => pathname.startsWith(route);
@@ -65,7 +65,6 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* Logo */}
       <div
         onClick={handleDashboard}
         className="flex items-center justify-center px-6 py-7 cursor-pointer"
@@ -79,7 +78,6 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
 
       <hr className="border-gray-200" />
 
-      {/* Menu Items */}
       <div className="flex-1 px-3 pt-4 space-y-1">
         {MENU.map((section) => (
           <div key={1}>
@@ -97,9 +95,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
                   {!collapsed && (
-                    <span className="text-[15px] font-normal">
-                      {item.label}
-                    </span>
+                    <span className="text-[15px] font-normal">{item.label}</span>
                   )}
                 </Link>
               );
@@ -108,9 +104,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         ))}
       </div>
 
-      {/* User Profile & Logout */}
       <div className="p-3 border-t border-gray-200">
-        {/* User Profile */}
         <div
           className={`flex items-center gap-3 px-3 py-2 ${
             collapsed ? "justify-center" : ""
@@ -119,7 +113,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
           {!collapsed ? (
             <>
               <Image
-                src={profile} // Replace with actual avatar
+                src={profile}
                 alt="Sarah Johnson"
                 width={40}
                 height={40}
@@ -136,7 +130,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
             </>
           ) : (
             <Image
-              src={profile} // Replace with actual avatar
+              src={profile}
               alt="Sarah Johnson"
               width={36}
               height={36}
@@ -145,7 +139,6 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
           )}
         </div>
 
-        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className={`flex items-center gap-3 px-3 py-3 mt-2 w-full text-[#B74140] hover:bg-red-50 rounded-lg transition ${
@@ -153,9 +146,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
           }`}
         >
           <LogOut className="h-5 w-5 flex-shrink-0" />
-          {!collapsed && (
-            <span className="text-[15px] font-normal">Logout</span>
-          )}
+          {!collapsed && <span className="text-[15px] font-normal">Logout</span>}
         </button>
       </div>
     </aside>

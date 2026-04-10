@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE, formatPoundAmount } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 interface ServiceApiItem {
@@ -111,13 +112,8 @@ const formatCreatedDate = (value?: string) => {
   return formatDateDDMMYY(value, 'N/A');
 };
 
-const formatCurrencyValue = (amount: number | null, currency: string) => {
-  if (amount === null) {
-    return 'N/A';
-  }
-
-  return `${currency} ${amount.toLocaleString()}`;
-};
+const formatCurrencyValue = (amount: number | null) =>
+  formatPoundAmount(amount, { fallback: 'N/A' });
 
 const getStatusBadgeClasses = (status: string) => {
   const normalized = status.toLowerCase();
@@ -237,7 +233,7 @@ export default function ServiceManagement() {
                 : typeof pricing.hourlyRate === 'number'
                   ? pricing.hourlyRate
                   : null,
-        currency: pricing.currency?.trim() || 'BDT',
+        currency: GBP_CURRENCY_CODE,
         status: formatPublishStatus(service.publishStatus),
         createdDate: formatCreatedDate(service.createdAt),
         imageUrl:
@@ -418,7 +414,7 @@ export default function ServiceManagement() {
                           {service.capacity !== null ? `${service.capacity} guests` : 'N/A'}
                         </td>
                         <td className="px-6 py-4 font-semibold text-gray-900">
-                          {formatCurrencyValue(service.price, service.currency)}
+                          {formatCurrencyValue(service.price)}
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -504,7 +500,7 @@ export default function ServiceManagement() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Price:</span>
                       <span className="font-bold text-gray-900">
-                        {formatCurrencyValue(service.price, service.currency)}
+                        {formatCurrencyValue(service.price)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">

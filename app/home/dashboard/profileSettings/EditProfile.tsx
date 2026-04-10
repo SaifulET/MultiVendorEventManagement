@@ -36,7 +36,7 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
   const [formData, setFormData] = useState({
     fullName: initialData?.fullName || 'Michael Anderson',
     email: initialData?.email || 'sarah.johnson@email.com',
-    currency: initialData?.currency || 'GBP (£)',
+    currency: initialData?.currency || 'GBP (\u00A3)',
     location: initialData?.location || 'San Francisco, CA'
   });
 
@@ -222,10 +222,7 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 transition-all duration-200 text-slate-900 appearance-none bg-white"
                 >
-                  <option value="GBP (£)">GBP (£)</option>
-                  <option value="EUR (€)">EUR (€)</option>
-                  <option value="GBP (£)">GBP (£)</option>
-                  <option value="JPY (¥)">JPY (¥)</option>
+                  <option value={'GBP (\u00A3)'}>{'GBP (\u00A3)'}</option>
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
               </div>

@@ -1,5 +1,5 @@
 import SubscriptionManagement from "@/app/component/subscription/SubscriptionManagement";
 
-export default function ServiceProviderSubscriptionPage() {
+export default function HomeSubscriptionPage() {
   return <SubscriptionManagement />;
 }

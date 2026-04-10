@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 
+import { formatPoundAmount } from '@/lib/currency';
+
 import { Venue } from './type';
 
 interface VenueCardProps {
@@ -94,7 +96,7 @@ export default function VenueCard({ venue }: VenueCardProps) {
         <div className="flex items-center justify-between border-t border-gray-100 pt-3">
           <div>
             <span className="text-xl font-bold text-gray-900 sm:text-2xl">
-              {venue.price.toLocaleString()} {venue.currency}/Day
+              {formatPoundAmount(venue.price, { suffix: '/Day' })}
             </span>
           </div>
           <button

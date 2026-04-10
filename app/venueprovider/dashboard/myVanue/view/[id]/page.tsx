@@ -18,6 +18,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_LABEL } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 type OverrideStatus = 'available' | 'pending' | 'booked';
@@ -345,7 +346,7 @@ export default function ViewVenuePage() {
                     </div>
                     <div>
                       <label className="mb-2 block text-sm font-medium text-gray-900">Currency</label>
-                      <input readOnly value={venue.pricing?.currency?.trim() || 'BDT'} className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] px-4 py-2.5 text-sm text-gray-700" />
+                      <input readOnly value={GBP_CURRENCY_LABEL} className="w-full rounded-lg border border-[#E5E7EB] bg-[#FCFCFC] px-4 py-2.5 text-sm text-gray-700" />
                     </div>
                   </div>
 

@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 
+import { formatPoundAmount } from '@/lib/currency';
+
 import { serviceProvider } from './type';
 
 interface serviceProviderCardProps {
@@ -92,7 +94,7 @@ export default function ServiceProviderCard({ serviceProvider }: serviceProvider
         <div className="flex items-center justify-between border-t border-gray-100 pt-3">
           <div>
             <span className="text-xl font-bold text-gray-900 sm:text-2xl">
-              {serviceProvider.price.toLocaleString()} {serviceProvider.currency}
+              {formatPoundAmount(serviceProvider.price)}
             </span>
           </div>
           <button

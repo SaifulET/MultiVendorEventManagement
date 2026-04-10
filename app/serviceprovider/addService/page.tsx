@@ -19,6 +19,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { api, getApiErrorMessage } from "@/lib/api";
+import { GBP_CURRENCY_CODE, GBP_CURRENCY_LABEL } from "@/lib/currency";
 import { formatDateDDMMYY } from "@/lib/date";
 
 type OverrideStatus = "available" | "pending" | "booked";
@@ -208,7 +209,7 @@ export default function AddServicePage() {
     tags: "",
     amount: "",
     pricingType: "package",
-    currency: "BDT",
+    currency: GBP_CURRENCY_CODE,
     discountType: "percentage",
     discountValue: "",
     capacity: "",
@@ -474,7 +475,7 @@ export default function AddServicePage() {
         pricing: {
           amount: Number(formData.amount),
           pricingType: formData.pricingType,
-          currency: formData.currency.trim() || "BDT",
+          currency: formData.currency.trim() || GBP_CURRENCY_CODE,
           discount: {
             type: formData.discountType,
             value: Number(formData.discountValue || 0),
@@ -711,14 +712,14 @@ export default function AddServicePage() {
                   <label className="mb-2 block text-sm font-medium text-gray-900">
                     Currency
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="currency"
                     value={formData.currency}
                     onChange={handleInputChange}
-                    placeholder="BDT"
-                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
-                  />
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                  >
+                    <option value={GBP_CURRENCY_CODE}>{GBP_CURRENCY_LABEL}</option>
+                  </select>
                 </div>
 
                 <div>

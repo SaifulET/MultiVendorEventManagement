@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE, formatPoundAmount } from '@/lib/currency';
 import img from '@/public/pp1.svg';
 
 interface ServiceProvider {
@@ -164,7 +165,7 @@ const mapServiceProvider = (service: ServiceApiItem): ServiceProvider => {
             : typeof pricing.hourlyRate === 'number'
               ? pricing.hourlyRate
               : 0,
-    currency: pricing.currency?.trim() || 'BDT',
+    currency: GBP_CURRENCY_CODE,
     imageUrl,
     category:
       information.serviceCategory?.trim() ||
@@ -257,7 +258,7 @@ const ServiceCard: React.FC<{ provider: ServiceProvider }> = ({ provider }) => {
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div>
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
-              {provider.price.toLocaleString()} {provider.currency}
+              {formatPoundAmount(provider.price)}
             </span>
           </div>
           <button

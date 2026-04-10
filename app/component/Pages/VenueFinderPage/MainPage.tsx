@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Filter } from 'lucide-react';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE } from '@/lib/currency';
 
 import { Filters, Venue, VenueStatus } from './type';
 import FilterSidebar from './FilterSideBar';
@@ -152,7 +153,7 @@ const mapVenueToCardData = (venue: VenueApiItem): Venue => {
     reviews: Array.isArray(venue.reviews) ? venue.reviews.length : 0,
     capacity: typeof capacity.maximumGuests === 'number' ? capacity.maximumGuests : 0,
     price: typeof pricing.basePrice === 'number' ? pricing.basePrice : 0,
-    currency: pricing.currency?.trim() || 'BDT',
+    currency: GBP_CURRENCY_CODE,
     image: firstImage,
     amenities: getVenueAmenities(pricing.amenities),
     status: getVenueStatus(venue),

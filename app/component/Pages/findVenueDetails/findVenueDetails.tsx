@@ -21,6 +21,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatPoundAmount } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 type AvailabilityStatus = 'available' | 'booked' | 'pending';
@@ -116,13 +117,8 @@ const amenityIconMap = {
   audiovisual: Volume2,
 };
 
-const formatCurrencyValue = (amount?: number, currency = 'BDT') => {
-  if (typeof amount !== 'number') {
-    return 'Price not listed';
-  }
-
-  return `${currency} ${amount.toLocaleString()}`;
-};
+const formatCurrencyValue = (amount?: number) =>
+  formatPoundAmount(amount, { fallback: 'Price not listed' });
 
 const formatAmenityLabel = (value: string) => {
   return value
@@ -559,7 +555,7 @@ const VenueBookingPage: React.FC = () => {
                   <div>
                     <div className="text-xs text-gray-600">Per Day</div>
                     <div className="font-semibold text-sm">
-                      {formatCurrencyValue(venuePricing.basePrice, venuePricing.currency || 'BDT')}
+                      {formatCurrencyValue(venuePricing.basePrice)}
                     </div>
                   </div>
                 </div>

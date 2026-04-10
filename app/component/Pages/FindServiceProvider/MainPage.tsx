@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Filter } from 'lucide-react';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE } from '@/lib/currency';
 
 import { Filters, serviceProvider, VenueStatus } from './type';
 import FilterSidebar from './FilterSideBar';
@@ -195,7 +196,7 @@ const mapServiceProvider = (service: ServiceApiItem): serviceProvider => {
             : typeof pricing.hourlyRate === 'number'
               ? pricing.hourlyRate
               : 0,
-    currency: pricing.currency?.trim() || 'BDT',
+    currency: GBP_CURRENCY_CODE,
     image: firstImage,
     status: getServiceStatus(service),
   };

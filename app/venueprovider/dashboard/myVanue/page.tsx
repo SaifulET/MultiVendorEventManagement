@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { GBP_CURRENCY_CODE, formatPoundAmount } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 interface VenueApiItem {
@@ -84,13 +85,8 @@ const formatCreatedDate = (value?: string) => {
   return formatDateDDMMYY(value, 'N/A');
 };
 
-const formatCurrencyValue = (amount: number | null, currency: string) => {
-  if (amount === null) {
-    return 'N/A';
-  }
-
-  return `${currency} ${amount.toLocaleString()}`;
-};
+const formatCurrencyValue = (amount: number | null) =>
+  formatPoundAmount(amount, { fallback: 'N/A' });
 
 const getStatusBadgeClasses = (status: string) => {
   const normalized = status.toLowerCase();
@@ -201,7 +197,7 @@ export default function VenueManagement() {
             : null,
         price:
           typeof pricing.basePrice === 'number' ? pricing.basePrice : null,
-        currency: pricing.currency?.trim() || 'BDT',
+        currency: GBP_CURRENCY_CODE,
         status: formatPublishStatus(venue.publishStatus),
         createdDate: formatCreatedDate(venue.createdAt),
         imageUrl:
@@ -383,7 +379,7 @@ export default function VenueManagement() {
                           {venue.capacity !== null ? `${venue.capacity} guests` : 'N/A'}
                         </td>
                         <td className="px-6 py-4 font-semibold text-gray-900">
-                          {formatCurrencyValue(venue.price, venue.currency)}
+                          {formatCurrencyValue(venue.price)}
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -472,7 +468,7 @@ export default function VenueManagement() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Price:</span>
                       <span className="font-bold text-gray-900">
-                        {formatCurrencyValue(venue.price, venue.currency)}
+                        {formatCurrencyValue(venue.price)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">

@@ -16,6 +16,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
+import { formatPoundAmount } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
 type AvailabilityStatus = 'available' | 'booked' | 'pending';
@@ -115,13 +116,8 @@ const monthNames = [
 
 const DEFAULT_IMAGE = '/pp1.svg';
 
-const formatCurrencyValue = (amount?: number, currency = 'BDT') => {
-  if (typeof amount !== 'number') {
-    return 'Price not listed';
-  }
-
-  return `${currency} ${amount.toLocaleString()}`;
-};
+const formatCurrencyValue = (amount?: number) =>
+  formatPoundAmount(amount, { fallback: 'Price not listed' });
 
 const formatAmenityLabel = (value: string) =>
   value
@@ -344,7 +340,6 @@ export default function ServiceProviderDetails() {
           : typeof service?.pricing?.basePrice === 'number'
             ? service.pricing.basePrice
             : undefined;
-  const currency = service?.pricing?.currency?.trim() || 'BDT';
   const pricingType = service?.pricing?.pricingType?.trim() || 'custom';
   const serviceAreas = Array.from(
     new Set([
@@ -600,7 +595,7 @@ export default function ServiceProviderDetails() {
                 <div>
                   <p className="text-sm text-gray-500">Pricing</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {formatCurrencyValue(priceAmount, currency)}
+                    {formatCurrencyValue(priceAmount)}
                   </p>
                 </div>
               </div>
