@@ -68,7 +68,7 @@ const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const normalizeStatus = (status?: string): OverrideStatus =>
   status === 'booked' || status === 'pending' ? status : 'available';
 
-const getOverrideStatus = (override?: AvailabilityOverride) => {
+const getOverrideStatus = (override?: AvailabilityOverride): OverrideStatus | null => {
   if (!override?.slots.length) {
     return null;
   }

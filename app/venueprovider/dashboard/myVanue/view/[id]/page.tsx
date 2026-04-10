@@ -106,7 +106,7 @@ const amenityDefinitions: AmenityDefinition[] = [
 const normalizeStatus = (status?: string): OverrideStatus =>
   status === 'booked' || status === 'pending' ? status : 'available';
 
-const getOverrideSummaryStatus = (override?: AvailabilityOverride) => {
+const getOverrideSummaryStatus = (override?: AvailabilityOverride): OverrideStatus | null => {
   if (!override?.slots.length) {
     return null;
   }
@@ -232,7 +232,9 @@ export default function ViewVenuePage() {
   );
 
   const availabilityMap = useMemo(() => {
-    return new Map(overrides.map((override) => [override.date, getOverrideSummaryStatus(override)]));
+    return new Map<string, OverrideStatus | null>(
+      overrides.map((override) => [override.date, getOverrideSummaryStatus(override)])
+    );
   }, [overrides]);
 
   const selectedOverride = useMemo(

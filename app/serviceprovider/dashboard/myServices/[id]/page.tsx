@@ -90,7 +90,7 @@ const createEmptyFormState = (): ServiceFormState => ({
 const normalizeStatus = (status?: string): OverrideStatus =>
   status === 'booked' || status === 'pending' ? status : 'available';
 
-const getOverrideStatus = (override?: AvailabilityOverride) => {
+const getOverrideStatus = (override?: AvailabilityOverride): OverrideStatus | null => {
   if (!override?.slots.length) {
     return null;
   }
@@ -224,7 +224,7 @@ export default function EditServicePage() {
   };
 
   const availabilityMap = useMemo(() => {
-    return new Map(
+    return new Map<string, OverrideStatus | null>(
       formData.availabilityOverrides.map((override) => [override.date, getOverrideStatus(override)])
     );
   }, [formData.availabilityOverrides]);

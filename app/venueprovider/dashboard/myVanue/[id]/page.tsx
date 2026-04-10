@@ -116,7 +116,7 @@ const createEmptyFormState = (): VenueFormState => ({
 const normalizeStatus = (status?: string): OverrideStatus =>
   status === 'booked' || status === 'pending' ? status : 'available';
 
-const getOverrideSummaryStatus = (override?: AvailabilityOverride) => {
+const getOverrideSummaryStatus = (override?: AvailabilityOverride): OverrideStatus | null => {
   if (!override?.slots.length) return null;
   if (override.slots.some((slot) => slot.status === 'booked')) return 'booked';
   if (override.slots.some((slot) => slot.status === 'pending')) return 'pending';
@@ -266,7 +266,13 @@ export default function EditVenuePage() {
   };
 
   const availabilityMap = useMemo(
-    () => new Map(formData.availabilityOverrides.map((override) => [override.date, getOverrideSummaryStatus(override)])),
+    () =>
+      new Map<string, OverrideStatus | null>(
+        formData.availabilityOverrides.map((override) => [
+          override.date,
+          getOverrideSummaryStatus(override),
+        ])
+      ),
     [formData.availabilityOverrides]
   );
 
