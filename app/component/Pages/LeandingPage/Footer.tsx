@@ -156,7 +156,7 @@ export default function Footer() {
               <li>
                 <div className="flex items-start space-x-3 text-sm">
                   <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <span>London, UK</span>
+                  <span>18 The Vale, Brentwood, Essex, CM14 4UP</span>
                 </div>
               </li>
             </ul>

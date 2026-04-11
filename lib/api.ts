@@ -17,6 +17,10 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
   const headers = new AxiosHeaders(config.headers);
+  const requestUrl = config.url ?? "";
+  const isSubscriptionRequest =
+    requestUrl.includes("/api/v1/subscriptions/payment-intent") ||
+    requestUrl.includes("/api/v1/subscriptions/verify-payment");
 
   if (typeof FormData !== "undefined" && config.data instanceof FormData) {
     headers.delete("Content-Type");
@@ -29,6 +33,15 @@ api.interceptors.request.use((config) => {
 
   headers.set("Authorization", `Bearer ${token}`);
   config.headers = headers;
+
+  if (isSubscriptionRequest) {
+    console.info("[api] subscription request", {
+      baseURL: config.baseURL,
+      url: config.url,
+      hasToken: Boolean(token),
+      authorizationHeaderSet: true,
+    });
+  }
 
   return config;
 });
