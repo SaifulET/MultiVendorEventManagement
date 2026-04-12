@@ -19,8 +19,8 @@ api.interceptors.request.use((config) => {
   const headers = new AxiosHeaders(config.headers);
   const requestUrl = config.url ?? "";
   const isSubscriptionRequest =
-    requestUrl.includes("/api/v1/subscriptions/payment-intent") ||
-    requestUrl.includes("/api/v1/subscriptions/verify-payment");
+    requestUrl.includes("/api/v1/subscriptions/status") ||
+    requestUrl.includes("/api/v1/subscriptions/payment-link");
 
   if (typeof FormData !== "undefined" && config.data instanceof FormData) {
     headers.delete("Content-Type");
