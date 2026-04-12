@@ -163,7 +163,7 @@ export default function BusinessProfileForm() {
 
       await submitEventPlannerOnboarding(multipartPayload);
 
-      router.push("/eventPlanner/dashboard/dashboard");
+      router.push("/eventPlanner/auth/subscription");
     } catch {
       // Store error is already handled for the UI.
     }

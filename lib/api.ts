@@ -20,7 +20,8 @@ api.interceptors.request.use((config) => {
   const requestUrl = config.url ?? "";
   const isSubscriptionRequest =
     requestUrl.includes("/api/v1/subscriptions/status") ||
-    requestUrl.includes("/api/v1/subscriptions/payment-link");
+    requestUrl.includes("/api/v1/subscriptions/payment-link") ||
+    requestUrl.includes("/api/v1/subscriptions/create");
 
   if (typeof FormData !== "undefined" && config.data instanceof FormData) {
     headers.delete("Content-Type");

@@ -182,7 +182,7 @@ export default function BusinessProfileForm() {
 
       await submitServiceProviderOnboarding(multipartPayload);
 
-      router.push("/serviceprovider/dashboard/dashboard");
+      router.push("/serviceprovider/auth/subscription");
     } catch {
       // Store error is already handled for the UI.
     }

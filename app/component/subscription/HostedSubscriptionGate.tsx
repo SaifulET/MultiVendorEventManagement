@@ -1,9 +1,16 @@
 "use client";
 
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
+import { loadStripe, type Stripe, type StripePaymentElementOptions } from "@stripe/stripe-js";
 import axios from "axios";
-import { Check, LoaderCircle, Lock, TrendingUp, WalletCards } from "lucide-react";
+import { Check, LoaderCircle, Lock, TrendingUp, WalletCards, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { api, getApiErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -15,7 +22,9 @@ interface SubscriptionStatusPayload {
   role?: string;
   subscriptionStatus?: SubscriptionStatus;
   isSubscribed?: boolean;
-  paymentLink?: string;
+  stripeSubscriptionStatus?: string | null;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
 }
 
 interface SubscriptionStatusResponse {
@@ -24,8 +33,35 @@ interface SubscriptionStatusResponse {
   data?: SubscriptionStatusPayload;
 }
 
+interface CreateSubscriptionPayload {
+  userId: string;
+  role: string;
+  subscriptionId: string;
+  customerId: string;
+  clientSecret: string;
+  publishableKey: string;
+}
+
+interface CreateSubscriptionResponse {
+  success: boolean;
+  message?: string;
+  data?: CreateSubscriptionPayload;
+}
+
 type HostedSubscriptionGateProps = {
-  variant?: "welcome" | "dashboard";
+  variant?: "welcome" | "dashboard" | "modal";
+  allowSkip?: boolean;
+  onRequestClose?: () => void;
+};
+
+type PaymentFormProps = {
+  billingEmail?: string;
+  billingName?: string;
+  isBusy: boolean;
+  onError: (message: string) => void;
+  onFailure: (message: string) => void;
+  onProcessingChange: (isProcessing: boolean) => void;
+  onSuccess: () => void;
 };
 
 const ACTIVE_STATUSES = new Set(["active", "subscribed", "trialing"]);
@@ -95,14 +131,112 @@ const clearPendingCheckoutFlag = () => {
 
 const getNormalizedStatus = (status?: string) => status?.trim().toLowerCase() ?? "";
 
+function SubscriptionPaymentForm({
+  billingEmail,
+  billingName,
+  isBusy,
+  onError,
+  onFailure,
+  onProcessingChange,
+  onSuccess,
+}: PaymentFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [localError, setLocalError] = useState("");
+  const paymentElementOptions: StripePaymentElementOptions = {
+    fields: {
+      billingDetails: {
+        name: "never",
+        email: "never",
+        phone: "never",
+        address: "never",
+      },
+    },
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    try {
+      setLocalError("");
+      onError("");
+      onProcessingChange(true);
+      setPendingCheckoutFlag();
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.href,
+          payment_method_data: {
+            billing_details: {
+              name: billingName,
+              email: billingEmail,
+            },
+          },
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        clearPendingCheckoutFlag();
+        const nextMessage = error.message || "Payment confirmation failed.";
+        setLocalError(nextMessage);
+        onError(nextMessage);
+        onFailure(nextMessage);
+        return;
+      }
+
+      onSuccess();
+    } finally {
+      onProcessingChange(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
+        <PaymentElement options={paymentElementOptions} />
+      </div>
+
+      {localError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {localError}
+        </div>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={isBusy || !stripe || !elements}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#BD4745] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#a03735] disabled:cursor-not-allowed disabled:bg-[#d48a88]"
+      >
+        {isBusy ? (
+          <>
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+            Confirming payment...
+          </>
+        ) : (
+          "Pay and activate subscription"
+        )}
+      </button>
+    </form>
+  );
+}
+
 export default function HostedSubscriptionGate({
   variant = "dashboard",
+  allowSkip = false,
+  onRequestClose,
 }: HostedSubscriptionGateProps) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+  const [isCreatingSubscription, setIsCreatingSubscription] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] =
@@ -111,52 +245,72 @@ export default function HostedSubscriptionGate({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [shouldPollAfterReturn, setShouldPollAfterReturn] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
+  const [stripeSubscriptionStatus, setStripeSubscriptionStatus] = useState<string | null>(null);
+  const [isUpdatingRecurring, setIsUpdatingRecurring] = useState(false);
+  const [failedPaymentRedirectPending, setFailedPaymentRedirectPending] = useState(false);
 
-  const isBusy = isInitialLoading || isStartingCheckout || isPolling;
+  const isBusy =
+    isInitialLoading ||
+    isCreatingSubscription ||
+    isConfirmingPayment ||
+    isPolling ||
+    isUpdatingRecurring;
 
-  const syncSubscriptionStatus = async ({
-    announceActive = false,
-  }: {
-    announceActive?: boolean;
-  } = {}) => {
-    const response = await api.get<SubscriptionStatusResponse>(
-      "/api/v1/subscriptions/status"
-    );
+  const syncSubscriptionStatus = useCallback(
+    async ({
+      announceActive = false,
+    }: {
+      announceActive?: boolean;
+    } = {}) => {
+      const response = await api.get<SubscriptionStatusResponse>(
+        "/api/v1/subscriptions/status"
+      );
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || "Failed to load subscription status.");
-    }
-
-    const nextData = response.data.data;
-    const nextRole = nextData?.role ?? user?.role ?? null;
-    const normalizedStatus = getNormalizedStatus(nextData?.subscriptionStatus);
-    const nextIsSubscribed =
-      Boolean(nextData?.isSubscribed) || ACTIVE_STATUSES.has(normalizedStatus);
-    const nextStatus =
-      nextData?.subscriptionStatus ?? (nextIsSubscribed ? "subscribed" : "not_subscribed");
-
-    setResolvedRole(nextRole);
-    setSubscriptionStatus(nextStatus);
-    setIsSubscribed(nextIsSubscribed);
-
-    if (nextIsSubscribed) {
-      clearPendingCheckoutFlag();
-
-      if (announceActive) {
-        setMessage(
-          variant === "welcome"
-            ? "Subscription confirmed. Your account is ready to use."
-            : "Subscription confirmed. Your access is unlocked."
-        );
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to load subscription status.");
       }
-    }
 
-    return {
-      isSubscribed: nextIsSubscribed,
-      role: nextRole,
-      paymentLink: nextData?.paymentLink ?? "",
-    };
-  };
+      const nextData = response.data.data;
+      const nextRole = nextData?.role ?? user?.role ?? null;
+      const normalizedStatus = getNormalizedStatus(nextData?.subscriptionStatus);
+      const nextIsSubscribed =
+        Boolean(nextData?.isSubscribed) || ACTIVE_STATUSES.has(normalizedStatus);
+      const nextStatus =
+        nextData?.subscriptionStatus ?? (nextIsSubscribed ? "subscribed" : "not_subscribed");
+
+      setResolvedRole(nextRole);
+      setSubscriptionStatus(nextStatus);
+      setIsSubscribed(nextIsSubscribed);
+      setStripeSubscriptionStatus(nextData?.stripeSubscriptionStatus ?? null);
+      setCancelAtPeriodEnd(Boolean(nextData?.cancelAtPeriodEnd));
+      setCurrentPeriodEnd(nextData?.currentPeriodEnd ?? null);
+
+      if (nextIsSubscribed) {
+        clearPendingCheckoutFlag();
+        setClientSecret("");
+        setStripePromise(null);
+
+        if (announceActive) {
+          setMessage(
+            variant === "welcome"
+              ? "Subscription confirmed. Your account is ready to use."
+              : "Subscription confirmed. Your access is unlocked."
+          );
+        }
+      }
+
+      return {
+        isSubscribed: nextIsSubscribed,
+        role: nextRole,
+        cancelAtPeriodEnd: Boolean(nextData?.cancelAtPeriodEnd),
+      };
+    },
+    [user?.role, variant]
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -170,7 +324,7 @@ export default function HostedSubscriptionGate({
         const hasPendingCheckout = readPendingCheckoutFlag();
 
         if (!ignore && !result.isSubscribed && hasPendingCheckout) {
-          setMessage("Checking your subscription after Stripe checkout...");
+          setMessage("Checking your subscription after payment confirmation...");
           setShouldPollAfterReturn(true);
         }
       } catch (statusError) {
@@ -189,7 +343,7 @@ export default function HostedSubscriptionGate({
     return () => {
       ignore = true;
     };
-  }, [user?.role]);
+  }, [syncSubscriptionStatus]);
 
   useEffect(() => {
     if (!shouldPollAfterReturn) {
@@ -218,12 +372,7 @@ export default function HostedSubscriptionGate({
         }
 
         if (Date.now() - startedAt >= POLLING_TIMEOUT_MS) {
-          clearPendingCheckoutFlag();
-          setShouldPollAfterReturn(false);
-          setIsPolling(false);
-          setMessage(
-            "Payment is still pending. If you left Stripe without paying, the subscription remains inactive."
-          );
+          handleFailedPayment("Payment failed or was not completed.");
           return;
         }
 
@@ -252,11 +401,11 @@ export default function HostedSubscriptionGate({
         clearTimeout(timeoutId);
       }
     };
-  }, [shouldPollAfterReturn]);
+  }, [handleFailedPayment, shouldPollAfterReturn, syncSubscriptionStatus]);
 
   const handleSubscribe = async () => {
     try {
-      setIsStartingCheckout(true);
+      setIsCreatingSubscription(true);
       setError("");
       setMessage("");
 
@@ -267,16 +416,25 @@ export default function HostedSubscriptionGate({
         return;
       }
 
-      const response = await api.get<SubscriptionStatusResponse>(
-        "/api/v1/subscriptions/payment-link"
-      );
-
-      if (!response.data.success || !response.data.data?.paymentLink) {
-        throw new Error(response.data.message || "Failed to get Stripe checkout link.");
+      if (clientSecret && stripePromise) {
+        return;
       }
 
-      setPendingCheckoutFlag();
-      window.location.href = response.data.data.paymentLink;
+      const response = await api.post<CreateSubscriptionResponse>(
+        "/api/v1/subscriptions/create"
+      );
+
+      if (!response.data.success || !response.data.data?.clientSecret) {
+        throw new Error(response.data.message || "Failed to initialize subscription payment.");
+      }
+
+      if (!response.data.data.publishableKey) {
+        throw new Error("Stripe publishable key is not configured.");
+      }
+
+      setClientSecret(response.data.data.clientSecret);
+      setStripePromise(loadStripe(response.data.data.publishableKey));
+      setMessage("Enter your payment details below to activate the subscription.");
     } catch (checkoutError) {
       if (isAlreadyActiveError(checkoutError)) {
         clearPendingCheckoutFlag();
@@ -289,13 +447,237 @@ export default function HostedSubscriptionGate({
 
       setError(getSubscriptionErrorMessage(checkoutError));
     } finally {
-      setIsStartingCheckout(false);
+      setIsCreatingSubscription(false);
     }
+  };
+
+  const handlePaymentReadyForVerification = () => {
+    setMessage("Payment confirmed. Waiting for the subscription to activate...");
+    setShouldPollAfterReturn(true);
   };
 
   const handleContinue = () => {
     router.push(getDashboardRoute(resolvedRole ?? user?.role));
   };
+
+  const handleSkip = () => {
+    router.push(getDashboardRoute(resolvedRole ?? user?.role));
+  };
+
+  const handleFailedPayment = useCallback(
+    (failureMessage?: string) => {
+      clearPendingCheckoutFlag();
+      setShouldPollAfterReturn(false);
+      setIsPolling(false);
+      setIsSubscribed(false);
+      setSubscriptionStatus("not_subscribed");
+      setClientSecret("");
+      setStripePromise(null);
+      setError("");
+      setMessage(
+        `${failureMessage || "Payment failed."} Subscription is inactive. Redirecting to dashboard...`
+      );
+      setFailedPaymentRedirectPending(true);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!failedPaymentRedirectPending) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      router.push(getDashboardRoute(resolvedRole ?? user?.role));
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [failedPaymentRedirectPending, resolvedRole, router, user?.role]);
+
+  const handleStopRecurring = async () => {
+    try {
+      setIsUpdatingRecurring(true);
+      setError("");
+
+      const response = await api.post<SubscriptionStatusResponse>(
+        "/api/v1/subscriptions/stop-recurring"
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to stop recurring subscription.");
+      }
+
+      setCancelAtPeriodEnd(Boolean(response.data.data?.cancelAtPeriodEnd));
+      setCurrentPeriodEnd(response.data.data?.currentPeriodEnd ?? null);
+      setMessage(
+        response.data.message ||
+          "Recurring subscription will stop at the end of the current billing period."
+      );
+    } catch (updateError) {
+      setError(getSubscriptionErrorMessage(updateError));
+    } finally {
+      setIsUpdatingRecurring(false);
+    }
+  };
+
+  const handleResumeRecurring = async () => {
+    try {
+      setIsUpdatingRecurring(true);
+      setError("");
+
+      const response = await api.post<SubscriptionStatusResponse>(
+        "/api/v1/subscriptions/resume-recurring"
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to restart recurring subscription.");
+      }
+
+      setCancelAtPeriodEnd(Boolean(response.data.data?.cancelAtPeriodEnd));
+      setCurrentPeriodEnd(response.data.data?.currentPeriodEnd ?? null);
+      setMessage(
+        response.data.message || "Recurring subscription has been restarted."
+      );
+    } catch (updateError) {
+      setError(getSubscriptionErrorMessage(updateError));
+    } finally {
+      setIsUpdatingRecurring(false);
+    }
+  };
+
+  const canResumeRecurring =
+    isSubscribed &&
+    cancelAtPeriodEnd &&
+    (stripeSubscriptionStatus === "active" || stripeSubscriptionStatus === "trialing");
+
+  const renderPaymentSection = () => {
+    if (isSubscribed) {
+      return (
+        <button
+          type="button"
+          onClick={handleContinue}
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#BD4745] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#a03735]"
+        >
+          Continue to Dashboard
+        </button>
+      );
+    }
+
+    if (clientSecret && stripePromise) {
+      return (
+        <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <SubscriptionPaymentForm
+            billingEmail={user?.email}
+            billingName={user?.fullName}
+            isBusy={isBusy}
+            onError={(nextError) => {
+              if (nextError) {
+                setError(nextError);
+              }
+            }}
+            onFailure={handleFailedPayment}
+            onProcessingChange={setIsConfirmingPayment}
+            onSuccess={handlePaymentReadyForVerification}
+          />
+        </Elements>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={handleSubscribe}
+        disabled={isBusy}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#BD4745] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#a03735] disabled:cursor-not-allowed disabled:bg-[#d48a88]"
+      >
+        {isBusy ? (
+          <>
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+            Preparing payment form...
+          </>
+        ) : (
+          "Subscribe"
+        )}
+      </button>
+    );
+  };
+
+  if (variant === "modal") {
+    return (
+      <div className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[28px] bg-white p-6 shadow-[0_30px_90px_rgba(15,23,42,0.28)] md:p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#B74140]">
+              Subscription
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-[#0F172A] md:text-3xl">
+              Activate your provider access
+            </h2>
+          </div>
+
+          {onRequestClose ? (
+            <button
+              type="button"
+              onClick={onRequestClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E2E8F0] text-[#475569] transition-colors hover:bg-[#F8FAFC]"
+              aria-label="Close subscription modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="space-y-5">
+          <p className="text-sm leading-7 text-[#475569] md:text-base">
+            Start the subscription below to activate bookings and paid access for your account
+            without leaving your site.
+          </p>
+
+          {error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          {message ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {message}
+            </div>
+          ) : null}
+
+          <div className="rounded-2xl bg-[#F8FAFC] px-5 py-4 text-sm text-[#475569]">
+            <p>
+              Status:{" "}
+              <span className="font-semibold text-[#0F172A]">
+                {isInitialLoading
+                  ? "Checking subscription..."
+                  : subscriptionStatus.replace(/_/g, " ")}
+              </span>
+            </p>
+            <p className="mt-2">
+              The payment form is rendered with Stripe Elements and the backend activates access
+              after webhook confirmation.
+            </p>
+          </div>
+
+          {renderPaymentSection()}
+
+          {!isSubscribed && allowSkip ? (
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={isBusy}
+              className="flex h-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-5 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+            >
+              Skip for now
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   if (variant === "dashboard") {
     return (
@@ -319,8 +701,8 @@ export default function HostedSubscriptionGate({
                   </h2>
                   <p className="mt-2 text-sm text-slate-500">
                     {isPolling
-                      ? "Waiting for Stripe webhook confirmation..."
-                      : "Stripe hosted checkout activates the subscription through the backend webhook."}
+                      ? "Waiting for webhook confirmation..."
+                      : "Use the embedded payment form to activate this subscription without leaving the app."}
                   </p>
                 </div>
 
@@ -342,36 +724,58 @@ export default function HostedSubscriptionGate({
                 </div>
               ) : null}
 
+              {isSubscribed ? (
+                <div className="rounded-2xl border border-[#E5E7EB] bg-slate-50 px-4 py-4 text-sm text-slate-700">
+                  <p>
+                    Recurring billing:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {cancelAtPeriodEnd ? "Stops at period end" : "Active"}
+                    </span>
+                  </p>
+                  {stripeSubscriptionStatus ? (
+                    <p className="mt-2">
+                      Stripe status:{" "}
+                      <span className="font-semibold text-slate-900">
+                        {stripeSubscriptionStatus.replace(/_/g, " ")}
+                      </span>
+                    </p>
+                  ) : null}
+                  {currentPeriodEnd ? (
+                    <p className="mt-2">
+                      Current period ends on {new Date(currentPeriodEnd).toLocaleDateString()}.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-[#E5E7EB] bg-slate-50 px-4 py-4 text-sm text-slate-700">
-                <p>No manual payment verification runs on the frontend anymore.</p>
-                <p>The app unlocks only after `/api/v1/subscriptions/status` reports an active subscription.</p>
+                <p>Payments are now collected in-app with Stripe Elements.</p>
+                <p>The subscription becomes active after the backend webhook syncs the payment.</p>
               </div>
 
+              {renderPaymentSection()}
+
               {isSubscribed ? (
-                <button
-                  type="button"
-                  onClick={handleContinue}
-                  className="inline-flex items-center justify-center rounded-2xl bg-[#B74140] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#9c3635]"
-                >
-                  Continue to dashboard
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSubscribe}
-                  disabled={isBusy}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#B74140] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#9c3635] disabled:cursor-not-allowed disabled:bg-[#d28a89]"
-                >
-                  {isBusy ? (
-                    <>
-                      <LoaderCircle className="h-5 w-5 animate-spin" />
-                      {isPolling ? "Checking payment..." : "Preparing Stripe checkout..."}
-                    </>
-                  ) : (
-                    "Subscribe"
-                  )}
-                </button>
-              )}
+                canResumeRecurring ? (
+                  <button
+                    type="button"
+                    onClick={handleResumeRecurring}
+                    disabled={isBusy}
+                    className="inline-flex items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+                  >
+                    Restart recurring subscription
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleStopRecurring}
+                    disabled={isBusy}
+                    className="inline-flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:text-amber-400"
+                  >
+                    Stop recurring at period end
+                  </button>
+                )
+              ) : null}
             </div>
           </div>
         </div>
@@ -393,8 +797,8 @@ export default function HostedSubscriptionGate({
                 Make Account Ready
               </h1>
               <p className="mx-auto max-w-2xl text-base leading-8 text-[#475569] md:text-[19px]">
-                Your account has been created successfully. Subscribe once to unlock
-                bookings, services, and everything inside your dashboard.
+                Your account has been created successfully. Subscribe once to unlock bookings,
+                services, and everything inside your dashboard.
               </p>
             </div>
 
@@ -420,39 +824,22 @@ export default function HostedSubscriptionGate({
                 </span>
               </p>
               <p className="mt-2">
-                Access is activated by the Stripe webhook. The frontend only redirects to the hosted checkout page and keeps checking subscription status after you return.
+                Payment is collected directly on your site with Stripe Elements.
               </p>
             </div>
 
-            {isSubscribed ? (
-              <button
-                type="button"
-                onClick={handleContinue}
-                className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#BD4745] text-base font-semibold text-white transition-colors hover:bg-[#a03735]"
-              >
-                Continue to Dashboard
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubscribe}
-                disabled={isBusy}
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#BD4745] text-base font-semibold text-white transition-colors hover:bg-[#a03735] disabled:cursor-not-allowed disabled:bg-[#d48a88]"
-              >
-                {isBusy ? (
-                  <>
-                    <LoaderCircle className="h-5 w-5 animate-spin" />
-                    {isPolling ? "Checking payment..." : "Subscribe"}
-                  </>
-                ) : (
-                  "Subscribe"
-                )}
-              </button>
-            )}
+            {renderPaymentSection()}
 
-            <p className="text-sm text-[#64748B]">
-              You will be redirected to Stripe to complete the subscription securely.
-            </p>
+            {!isSubscribed && allowSkip ? (
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={isBusy}
+                className="flex h-14 w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-base font-semibold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+              >
+                Skip for now
+              </button>
+            ) : null}
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row md:flex-wrap">

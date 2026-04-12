@@ -107,15 +107,18 @@ export default function BusinessProfileForm() {
         _id: user.id,
         fullName: user.fullName,
         email: user.email,
-        businessName: formData.businessName.trim(),
-        businessType: normalizeBusinessType(formData.businessType),
-        legalBusinessName: formData.legalBusinessName.trim(),
-        registrationNo: formData.registrationNo.trim(),
-        businessMail: formData.businessMail.trim(),
-        businessPhoneNo: formData.businessPhoneNo.trim(),
+        profileInfo: {
+          nidOrTradeLicenseNumber: formData.registrationNo.trim(),
+          businessName: formData.businessName.trim(),
+          businessType: normalizeBusinessType(formData.businessType),
+          legalBusinessName: formData.legalBusinessName.trim(),
+          registrationNo: formData.registrationNo.trim(),
+          businessMail: formData.businessMail.trim(),
+          businessPhoneNo: formData.businessPhoneNo.trim(),
+        },
       });
 
-      router.push("/venueprovider/dashboard/dashboard");
+      router.push("/venueprovider/auth/subscription");
     } catch {
       // Store error is already handled for the UI.
     }

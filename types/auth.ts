@@ -123,12 +123,15 @@ export interface VenueProviderOnboardingPayload {
   fullName: string;
   email: string;
   stripeAccountId?: string;
-  businessName: string;
-  businessType: string;
-  legalBusinessName: string;
-  registrationNo: string;
-  businessMail: string;
-  businessPhoneNo: string;
+  profileInfo: {
+    nidOrTradeLicenseNumber: string;
+    businessName: string;
+    businessType: string;
+    legalBusinessName: string;
+    registrationNo: string;
+    businessMail: string;
+    businessPhoneNo: string;
+  };
 }
 
 export interface UserOnlyResponseData {
