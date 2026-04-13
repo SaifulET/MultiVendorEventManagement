@@ -100,7 +100,7 @@ export default function RoleSignupPage({ config }: RoleSignupPageProps) {
       });
 
       router.push(
-        `${config.basePath}/verify-email?email=${encodeURIComponent(result.user.email)}`
+        `${config.basePath}/verify-email?email=${encodeURIComponent(result.user.email)}&source=signup`
       );
     } catch {
       // Store error is already handled for the UI.

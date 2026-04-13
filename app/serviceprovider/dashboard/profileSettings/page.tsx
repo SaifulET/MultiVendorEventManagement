@@ -5,6 +5,7 @@ import { Camera, Check, Lock, Mail, Phone, RefreshCcw, Trash2, User, X } from 'l
 
 import { fetchAuthMeProfile, formatRole } from '@/lib/auth-me';
 import { getApiErrorMessage } from '@/lib/api';
+import { uploadProfileImage } from '@/lib/profile-image';
 import cover from '@/public/bg.svg';
 import profileimg from '@/public/profile.jpg';
 
@@ -26,6 +27,7 @@ const ProfilePage: React.FC = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [coverPhoto, setCoverPhoto] = useState(cover.src);
   const [profilePhoto, setProfilePhoto] = useState(profileimg.src);
+  const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
   const [profile, setProfile] = useState<Profile>({
     fullName: '',
     email: '',
@@ -38,6 +40,7 @@ const ProfilePage: React.FC = () => {
     confirm: '',
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
   const loadProfile = async () => {
@@ -53,6 +56,8 @@ const ProfilePage: React.FC = () => {
         email: data.email,
         role: data.role,
       }));
+      setProfilePhoto(data.profileImage || profileimg.src);
+      setPendingProfileImageFile(null);
     } catch (fetchError) {
       setError(getApiErrorMessage(fetchError));
     } finally {
@@ -69,7 +74,24 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleSaveChanges = () => {
-    setIsEditing(false);
+    void (async () => {
+      try {
+        setIsSaving(true);
+        setError('');
+
+        if (pendingProfileImageFile) {
+          const nextProfilePhoto = await uploadProfileImage(pendingProfileImageFile);
+          setProfilePhoto(nextProfilePhoto);
+        }
+
+        setPendingProfileImageFile(null);
+        setIsEditing(false);
+      } catch (saveError) {
+        setError(getApiErrorMessage(saveError));
+      } finally {
+        setIsSaving(false);
+      }
+    })();
   };
 
   const handlePasswordChange = () => {
@@ -99,6 +121,10 @@ const ProfilePage: React.FC = () => {
       setter(reader.result as string);
     };
     reader.readAsDataURL(file);
+
+    if (setter === setProfilePhoto) {
+      setPendingProfileImageFile(file);
+    }
   };
 
   return (
@@ -124,10 +150,11 @@ const ProfilePage: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveChanges}
+                disabled={isSaving}
                 className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#B74140] px-[24px] py-[16px] font-medium text-white transition-all hover:bg-[#812321]"
               >
                 <Check className="h-4 w-4" />
-                Save Changes
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </>
           ) : (
@@ -163,7 +190,7 @@ const ProfilePage: React.FC = () => {
           <div className="relative -top-16 mb-8">
             <div className="relative">
               <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-[#E5E7EB] bg-gradient-to-br from-amber-400 to-orange-500">
-                <img src={profilePhoto} alt="Profile" className="h-full w-full rounded-full object-cover" />
+                <img src={profilePhoto || profileimg.src} alt="Profile" className="h-full w-full rounded-full object-cover" />
               </div>
 
               {isEditing ? (

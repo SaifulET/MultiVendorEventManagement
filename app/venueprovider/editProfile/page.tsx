@@ -2,6 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Camera, Trash2, Lock, AlertTriangle, ChevronDown, X } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api';
+import { uploadProfileImage } from '@/lib/profile-image';
 import ChangePassword from '../editProfile/changePassword';
 
 interface PaymentCard {
@@ -45,6 +47,9 @@ export default function EditProfile() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,6 +59,7 @@ export default function EditProfile() {
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+      setPendingProfileImageFile(file);
     }
   };
 
@@ -74,9 +80,20 @@ export default function EditProfile() {
     setPaymentCards(cards => cards.filter(card => card.id !== cardId));
   };
 
-  const handleSaveChanges = () => {
-    // Handle save logic here
-    console.log('Saving changes:', formData);
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      setError('');
+
+      if (pendingProfileImageFile) {
+        await uploadProfileImage(pendingProfileImageFile);
+        setPendingProfileImageFile(null);
+      }
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,14 +114,21 @@ export default function EditProfile() {
           </button>
           <button
             onClick={handleSaveChanges}
+            disabled={isSaving}
             className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg"
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         {/* Profile Photo Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
           <h2 className="text-xl font-bold text-slate-900 mb-6">Profile Photo</h2>
@@ -227,66 +251,7 @@ export default function EditProfile() {
           </div>
         </div>
 
-        {/* Payment Methods */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-900">Payment Methods</h2>
-            <button className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm">
-              Add Card
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {paymentCards.map((card) => (
-              <div
-                key={card.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200"
-              >
-                {/* Card Info */}
-                <div className="flex items-center gap-4">
-                  {/* Card Visual */}
-                  <div className={`w-14 h-10 rounded-lg bg-gradient-to-br ${card.cardColor} shadow-md flex items-center justify-center`}>
-                    <div className="w-8 h-6 rounded bg-white/20 backdrop-blur-sm"></div>
-                  </div>
-                  
-                  {/* Card Details */}
-                  <div>
-                    <div className="font-semibold text-slate-900">
-                      •••• •••• •••• {card.last4}
-                    </div>
-                    <div className="text-sm text-slate-500 mt-0.5">
-                      Expires {card.expiresMonth}/{card.expiresYear}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {card.isDefault ? (
-                    <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-sm font-semibold">
-                      Default
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleSetDefault(card.id)}
-                      className="px-4 py-1.5 text-red-600 hover:text-red-700 text-sm font-semibold hover:bg-red-50 rounded-md transition-colors duration-200"
-                    >
-                      Set Default
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => handleRemoveCard(card.id)}
-                    disabled={card.isDefault && paymentCards.length === 1}
-                    className="px-4 py-1.5 text-red-600 hover:text-red-700 text-sm font-semibold hover:bg-red-50 rounded-md transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+     
 
         {/* Account Actions */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">

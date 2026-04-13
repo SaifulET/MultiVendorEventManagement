@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 
 import { fetchAuthMeProfile } from "@/lib/auth-me";
 import { getApiErrorMessage } from "@/lib/api";
+import profileImageFallback from "@/public/profile.jpg";
 import EditProfile from "./EditProfile";
 
 interface ProfileData {
@@ -21,8 +22,7 @@ export default function ProfileSettings() {
     fullName: "",
     email: "",
     phone: "",
-    profileImage:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
+    profileImage: profileImageFallback.src,
   });
 
   useEffect(() => {
@@ -37,6 +37,7 @@ export default function ProfileSettings() {
           ...current,
           fullName: data.fullName,
           email: data.email,
+          profileImage: data.profileImage || current.profileImage,
         }));
       } catch (fetchError) {
         setError(getApiErrorMessage(fetchError));
@@ -98,7 +99,7 @@ export default function ProfileSettings() {
           <div className="mt-[24px] flex-shrink-0">
             <div className="h-20 w-20 overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 ring-4 ring-blue-100 sm:h-24 sm:w-24">
               <img
-                src={profileData.profileImage}
+                src={profileData.profileImage || profileImageFallback.src}
                 alt="Profile"
                 className="h-full w-full object-cover"
               />

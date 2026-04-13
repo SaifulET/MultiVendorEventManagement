@@ -130,6 +130,12 @@ const clearPendingCheckoutFlag = () => {
 };
 
 const getNormalizedStatus = (status?: string) => status?.trim().toLowerCase() ?? "";
+const formatDisplayLabel = (value?: string | null) =>
+  value
+    ?.split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") ?? "";
 
 function SubscriptionPaymentForm({
   billingEmail,
@@ -144,13 +150,17 @@ function SubscriptionPaymentForm({
   const elements = useElements();
   const [localError, setLocalError] = useState("");
   const paymentElementOptions: StripePaymentElementOptions = {
-    fields: {
+    defaultValues: {
       billingDetails: {
-        name: "never",
-        email: "never",
-        phone: "never",
-        address: "never",
+        name: billingName,
+        email: billingEmail,
+        address: {
+          country: "GB",
+        },
       },
+    },
+    wallets: {
+      link: "never",
     },
   };
 
@@ -345,6 +355,24 @@ export default function HostedSubscriptionGate({
     };
   }, [syncSubscriptionStatus]);
 
+  const handleFailedPayment = useCallback(
+    (failureMessage?: string) => {
+      clearPendingCheckoutFlag();
+      setShouldPollAfterReturn(false);
+      setIsPolling(false);
+      setIsSubscribed(false);
+      setSubscriptionStatus("not_subscribed");
+      setClientSecret("");
+      setStripePromise(null);
+      setError("");
+      setMessage(
+        `${failureMessage || "Payment failed."} Subscription is inactive. Redirecting to dashboard...`
+      );
+      setFailedPaymentRedirectPending(true);
+    },
+    []
+  );
+
   useEffect(() => {
     if (!shouldPollAfterReturn) {
       return;
@@ -464,24 +492,6 @@ export default function HostedSubscriptionGate({
     router.push(getDashboardRoute(resolvedRole ?? user?.role));
   };
 
-  const handleFailedPayment = useCallback(
-    (failureMessage?: string) => {
-      clearPendingCheckoutFlag();
-      setShouldPollAfterReturn(false);
-      setIsPolling(false);
-      setIsSubscribed(false);
-      setSubscriptionStatus("not_subscribed");
-      setClientSecret("");
-      setStripePromise(null);
-      setError("");
-      setMessage(
-        `${failureMessage || "Payment failed."} Subscription is inactive. Redirecting to dashboard...`
-      );
-      setFailedPaymentRedirectPending(true);
-    },
-    []
-  );
-
   useEffect(() => {
     if (!failedPaymentRedirectPending) {
       return;
@@ -552,8 +562,42 @@ export default function HostedSubscriptionGate({
     cancelAtPeriodEnd &&
     (stripeSubscriptionStatus === "active" || stripeSubscriptionStatus === "trialing");
 
+  const renderRecurringActionButton = () => {
+    if (!isSubscribed) {
+      return null;
+    }
+
+    if (canResumeRecurring) {
+      return (
+        <button
+          type="button"
+          onClick={handleResumeRecurring}
+          disabled={isBusy}
+          className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-5 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+        >
+          Restart recurring subscription
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={handleStopRecurring}
+        disabled={isBusy}
+        className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:text-amber-400"
+      >
+        Stop recurring at period end
+      </button>
+    );
+  };
+
   const renderPaymentSection = () => {
     if (isSubscribed) {
+      if (variant === "dashboard") {
+        return renderRecurringActionButton();
+      }
+
       return (
         <button
           type="button"
@@ -683,32 +727,24 @@ export default function HostedSubscriptionGate({
     return (
       <div className="min-h-screen bg-white py-4 lg:py-6">
         <div className="max-w-3xl">
-          <h1 className="text-3xl font-bold text-slate-900">Subscription</h1>
-
-          <div className="mt-6 rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
+          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
             <div className="space-y-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500">
-                    Status
-                  </p>
-                  <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                    {isInitialLoading
-                      ? "Checking subscription..."
-                      : isSubscribed
-                        ? "Subscribed"
-                        : "Not subscribed"}
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {isPolling
-                      ? "Waiting for webhook confirmation..."
-                      : "Use the embedded payment form to activate this subscription without leaving the app."}
-                  </p>
-                </div>
+              <div className="rounded-[24px] bg-[linear-gradient(135deg,#fff7f7_0%,#ffffff_50%,#fff3f1_100%)] p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#9A6B6A]">
+                      Access Status
+                    </p>
+                    {isPolling ? (
+                      <p className="mt-3 text-sm text-slate-500">
+                        Waiting for webhook confirmation...
+                      </p>
+                    ) : null}
+                  </div>
 
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  <p>Subscription: {subscriptionStatus.replace(/_/g, " ")}</p>
-                  <p>Role: {(resolvedRole ?? user?.role ?? "customer").replace(/_/g, " ")}</p>
+                  <div className="inline-flex w-fit items-center rounded-full border border-[#F0D4D3] bg-white px-4 py-2 text-sm font-semibold text-[#9F2F2E] shadow-sm">
+                    {formatDisplayLabel(subscriptionStatus) || "Not Subscribed"}
+                  </div>
                 </div>
               </div>
 
@@ -725,57 +761,34 @@ export default function HostedSubscriptionGate({
               ) : null}
 
               {isSubscribed ? (
-                <div className="rounded-2xl border border-[#E5E7EB] bg-slate-50 px-4 py-4 text-sm text-slate-700">
-                  <p>
-                    Recurring billing:{" "}
-                    <span className="font-semibold text-slate-900">
-                      {cancelAtPeriodEnd ? "Stops at period end" : "Active"}
-                    </span>
-                  </p>
-                  {stripeSubscriptionStatus ? (
-                    <p className="mt-2">
-                      Stripe status:{" "}
-                      <span className="font-semibold text-slate-900">
-                        {stripeSubscriptionStatus.replace(/_/g, " ")}
-                      </span>
-                    </p>
-                  ) : null}
+                <div className="rounded-[24px] border border-[#E8ECF2] bg-[#F8FAFC] px-5 py-5 text-sm text-slate-700">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Billing
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-slate-900">
+                        {cancelAtPeriodEnd ? "Stops at period end" : "Recurring is active"}
+                      </p>
+                    </div>
+                    {stripeSubscriptionStatus ? (
+                      <div className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-700">
+                        Stripe: {formatDisplayLabel(stripeSubscriptionStatus)}
+                      </div>
+                    ) : null}
+                  </div>
+
                   {currentPeriodEnd ? (
-                    <p className="mt-2">
+                    <p className="mt-4 text-sm text-slate-600">
                       Current period ends on {new Date(currentPeriodEnd).toLocaleDateString()}.
                     </p>
                   ) : null}
                 </div>
               ) : null}
 
-              <div className="rounded-2xl border border-[#E5E7EB] bg-slate-50 px-4 py-4 text-sm text-slate-700">
-                <p>Payments are now collected in-app with Stripe Elements.</p>
-                <p>The subscription becomes active after the backend webhook syncs the payment.</p>
+              <div className="rounded-[24px] border border-[#EEF1F5] bg-white p-5">
+                {renderPaymentSection()}
               </div>
-
-              {renderPaymentSection()}
-
-              {isSubscribed ? (
-                canResumeRecurring ? (
-                  <button
-                    type="button"
-                    onClick={handleResumeRecurring}
-                    disabled={isBusy}
-                    className="inline-flex items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
-                  >
-                    Restart recurring subscription
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleStopRecurring}
-                    disabled={isBusy}
-                    className="inline-flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:text-amber-400"
-                  >
-                    Stop recurring at period end
-                  </button>
-                )
-              ) : null}
             </div>
           </div>
         </div>

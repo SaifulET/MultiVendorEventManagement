@@ -3,6 +3,8 @@
 import React, { useRef, useState } from 'react';
 import { AlertTriangle, Camera, Lock, Trash2, X } from 'lucide-react';
 
+import { getApiErrorMessage } from '@/lib/api';
+import { uploadProfileImage } from '@/lib/profile-image';
 import ChangePassword from './editProfile/changePassword/page';
 
 interface EditProfileProps {
@@ -11,7 +13,7 @@ interface EditProfileProps {
     email: string;
     phone: string;
     profileImage: string;
-  }) => void;
+  }) => void | Promise<void>;
   onCancel?: () => void;
   initialData?: {
     fullName: string;
@@ -34,6 +36,9 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -46,6 +51,28 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
       setProfileImage(reader.result as string);
     };
     reader.readAsDataURL(file);
+    setPendingProfileImageFile(file);
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      setError('');
+
+      let nextProfileImage = profileImage;
+
+      if (pendingProfileImageFile) {
+        nextProfileImage = await uploadProfileImage(pendingProfileImageFile);
+      }
+
+      await onSave?.({ ...formData, profileImage: nextProfileImage });
+      setProfileImage(nextProfileImage);
+      setPendingProfileImageFile(null);
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -59,15 +86,22 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
             Cancel
           </button>
           <button
-            onClick={() => onSave?.({ ...formData, profileImage })}
+            onClick={handleSaveChanges}
+            disabled={isSaving}
             className="rounded-lg border border-[#E5E7EB] bg-[#B74140] px-6 py-2.5 font-semibold text-white transition-all duration-300 hover:bg-[#772322]"
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
       <div className="space-y-6">
+        {error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px] sm:p-[24px]">
           <h2 className="mb-6 font-inter text-[18px] font-semibold leading-[100%] tracking-[0] text-slate-900">
             Profile Photo
@@ -78,7 +112,7 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
               {profileImage ? (
                 <div className="h-24 w-24 overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 ring-2 ring-gray-200">
                   <img
-                    src={profileImage}
+                    src={profileImage || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop'}
                     alt="Profile"
                     className="h-full w-full object-cover"
                   />

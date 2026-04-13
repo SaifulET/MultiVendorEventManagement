@@ -121,7 +121,8 @@ export default function RoleVerifyEmailClient({
         otp,
       });
 
-      router.push(config.welcomePath);
+      const source = searchParams.get("source") ?? "verify";
+      router.push(`${config.welcomePath}?source=${encodeURIComponent(source)}`);
     } catch {
       // Store error is already handled for the UI.
     }

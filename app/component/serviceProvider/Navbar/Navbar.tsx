@@ -1,10 +1,13 @@
 "use client";
 
 import { Columns2, Bell, Clock, MessageSquare, CheckCircle, X } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import profile from "@/public/profile.jpg";
+import { useAuthStore } from "@/store/useAuthStore";
+import { formatRoleLabel, getFirstName } from "@/lib/user-display";
+import { fetchAuthMeProfile } from "@/lib/auth-me";
+import { PROFILE_IMAGE_UPDATED_EVENT } from "@/lib/profile-image";
 
 interface Notification {
   id: number;
@@ -24,7 +27,11 @@ interface NavbarProps {
 export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [profileImage, setProfileImage] = useState(profile.src);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const user = useAuthStore((state) => state.user);
+  const displayName = getFirstName(user?.fullName);
+  const roleLabel = formatRoleLabel(user?.role ?? "service_provider");
 
   // Notifications data
   const notifications: Notification[] = [
@@ -185,6 +192,42 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncProfileImage = async () => {
+      try {
+        const profileData = await fetchAuthMeProfile();
+        if (isMounted && profileData.profileImage) {
+          setProfileImage(profileData.profileImage);
+        }
+      } catch {
+        if (isMounted) {
+          setProfileImage(profile.src);
+        }
+      }
+    };
+
+    const handleProfileImageUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ imageUrl?: string }>;
+      const nextImage = customEvent.detail?.imageUrl?.trim();
+      if (nextImage) {
+        setProfileImage(nextImage);
+      }
+    };
+
+    void syncProfileImage();
+    window.addEventListener(PROFILE_IMAGE_UPDATED_EVENT, handleProfileImageUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(
+        PROFILE_IMAGE_UPDATED_EVENT,
+        handleProfileImageUpdated
+      );
+    };
+  }, []);
+
   return (
     <>
       <header
@@ -205,22 +248,22 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
         </button>
           <div className="flex flex-col">
             <p className="font-inter font-bold text-2xl leading-8 tracking-normal text-gray-800 mb-[8px]">
-              Welcome back, John!
+              Welcome back, {displayName}!
             </p>
-            <p className="font-inter font-semibold text-md leading-none tracking-normal rounded-full p-[8px] text-center bg-[#10B9811A] text-[#10B981]">
-              Premium Account
+            <p className="font-inter font-semibold text-md leading-none tracking-normal rounded-full px-3 py-2 text-center bg-[#B7414014] text-[#9F2F2E]">
+              Role: {roleLabel}
             </p>
           </div>
 
           {/* Avatar */}
           <div className="w-[48px] h-[48px]">
-            <Image
-              src={profile}
-              alt="User avatar"
-              width={48}
-              height={48}
-              className="rounded-full object-cover border border-amber-950"
-              priority
+            <img
+              src={profileImage || profile.src}
+              alt={user?.fullName || "User avatar"}
+              className="h-[48px] w-[48px] rounded-full object-cover border border-amber-950"
+              onError={(event) => {
+                event.currentTarget.src = profile.src;
+              }}
             />
           </div>
         </div>

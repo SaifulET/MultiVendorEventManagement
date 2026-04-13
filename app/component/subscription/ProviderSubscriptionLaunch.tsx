@@ -89,7 +89,6 @@ export default function ProviderSubscriptionLaunch({
           >
             <HostedSubscriptionGate
               variant="modal"
-              allowSkip
               onRequestClose={() => setIsModalOpen(false)}
             />
           </div>

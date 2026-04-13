@@ -1,153 +1,129 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Camera, Trash2, Lock, AlertTriangle, ChevronDown, X } from 'lucide-react';
-import ChangePassword from './editProfile/changePassword/page';
+import React, { useRef, useState } from 'react';
+import { AlertTriangle, Camera, Lock, Trash2, X } from 'lucide-react';
 
-interface PaymentCard {
-  id: string;
-  last4: string;
-  expiresMonth: string;
-  expiresYear: string;
-  isDefault: boolean;
-  cardColor: string;
-}
+import { getApiErrorMessage } from '@/lib/api';
+import { uploadProfileImage } from '@/lib/profile-image';
+import ChangePassword from './editProfile/changePassword/page';
 
 interface EditProfileProps {
   onSave?: (data: {
     fullName: string;
     email: string;
-    currency: string;
-    location: string;
-  }) => void;
+    phone: string;
+    profileImage: string;
+  }) => void | Promise<void>;
   onCancel?: () => void;
   initialData?: {
     fullName: string;
     email: string;
-    currency: string;
-    location: string;
+    phone: string;
+    profileImage: string;
   };
 }
 
 export default function EditProfile({ onSave, onCancel, initialData }: EditProfileProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop');
-  
+  const [profileImage, setProfileImage] = useState(
+    initialData?.profileImage ||
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop'
+  );
   const [formData, setFormData] = useState({
     fullName: initialData?.fullName || 'Michael Anderson',
     email: initialData?.email || 'sarah.johnson@email.com',
-    currency: initialData?.currency || 'GBP (\u00A3)',
-    location: initialData?.location || 'San Francisco, CA'
+    phone: initialData?.phone || '',
   });
-
-  const [paymentCards, setPaymentCards] = useState<PaymentCard[]>([
-    {
-      id: '1',
-      last4: '4242',
-      expiresMonth: '12',
-      expiresYear: '25',
-      isDefault: true,
-      cardColor: 'from-blue-500 to-indigo-600'
-    },
-    {
-      id: '2',
-      last4: '8888',
-      expiresMonth: '08',
-      expiresYear: '26',
-      isDefault: false,
-      cardColor: 'from-orange-500 to-red-500'
-    }
-  ]);
-
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfileImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setPendingProfileImageFile(file);
   };
 
-  const handleRemovePhoto = () => {
-    setProfileImage('');
-  };
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      setError('');
 
-  const handleSetDefault = (cardId: string) => {
-    setPaymentCards(cards =>
-      cards.map(card => ({
-        ...card,
-        isDefault: card.id === cardId
-      }))
-    );
-  };
+      let nextProfileImage = profileImage;
 
-  const handleRemoveCard = (cardId: string) => {
-    setPaymentCards(cards => cards.filter(card => card.id !== cardId));
-  };
+      if (pendingProfileImageFile) {
+        nextProfileImage = await uploadProfileImage(pendingProfileImageFile);
+      }
 
-  const handleSaveChanges = () => {
-    if (onSave) {
-      onSave(formData);
+      await onSave?.({ ...formData, profileImage: nextProfileImage });
+      setProfileImage(nextProfileImage);
+      setPendingProfileImageFile(null);
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError));
+    } finally {
+      setIsSaving(false);
     }
-    console.log('Saving changes:', formData);
-  };
-
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    }
-    console.log('Cancelled');
   };
 
   return (
-    <div className="min-h-screen bg-white ">
-      {/* Header with action buttons */}
-      <div className="sticky top-0 z-10 bg-white ">
-        <div className=" px-4 sm:px-6 lg:px-8 py-4 flex justify-end gap-3">
+    <div className="min-h-screen bg-white">
+      <div className="sticky top-0 z-10 bg-white">
+        <div className="flex justify-end gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <button
-            onClick={handleCancel}
-            className="px-6 py-2.5 rounded-lg text-slate-700 hover:bg-gray-100 font-semibold transition-all duration-200"
+            onClick={onCancel}
+            className="rounded-lg px-6 py-2.5 font-semibold text-slate-700 transition-all duration-200 hover:bg-gray-100"
           >
             Cancel
           </button>
           <button
             onClick={handleSaveChanges}
-            className="px-6 py-2.5 bg-[#B74140] hover:bg-[#772322] text-white rounded-lg font-semibold  transition-all duration-300 "
+            disabled={isSaving}
+            className="rounded-lg border border-[#E5E7EB] bg-[#B74140] px-6 py-2.5 font-semibold text-white transition-all duration-300 hover:bg-[#772322]"
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
-      <div className=" space-y-6">
-        {/* Profile Photo Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px] ">
-          <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Profile Photo</h2>
-          
-          <div className="flex flex-col sm:flex-row items-start gap-6">
-            {/* Profile Image */}
+      <div className="space-y-6">
+        {error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px] sm:p-[24px]">
+          <h2 className="mb-6 font-inter text-[18px] font-semibold leading-[100%] tracking-[0] text-slate-900">
+            Profile Photo
+          </h2>
+
+          <div className="flex flex-col items-start gap-6 sm:flex-row">
             <div className="flex-shrink-0">
               {profileImage ? (
-                <div className="w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 ring-2 ring-gray-200">
+                <div className="h-24 w-24 overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 ring-2 ring-gray-200">
                   <img
-                    src={profileImage}
+                    src={profileImage || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop'}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
                 </div>
               ) : (
-                <div className="w-24 h-24 rounded-lg bg-gray-50 flex items-center justify-center">
-                  <Camera className="w-8 h-8 text-gray-400" />
+                <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-50">
+                  <Camera className="h-8 w-8 text-gray-400" />
                 </div>
               )}
             </div>
 
-            {/* Photo Actions */}
             <div className="flex-1 space-y-3">
               <input
                 ref={fileInputRef}
@@ -156,194 +132,119 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
                 onChange={handleImageChange}
                 className="hidden"
               />
-              
+
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#B74140] text-white rounded-lg font-semibold hover:bg-[#7a2b2a] transition-all duration-300 "
+                className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#B74140] px-5 py-2.5 font-semibold text-white transition-all duration-300 hover:bg-[#7a2b2a]"
               >
-                <Camera className="w-4 h-4" />
+                <Camera className="h-4 w-4" />
                 Change Photo
               </button>
-              
+
               <button
-                onClick={handleRemovePhoto}
-                className="flex items-center gap-2 px-5 py-2.5 text-[#B74140] hover:bg-gray-200 rounded-lg font-semibold transition-all duration-200"
+                onClick={() => setProfileImage('')}
+                className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-semibold text-[#B74140] transition-all duration-200 hover:bg-gray-200"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="h-4 w-4" />
                 Remove Photo
               </button>
-              
-              <p className="text-sm text-slate-500 mt-2">JPG or PNG. Max size 5MB</p>
+
+              <p className="mt-2 text-sm text-slate-500">JPG or PNG. Max size 5MB</p>
             </div>
           </div>
         </div>
 
-        {/* Profile Information & Account Settings */}
-        <div className="bg-white rounded-2xl  border border-gray-200 p-[18px] sm:p-[24px] ">
-          <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Profile Information & Account Settings</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Full Name */}
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px] sm:p-[24px]">
+          <h2 className="mb-6 font-inter text-[18px] font-semibold leading-[100%] tracking-[0] text-slate-900">
+            Profile Information
+          </h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Full Name
               </label>
               <input
                 type="text"
                 value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 transition-all duration-200 text-slate-900"
+                onChange={(event) =>
+                  setFormData({ ...formData, fullName: event.target.value })
+                }
+                className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
                 placeholder="Enter full name"
               />
             </div>
 
-            {/* Email Address */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Email Address
               </label>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300  transition-all duration-200 text-slate-900"
+                onChange={(event) =>
+                  setFormData({ ...formData, email: event.target.value })
+                }
+                className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
                 placeholder="Enter email address"
               />
             </div>
 
-            {/* Currency */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Currency
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 transition-all duration-200 text-slate-900 appearance-none bg-white"
-                >
-                  <option value={'GBP (\u00A3)'}>{'GBP (\u00A3)'}</option>
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Location
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Mobile Number
               </label>
               <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300  transition-all duration-200 text-slate-900"
-                placeholder="Enter location"
+                type="tel"
+                value={formData.phone}
+                onChange={(event) =>
+                  setFormData({ ...formData, phone: event.target.value })
+                }
+                className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
+                placeholder="Enter mobile number"
               />
             </div>
           </div>
         </div>
 
-        {/* Payment Methods */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px] ">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900">Payment Methods</h2>
-            <button className="px-5 py-2.5 bg-[#B74140] text-white rounded-lg font-semibold hover:bg-[#812b2a] transition-all duration-300 shadow-md hover:shadow-lg text-sm">
-              Add Card
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {paymentCards.map((card) => (
-              <div
-                key={card.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200"
-              >
-                {/* Card Info */}
-                <div className="flex items-center gap-4">
-                  {/* Card Visual */}
-                  <div className={`w-14 h-10 rounded-lg bg-gradient-to-br ${card.cardColor} shadow-md flex items-center justify-center`}>
-                    <div className="w-8 h-6 rounded bg-white/20 backdrop-blur-sm"></div>
-                  </div>
-                  
-                  {/* Card Details */}
-                  <div>
-                    <div className="font-semibold text-slate-900">
-                      •••• •••• •••• {card.last4}
-                    </div>
-                    <div className="text-sm text-slate-500 mt-0.5">
-                      Expires {card.expiresMonth}/{card.expiresYear}
-                    </div>
-                  </div>
-                </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px] sm:p-[24px]">
+          <h2 className="mb-6 font-inter text-[18px] font-semibold leading-[100%] tracking-[0] text-slate-900">
+            Account Actions
+          </h2>
 
-                {/* Actions */}
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {card.isDefault ? (
-                    <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-sm font-semibold">
-                      Default
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleSetDefault(card.id)}
-                      className="px-4 py-1.5 text-[#B74140] hover:text-[#5e1918] text-sm font-semibold hover:bg-red-50 rounded-md transition-colors duration-200"
-                    >
-                      Set Default
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => handleRemoveCard(card.id)}
-                    disabled={card.isDefault && paymentCards.length === 1}
-                    className="px-4 py-1.5 text-[#B74140] hover:text-[#B74140] text-sm font-semibold hover:bg-red-50 rounded-md transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Account Actions */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px]">
-          <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Account Actions</h2>
-          
           <div className="space-y-4">
-            {/* Password Change */}
-            <div className="flex items-center justify-between p-5 rounded-xl bg-gray-50 border border-gray-200">
+            <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-gray-50 p-5">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                  <Lock className="w-6 h-6 text-[#B74140]" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100">
+                  <Lock className="h-6 w-6 text-[#B74140]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">Password</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">••••••••••</p>
+                  <p className="mt-0.5 text-sm text-slate-500">..........</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowChangePassword(true)}
-                className="px-5 py-2 text-[#B74140] hover:text-[#681d1c] font-semibold hover:bg-red-50 rounded-lg transition-all duration-200"
+                className="rounded-lg px-5 py-2 font-semibold text-[#B74140] transition-all duration-200 hover:bg-red-50 hover:text-[#681d1c]"
               >
                 Change Password
               </button>
             </div>
 
-            {/* Delete Account */}
-            <div className="p-5 rounded-xl bg-red-50 border-2 border-red-200">
+            <div className="rounded-xl border-2 border-red-200 bg-red-50 p-5">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-red-900 mb-1">Delete Account</h3>
-                  <p className="text-sm text-red-700 mb-4">
+                  <h3 className="mb-1 font-semibold text-red-900">Delete Account</h3>
+                  <p className="mb-4 text-sm text-red-700">
                     Permanently delete your account and all data
                   </p>
                   {!showDeleteConfirm ? (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="px-5 py-2 text-red-600 hover:text-red-700 font-semibold hover:bg-red-100 rounded-lg transition-all duration-200"
+                      className="rounded-lg px-5 py-2 font-semibold text-red-600 transition-all duration-200 hover:bg-red-100 hover:text-red-700"
                     >
                       Delete Account
                     </button>
@@ -351,17 +252,16 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
-                          // Handle delete
                           console.log('Account deleted');
                           setShowDeleteConfirm(false);
                         }}
-                        className="px-5 py-2 bg-[#B74140] text-white font-semibold rounded-lg hover:bg-[#6d1e1d] transition-all duration-200"
+                        className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white transition-all hover:bg-red-700"
                       >
                         Confirm Delete
                       </button>
                       <button
                         onClick={() => setShowDeleteConfirm(false)}
-                        className="px-5 py-2 bg-white text-slate-700 font-semibold rounded-lg hover:bg-gray-100 border border-gray-300 transition-all duration-200"
+                        className="rounded-lg border border-red-200 px-4 py-2 font-semibold text-red-700 transition-all hover:bg-red-100"
                       >
                         Cancel
                       </button>
@@ -374,26 +274,19 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
         </div>
       </div>
 
-      {/* Change Password Modal */}
-      {showChangePassword && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
-          <div className="relative w-full max-w-3xl my-8">
+      {showChangePassword ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <button
               onClick={() => setShowChangePassword(false)}
-              className="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-gray-100 transition-all duration-200 z-10"
+              className="absolute right-4 top-4 rounded-full p-2 text-slate-500 transition-all hover:bg-gray-100 hover:text-slate-700"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
-            <ChangePassword 
-              onClose={() => setShowChangePassword(false)}
-              onUpdate={(passwords) => {
-                console.log('Password update:', passwords);
-                setShowChangePassword(false);
-              }}
-            />
+            <ChangePassword onClose={() => setShowChangePassword(false)} />
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

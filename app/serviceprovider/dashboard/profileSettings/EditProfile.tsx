@@ -2,6 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Camera, Trash2, Lock, AlertTriangle, ChevronDown, X } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api';
+import { uploadProfileImage } from '@/lib/profile-image';
 import ChangePassword from './editProfile/changePassword/page';
 
 interface PaymentCard {
@@ -61,6 +63,9 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,6 +75,7 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+      setPendingProfileImageFile(file);
     }
   };
 
@@ -90,11 +96,24 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
     setPaymentCards(cards => cards.filter(card => card.id !== cardId));
   };
 
-  const handleSaveChanges = () => {
-    if (onSave) {
-      onSave(formData);
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      setError('');
+
+      if (pendingProfileImageFile) {
+        await uploadProfileImage(pendingProfileImageFile);
+        setPendingProfileImageFile(null);
+      }
+
+      if (onSave) {
+        onSave(formData);
+      }
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError));
+    } finally {
+      setIsSaving(false);
     }
-    console.log('Saving changes:', formData);
   };
 
   const handleCancel = () => {
@@ -117,14 +136,21 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
           </button>
           <button
             onClick={handleSaveChanges}
+            disabled={isSaving}
             className="px-6 py-2.5 bg-[#B74140] hover:bg-[#772322] text-white rounded-lg font-semibold  transition-all duration-300 border border-[#E5E7EB]"
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
       <div className=" space-y-6">
+        {error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         {/* Profile Photo Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-[18px] sm:p-[24px] ">
           <h2 className="font-inter font-semibold text-[18px] leading-[100%] tracking-[0] text-slate-900 mb-6">Profile Photo</h2>
@@ -135,7 +161,7 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
               {profileImage ? (
                 <div className="w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 ring-2 ring-gray-200">
                   <img
-                    src={profileImage}
+                    src={profileImage || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop'}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />

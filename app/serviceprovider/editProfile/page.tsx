@@ -2,6 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Camera, Trash2, Lock, AlertTriangle, ChevronDown, X } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api';
+import { uploadProfileImage } from '@/lib/profile-image';
 import ChangePassword from '../editProfile/changePassword';
 
 interface PaymentCard {
@@ -45,6 +47,9 @@ export default function EditProfile() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,6 +59,7 @@ export default function EditProfile() {
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+      setPendingProfileImageFile(file);
     }
   };
 
@@ -74,9 +80,20 @@ export default function EditProfile() {
     setPaymentCards(cards => cards.filter(card => card.id !== cardId));
   };
 
-  const handleSaveChanges = () => {
-    // Handle save logic here
-    console.log('Saving changes:', formData);
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      setError('');
+
+      if (pendingProfileImageFile) {
+        await uploadProfileImage(pendingProfileImageFile);
+        setPendingProfileImageFile(null);
+      }
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,14 +114,21 @@ export default function EditProfile() {
           </button>
           <button
             onClick={handleSaveChanges}
+            disabled={isSaving}
             className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg"
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         {/* Profile Photo Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
           <h2 className="text-xl font-bold text-slate-900 mb-6">Profile Photo</h2>

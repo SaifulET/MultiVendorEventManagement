@@ -3,7 +3,9 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import logo from "@/public/logo.svg";
+import profile from "@/public/profile.jpg";
 import {
   LayoutDashboard,
   Calendar,
@@ -11,6 +13,9 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
+import { fetchAuthMeProfile } from "@/lib/auth-me";
+import { PROFILE_IMAGE_UPDATED_EVENT } from "@/lib/profile-image";
 
 const MENU = [
   {
@@ -42,16 +47,68 @@ const MENU = [
 export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
+  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+  const [profileImage, setProfileImage] = useState(profile.src);
+  const [profileName, setProfileName] = useState(user?.fullName?.trim() || "User");
+  const [profileEmail, setProfileEmail] = useState(user?.email?.trim() || "");
 
   const handleDashboard = () => {
     router.push("/home/dashboard/dashboard");
   };
 
   const handleLogout = () => {
+    logout();
     router.push("/home/auth/signin");
   };
 
   const isActive = (route: string) => pathname.startsWith(route);
+
+  useEffect(() => {
+    setProfileName(user?.fullName?.trim() || "User");
+    setProfileEmail(user?.email?.trim() || "");
+  }, [user?.email, user?.fullName]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncProfile = async () => {
+      try {
+        const profileData = await fetchAuthMeProfile();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfileName(profileData.fullName.trim() || user?.fullName?.trim() || "User");
+        setProfileEmail(profileData.email.trim() || user?.email?.trim() || "");
+        setProfileImage(profileData.profileImage || profile.src);
+      } catch {
+        if (isMounted) {
+          setProfileImage(profile.src);
+        }
+      }
+    };
+
+    const handleProfileImageUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ imageUrl?: string }>;
+      const nextImage = customEvent.detail?.imageUrl?.trim();
+      if (nextImage) {
+        setProfileImage(nextImage);
+      }
+    };
+
+    void syncProfile();
+    window.addEventListener(PROFILE_IMAGE_UPDATED_EVENT, handleProfileImageUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(
+        PROFILE_IMAGE_UPDATED_EVENT,
+        handleProfileImageUpdated
+      );
+    };
+  }, [user?.email, user?.fullName]);
 
   return (
     <aside
@@ -106,29 +163,31 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
         >
           {!collapsed ? (
             <>
-              <Image
-                src="/placeholder-avatar.jpg"
-                alt="Sarah Johnson"
-                width={40}
-                height={40}
-                className="rounded-full"
+              <img
+                src={profileImage || profile.src}
+                alt={profileName}
+                className="h-10 w-10 rounded-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.src = profile.src;
+                }}
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  Sarah Johnson
+                  {profileName}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  sarah@email.com
+                  {profileEmail || "No email available"}
                 </p>
               </div>
             </>
           ) : (
-            <Image
-              src="/placeholder-avatar.jpg"
-              alt="Sarah Johnson"
-              width={36}
-              height={36}
-              className="rounded-full"
+            <img
+              src={profileImage || profile.src}
+              alt={profileName}
+              className="h-9 w-9 rounded-full object-cover"
+              onError={(event) => {
+                event.currentTarget.src = profile.src;
+              }}
             />
           )}
         </div>

@@ -54,7 +54,7 @@ export default function RoleSigninPage({ config }: RoleSigninPageProps) {
         password,
       });
 
-      router.push(config.welcomePath);
+      router.push(`${config.welcomePath}?source=signin`);
     } catch {
       // Store error is already handled for the UI.
     }
