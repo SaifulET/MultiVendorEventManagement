@@ -31,6 +31,7 @@ interface EventPlannerProfileInfo {
   description?: string;
   coverageArea?: string[];
   address?: string;
+  profileImage?: string;
 }
 
 interface EventPlannerDetails {
@@ -38,6 +39,7 @@ interface EventPlannerDetails {
   isBlocked?: boolean;
   fullName?: string;
   email?: string;
+  profileImage?: string;
   role?: string;
   serviceCategories?: string[];
   isEmailVerified?: boolean;
@@ -53,6 +55,7 @@ interface EventPlannerDetails {
       _id?: string;
       fullName?: string;
       email?: string;
+      profileImage?: string;
       profileInfo?: EventPlannerProfileInfo;
     };
   };
@@ -189,6 +192,12 @@ export default function WeddingPlannerProfile() {
     planner?.email?.trim() ||
     planner?.onboarding?.eventProvider?.email?.trim() ||
     'Email unavailable';
+  const plannerProfileImage =
+    (typeof planner?.profileImage === 'string' && planner.profileImage.trim()) ||
+    (typeof planner?.onboarding?.eventProvider?.profileImage === 'string' &&
+      planner.onboarding.eventProvider.profileImage.trim()) ||
+    (typeof profileInfo?.profileImage === 'string' && profileInfo.profileImage.trim()) ||
+    plannerImg.src;
   const locationLabel = [
     ...coverageArea,
     address,
@@ -257,11 +266,9 @@ export default function WeddingPlannerProfile() {
           <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-sm md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-                <Image
-                  src={plannerImg}
+                <img
+                  src={plannerProfileImage}
                   alt={plannerName}
-                  width={128}
-                  height={128}
                   className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-md md:h-32 md:w-32"
                 />
 

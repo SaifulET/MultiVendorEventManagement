@@ -16,18 +16,21 @@ interface EventPlannerProfileInfo {
   description?: string;
   coverageArea?: string[];
   address?: string;
+  profileImage?: string;
 }
 
 interface EventPlannerApiItem {
   _id: string;
   fullName?: string;
   email?: string;
+  profileImage?: string;
   serviceCategories?: string[];
   isBlocked?: boolean;
   onboarding?: {
     eventProvider?: {
       fullName?: string;
       email?: string;
+      profileImage?: string;
       profileInfo?: EventPlannerProfileInfo;
     };
     verification?: {
@@ -62,6 +65,12 @@ const getPlannerStatus = (planner: EventPlannerApiItem): VenueStatus =>
 const mapEventPlanner = (planner: EventPlannerApiItem): serviceProvider => {
   const profileInfo = planner.onboarding?.eventProvider?.profileInfo;
   const categoryList = getArrayValues(planner.serviceCategories);
+  const plannerProfileImage =
+    (typeof planner.profileImage === 'string' && planner.profileImage.trim()) ||
+    (typeof planner.onboarding?.eventProvider?.profileImage === 'string' &&
+      planner.onboarding.eventProvider.profileImage.trim()) ||
+    (typeof profileInfo?.profileImage === 'string' && profileInfo.profileImage.trim()) ||
+    DEFAULT_IMAGE;
   const locationParts = [
     ...(profileInfo?.coverageArea ?? []),
     profileInfo?.address,
@@ -87,7 +96,7 @@ const mapEventPlanner = (planner: EventPlannerApiItem): serviceProvider => {
     categoryList: categoryList.length ? categoryList : ['Event Planner'],
     price: 0,
     currency: '',
-    image: DEFAULT_IMAGE,
+    image: plannerProfileImage,
     status: getPlannerStatus(planner),
   };
 };

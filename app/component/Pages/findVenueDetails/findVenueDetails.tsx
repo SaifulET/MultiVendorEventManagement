@@ -141,24 +141,44 @@ const getAmenities = (amenities?: Record<string, boolean> | string[]) => {
     .map(([key]) => key);
 };
 
-const getYouTubeEmbedUrl = (url: string) => {
+const getYouTubeVideoId = (url: string) => {
   try {
     const parsedUrl = new URL(url);
 
     if (parsedUrl.hostname.includes('youtu.be')) {
       const videoId = parsedUrl.pathname.replace('/', '');
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return videoId || null;
     }
 
     if (parsedUrl.hostname.includes('youtube.com')) {
+      if (parsedUrl.pathname.startsWith('/embed/')) {
+        const videoId = parsedUrl.pathname.replace('/embed/', '').split('/')[0];
+        return videoId || null;
+      }
+
+      if (parsedUrl.pathname.startsWith('/shorts/')) {
+        const videoId = parsedUrl.pathname.replace('/shorts/', '').split('/')[0];
+        return videoId || null;
+      }
+
       const videoId = parsedUrl.searchParams.get('v');
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return videoId || null;
     }
   } catch {
     return null;
   }
 
   return null;
+};
+
+const getYouTubeEmbedUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url);
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+};
+
+const getYouTubeThumbnailUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 };
 
 const getAvailabilityStatus = (
@@ -304,13 +324,14 @@ const VenueBookingPage: React.FC = () => {
       }));
 
     const videoUrl = venue.media?.videoUrl?.trim();
+    const videoThumbnailUrl = videoUrl ? getYouTubeThumbnailUrl(videoUrl) : null;
 
     if (videoUrl) {
       galleryImages.push({
         id: 'video-0',
         type: 'video',
         src: videoUrl,
-        thumbnail: galleryImages[0]?.src || 'https://images.unsplash.com/photo-1519167758481-83f29da8a1c0?w=800',
+        thumbnail: videoThumbnailUrl || galleryImages[0]?.src || 'https://images.unsplash.com/photo-1519167758481-83f29da8a1c0?w=800',
         label: 'Video',
         embedUrl: getYouTubeEmbedUrl(videoUrl),
       });
@@ -502,8 +523,8 @@ const VenueBookingPage: React.FC = () => {
                       <button
                         key={item.id}
                         onClick={() => setSelectedMediaId(item.id)}
-                        className={`relative rounded-lg overflow-hidden transition-all w-[94px] flex-shrink-0 ${
-                          selectedMediaId === item.id ? 'ring-2 ring-[#B74140]' : ''
+                        className={`relative w-[94px] flex-shrink-0 overflow-hidden rounded-lg border-0 bg-transparent p-0 text-left shadow-none outline-none transition-all appearance-none ${
+                          selectedMediaId === item.id ? 'opacity-100' : 'opacity-85 hover:opacity-100'
                         }`}
                       >
                         <div className="aspect-square relative bg-slate-100">
@@ -518,8 +539,12 @@ const VenueBookingPage: React.FC = () => {
                             </div>
                           ) : null}
                         </div>
-                        <div className="bg-white py-1.5 text-center">
-                          <span className="text-xs font-medium text-gray-800">{item.label}</span>
+                        <div className={`py-1.5 text-center ${
+                          selectedMediaId === item.id ? 'bg-[#FFF7F6]' : 'bg-white'
+                        }`}>
+                          <span className={`text-xs font-medium ${
+                            selectedMediaId === item.id ? 'text-[#B74140]' : 'text-gray-800'
+                          }`}>{item.label}</span>
                         </div>
                       </button>
                     ))}

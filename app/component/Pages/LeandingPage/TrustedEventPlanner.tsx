@@ -10,18 +10,21 @@ interface EventPlannerProfileInfo {
   description?: string;
   coverageArea?: string[];
   address?: string;
+  profileImage?: string;
 }
 
 interface EventPlannerApiItem {
   _id: string;
   fullName?: string;
   email?: string;
+  profileImage?: string;
   serviceCategories?: string[];
   isBlocked?: boolean;
   onboarding?: {
     eventProvider?: {
       fullName?: string;
       email?: string;
+      profileImage?: string;
       profileInfo?: EventPlannerProfileInfo;
     };
   };
@@ -61,6 +64,12 @@ const getArrayValues = (value?: string[]) =>
 const mapEventPlanner = (planner: EventPlannerApiItem): EventPlannerCardData => {
   const profileInfo = planner.onboarding?.eventProvider?.profileInfo;
   const categories = getArrayValues(planner.serviceCategories);
+  const plannerProfileImage =
+    (typeof planner.profileImage === 'string' && planner.profileImage.trim()) ||
+    (typeof planner.onboarding?.eventProvider?.profileImage === 'string' &&
+      planner.onboarding.eventProvider.profileImage.trim()) ||
+    (typeof profileInfo?.profileImage === 'string' && profileInfo.profileImage.trim()) ||
+    DEFAULT_IMAGE;
   const locationParts = [
     ...(profileInfo?.coverageArea ?? []),
     profileInfo?.address,
@@ -83,7 +92,7 @@ const mapEventPlanner = (planner: EventPlannerApiItem): EventPlannerCardData => 
     location: locationParts.length ? locationParts.join(', ') : 'Coverage area unavailable',
     rating: 0,
     reviewCount: 0,
-    imageUrl: DEFAULT_IMAGE,
+    imageUrl: plannerProfileImage,
     category: categories[0] || 'Event Planner',
   };
 };
@@ -216,11 +225,7 @@ export default function TrustedEventPlannerPage() {
             },
           });
 
-          console.log('[Homepage][Event Planners] GET /api/v1/public/event-planners response:', {
-            page: typeof nextPage === 'number' ? nextPage : 1,
-            params: response.config?.params,
-            data: response.data,
-          });
+          console.log(`[Event Planners] `, response.data);
 
           const responseData = Array.isArray(response.data.data)
             ? response.data.data

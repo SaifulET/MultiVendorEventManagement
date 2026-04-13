@@ -139,24 +139,44 @@ const getAmenities = (amenities?: Record<string, boolean> | string[]) => {
     .map(([key]) => key);
 };
 
-const getYouTubeEmbedUrl = (url: string) => {
+const getYouTubeVideoId = (url: string) => {
   try {
     const parsedUrl = new URL(url);
 
     if (parsedUrl.hostname.includes('youtu.be')) {
       const videoId = parsedUrl.pathname.replace('/', '');
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return videoId || null;
     }
 
     if (parsedUrl.hostname.includes('youtube.com')) {
+      if (parsedUrl.pathname.startsWith('/embed/')) {
+        const videoId = parsedUrl.pathname.replace('/embed/', '').split('/')[0];
+        return videoId || null;
+      }
+
+      if (parsedUrl.pathname.startsWith('/shorts/')) {
+        const videoId = parsedUrl.pathname.replace('/shorts/', '').split('/')[0];
+        return videoId || null;
+      }
+
       const videoId = parsedUrl.searchParams.get('v');
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return videoId || null;
     }
   } catch {
     return null;
   }
 
   return null;
+};
+
+const getYouTubeEmbedUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url);
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+};
+
+const getYouTubeThumbnailUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 };
 
 const getAvailabilityStatus = (
@@ -367,6 +387,7 @@ export default function ServiceProviderDetails() {
       ? service.media.videoUrl
       : '';
   const videoEmbedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+  const videoThumbnailUrl = videoUrl ? getYouTubeThumbnailUrl(videoUrl) : null;
   const mediaItems: MediaItem[] = [
     ...galleryImages.map((image, index) => ({
       id: `image-${index}`,
@@ -380,7 +401,7 @@ export default function ServiceProviderDetails() {
         id: 'video-0',
         type: 'video' as const,
         src: videoUrl,
-        thumbnail: galleryImages[0] || DEFAULT_IMAGE,
+        thumbnail: videoThumbnailUrl || galleryImages[0] || DEFAULT_IMAGE,
         label: 'Video Tour',
         embedUrl: videoEmbedUrl,
       }]
@@ -794,10 +815,10 @@ export default function ServiceProviderDetails() {
                     <button
                       key={item.id}
                       onClick={() => { setSelectedMediaId(item.id); }}
-                      className={`relative overflow-hidden rounded-2xl border transition-all ${
+                      className={`relative overflow-hidden rounded-2xl border-0 bg-transparent p-0 text-left shadow-none outline-none transition-all appearance-none ${
                         item.id === selectedMedia?.id
-                          ? 'border-[#B74140] ring-2 ring-[#B7414026]'
-                          : 'border-gray-200'
+                          ? 'opacity-100'
+                          : 'opacity-85 hover:opacity-100'
                       }`}
                     >
                       <img
