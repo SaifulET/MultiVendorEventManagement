@@ -1,233 +1,430 @@
 'use client';
 
-import { Bell } from 'lucide-react';
-import React, { useState } from 'react';
+import { Bell, LoaderCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import img from "@/public/bookingsummary.svg";
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+
+import BookingAvailabilityPicker from '@/app/component/shared/BookingAvailabilityPicker';
+import BookingPopup from '@/app/component/shared/BookingPopup';
+import { api, getApiErrorMessage } from '@/lib/api';
+import {
+  buildNextSelectedHours,
+  findFirstSelectableDate,
+  formatBookingDate,
+  formatCurrencyAmount,
+  formatHourRange,
+  formatMonthLabel,
+  getCalendarDays,
+  getHourSlots,
+  parseMonthKey,
+  type BookingAvailabilityEntry,
+  type BookingMeta,
+} from '@/lib/booking';
 import { formatDateDDMMYY } from '@/lib/date';
-interface TimeSlot {
-  time: string;
-  available: boolean;
+import { useAuthStore } from '@/store/useAuthStore';
+
+interface BookingDialogState {
+  message: string;
+  title: string;
 }
 
-interface CalendarDay {
-  date: Date | null;
-  day?: number;
-  available?: boolean;
-  booked?: boolean;
+interface VenueBookingContextResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, BookingAvailabilityEntry>;
+    bookingMeta: BookingMeta;
+    provider?: {
+      email?: string;
+      fullName?: string;
+      role?: string;
+    };
+    target?: {
+      _id?: string | number;
+      capacity?: {
+        maximumGuests?: number;
+      };
+      information?: {
+        addressLine?: string;
+        area?: string;
+        city?: string;
+        description?: string;
+        venueName?: string;
+        venueType?: string;
+      };
+      pricing?: {
+        basePrice?: number;
+        currency?: string;
+      };
+    };
+    targetType?: string;
+  };
 }
+
+const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const VenueBooking: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 2, 1));
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date(2024, 2, 15));
-  const [selectedTime, setSelectedTime] = useState('2:00 PM');
+  const params = useParams<{ slug: string }>();
+  const router = useRouter();
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+
+  const [bookingContext, setBookingContext] = useState<VenueBookingContextResponse['data'] | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedHoursByDate, setSelectedHoursByDate] = useState<Record<string, number[]>>({});
+  const [activeMonthIndex, setActiveMonthIndex] = useState(0);
   const [eventType, setEventType] = useState('Corporate Meeting');
-  const [guests, setGuests] = useState(50);
-  const [duration, setDuration] = useState(4);
+  const [guests, setGuests] = useState<number | ''>(0);
+  const [location, setLocation] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isLoadingContext, setIsLoadingContext] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contextError, setContextError] = useState('');
+  const [dialog, setDialog] = useState<BookingDialogState | null>(null);
 
-  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const availableMonths = useMemo(() => {
+    const currentMonth = parseMonthKey(bookingContext?.bookingMeta.currentMonth);
+    const nextMonth = parseMonthKey(bookingContext?.bookingMeta.nextMonth);
 
-  const timeSlots: TimeSlot[] = [
-    { time: '9:00 AM', available: true },
-    { time: '10:00 AM', available: true },
-    { time: '11:00 AM', available: true },
-    { time: '12:00 PM', available: false },
-    { time: '2:00 PM', available: true },
-    { time: '3:00 PM', available: true },
-    { time: '4:00 PM', available: true },
-    { time: '5:00 PM', available: true },
-  ];
+    return [currentMonth, nextMonth].filter((month): month is Date => Boolean(month));
+  }, [bookingContext?.bookingMeta.currentMonth, bookingContext?.bookingMeta.nextMonth]);
 
-  const getCalendarDays = (): CalendarDay[] => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startingDayOfWeek = firstDay.getDay();
-    const totalDays = lastDay.getDate();
-
-    const days: CalendarDay[] = [];
-
-    // Add empty days for the beginning of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push({ date: null });
+  const activeMonth = availableMonths[activeMonthIndex] ?? null;
+  const selectedDateKey = formatBookingDate(selectedDate);
+  const selectedHours = selectedDateKey ? selectedHoursByDate[selectedDateKey] ?? [] : [];
+  const hourSlots = useMemo(() => {
+    if (!bookingContext || !selectedDateKey) {
+      return [];
     }
 
-    // Add actual days of the month
-    for (let day = 1; day <= totalDays; day++) {
-      const date = new Date(year, month, day);
-      days.push({
-        date,
-        day,
-        available: day === 10,
-        booked: day === 21 || day === 22,
-      });
+    return getHourSlots(selectedDateKey, bookingContext.bookingMeta, bookingContext.availability);
+  }, [bookingContext, selectedDateKey]);
+
+  const selectableHours = useMemo(
+    () => hourSlots.filter((slot) => slot.isSelectable).map((slot) => slot.hour),
+    [hourSlots]
+  );
+  const selectedDateKeys = useMemo(
+    () =>
+      Object.entries(selectedHoursByDate)
+        .filter(([, hours]) => hours.length > 0)
+        .map(([dateKey]) => dateKey)
+        .sort(),
+    [selectedHoursByDate]
+  );
+  const totalSelectedHours = useMemo(
+    () => selectedDateKeys.reduce((total, dateKey) => total + (selectedHoursByDate[dateKey]?.length ?? 0), 0),
+    [selectedDateKeys, selectedHoursByDate]
+  );
+  const selectedScheduleItems = useMemo(
+    () =>
+      selectedDateKeys.map((dateKey) => ({
+        dateKey,
+        displayDate: formatDateDDMMYY(dateKey, dateKey),
+        hours: selectedHoursByDate[dateKey] ?? [],
+        timeLabel: formatHourRange(selectedHoursByDate[dateKey] ?? []),
+      })),
+    [selectedDateKeys, selectedHoursByDate]
+  );
+
+  const calendarDays = useMemo(() => {
+    if (!bookingContext || !activeMonth) {
+      return [];
     }
 
-    return days;
-  };
+    return getCalendarDays(activeMonth, bookingContext.bookingMeta, bookingContext.availability);
+  }, [activeMonth, bookingContext]);
 
-  const isSameDay = (a: Date | null, b: Date | null): boolean => {
-    if (!a || !b) return false;
-    return a.toDateString() === b.toDateString();
-  };
+  const venueName = bookingContext?.target?.information?.venueName?.trim() || 'Venue';
+  const venueType = bookingContext?.target?.information?.venueType?.trim() || 'Venue booking';
+  const venueDescription =
+    bookingContext?.target?.information?.description?.trim() ||
+    'Select an available date and consecutive hours to book this venue.';
+  const venueAddress = [
+    bookingContext?.target?.information?.addressLine?.trim(),
+    bookingContext?.target?.information?.area?.trim(),
+    bookingContext?.target?.information?.city?.trim(),
+  ]
+    .filter(Boolean)
+    .join(', ');
 
-  const formatDate = (date: Date | null): string => {
-    return formatDateDDMMYY(date);
-  };
+  const maximumGuests =
+    bookingContext?.bookingMeta.maximumGuests ?? bookingContext?.target?.capacity?.maximumGuests ?? undefined;
+  const priceDisplay = formatCurrencyAmount(
+    bookingContext?.target?.pricing?.basePrice,
+    bookingContext?.bookingMeta.currency ?? bookingContext?.target?.pricing?.currency ?? 'BDT'
+  );
+  const selectionLabel = formatHourRange(selectedHours);
+  const selectedDuration = totalSelectedHours;
+  const hasBookingSelection = selectedDateKeys.length > 0;
 
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-    const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 '); // Add space every 4 digits
-    setCardNumber(formatted.slice(0, 19)); // Limit to 16 digits + 3 spaces
-  };
-
-  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2);
+  useEffect(() => {
+    const venueId = params?.slug;
+    if (!venueId) {
+      setContextError('Venue not found.');
+      setIsLoadingContext(false);
+      return;
     }
-    setExpiry(value.slice(0, 5));
-  };
 
-  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    setCvv(value.slice(0, 4));
-  };
+    let isMounted = true;
+
+    const fetchContext = async () => {
+      try {
+        setIsLoadingContext(true);
+        setContextError('');
+
+        const response = await api.get<VenueBookingContextResponse>(`/api/v1/bookings/venues/${venueId}/context`);
+        const nextContext = response.data.data;
+
+        if (!nextContext || !isMounted) {
+          return;
+        }
+
+        setBookingContext(nextContext);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setBookingContext(null);
+        setContextError(getApiErrorMessage(error));
+      } finally {
+        if (isMounted) {
+          setIsLoadingContext(false);
+        }
+      }
+    };
+
+    fetchContext();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params?.slug]);
+
+  useEffect(() => {
+    if (!bookingContext || availableMonths.length === 0) {
+      return;
+    }
+
+    const firstSelectableDate = findFirstSelectableDate(
+      availableMonths,
+      bookingContext.bookingMeta,
+      bookingContext.availability
+    );
+
+    if (!firstSelectableDate) {
+      setSelectedDate(null);
+      return;
+    }
+
+    setSelectedDate((currentSelectedDate) => currentSelectedDate ?? firstSelectableDate);
+    setActiveMonthIndex((currentIndex) => {
+      const matchingMonthIndex = availableMonths.findIndex(
+        (month) =>
+          month.getFullYear() === firstSelectableDate.getFullYear() &&
+          month.getMonth() === firstSelectableDate.getMonth()
+      );
+
+      return matchingMonthIndex >= 0 ? matchingMonthIndex : currentIndex;
+    });
+  }, [availableMonths, bookingContext]);
+
+  useEffect(() => {
+    if (typeof guests === 'number' && typeof maximumGuests === 'number' && guests > maximumGuests) {
+      setGuests(maximumGuests);
+    }
+  }, [guests, maximumGuests]);
 
   const handleGuestsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 1) {
-      setGuests(value);
+    const { value } = e.target;
+
+    if (value === '') {
+      setGuests('');
+      return;
+    }
+
+    const numericValue = parseInt(value, 10);
+    if (!isNaN(numericValue) && numericValue >= 0) {
+      if (typeof maximumGuests === 'number') {
+        setGuests(Math.min(numericValue, maximumGuests));
+        return;
+      }
+
+      setGuests(numericValue);
     }
   };
 
-  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 1) {
-      setDuration(value);
-    }
-  };
-const router = useRouter();
-  const handleConfirmBooking = () => {
-    if (!agreeTerms) return;
-    
-   router.push('/pages/venueBookingconfirmation/confirmed-booking-slug');
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
   };
 
-  const calendarDays = getCalendarDays();
+  const handleToggleHour = (hour: number) => {
+    if (!selectedDateKey) {
+      return;
+    }
+
+    const nextSelection = buildNextSelectedHours(selectedHours, hour, selectableHours);
+
+    if (nextSelection.error) {
+      setDialog({
+        title: 'Invalid Hour Selection',
+        message: nextSelection.error,
+      });
+      return;
+    }
+
+    setSelectedHoursByDate((currentSelections) => {
+      if (nextSelection.hours.length === 0) {
+        const nextSelections = { ...currentSelections };
+        delete nextSelections[selectedDateKey];
+        return nextSelections;
+      }
+
+      return {
+        ...currentSelections,
+        [selectedDateKey]: nextSelection.hours,
+      };
+    });
+  };
+
+  const handleClearActiveDateSelection = () => {
+    if (!selectedDateKey) {
+      return;
+    }
+
+    setSelectedHoursByDate((currentSelections) => {
+      const nextSelections = { ...currentSelections };
+      delete nextSelections[selectedDateKey];
+      return nextSelections;
+    });
+  };
+
+  const handleCloseDialog = () => {
+    setDialog(null);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (isSubmitting || !bookingContext) {
+      return;
+    }
+
+    if (!token || !user) {
+      setDialog({
+        title: 'Login Required',
+        message: 'Please sign in with a customer account before booking this venue.',
+      });
+      return;
+    }
+
+    if (user.role !== 'customer') {
+      setDialog({
+        title: 'Customer Account Required',
+        message: 'Only users with the customer role can book venues.',
+      });
+      return;
+    }
+
+    const venueId = params?.slug;
+    if (!venueId) {
+      setDialog({
+        title: 'Venue Not Found',
+        message: 'We could not find the venue you are trying to book.',
+      });
+      return;
+    }
+
+    if (selectedDateKeys.length === 0) {
+      setDialog({
+        title: 'Select Dates & Hours',
+        message: 'Please choose at least one available date and any available hours before continuing.',
+      });
+      return;
+    }
+
+    if (!location.trim()) {
+      setDialog({
+        title: 'Location Required',
+        message: 'Please enter a location before confirming your booking.',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await Promise.all(
+        selectedDateKeys.map((dateKey) =>
+          api.post(`/api/v1/bookings/venues/${venueId}`, {
+            bookingDate: dateKey,
+            hours: selectedHoursByDate[dateKey] ?? [],
+            guest_count: typeof guests === 'number' ? guests : 0,
+            location: location.trim(),
+            specialInstructions: specialInstructions.trim(),
+          })
+        )
+      );
+
+      router.push('/pages/venueBookingconfirmation/confirmed-booking-slug');
+    } catch (error) {
+      setDialog({
+        title: 'Booking Failed',
+        message: getApiErrorMessage(error),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen  px-[32px] md:px-[104px] py-[38px]">
-      <div className="">
+    <div className="min-h-screen px-[32px] md:px-[104px] py-[38px]">
+      <div>
         <h1 className="font-inter font-bold text-[24px] leading-[32px] tracking-normal mb-[20px]">Venue Booking</h1>
 
-        {/* MASTER GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-[32px]">
-          
-          {/* LEFT COLUMN */}
           <div className="space-y-6">
-
-            {/* DATE & TIME */}
-            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
-              <h2 className="text-xl font-semibold mb-6">Select Date & Time</h2>
-
-              <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-                
-                {/* CALENDAR */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="font-medium">Date</span>
-                    <span className="font-medium">
-                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2 mb-2">
-                    {daysOfWeek.map(day => (
-                      <div key={day} className="text-center text-sm text-gray-500">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2">
-                    {calendarDays.map((day, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        disabled={!day.date || day.booked}
-                        onClick={() => day.date && setSelectedDate(day.date)}
-                        className={`
-                          aspect-square rounded text-sm font-medium transition-colors text-gray-900
-                          ${!day.date ? 'invisible' : ''}
-                          ${day.booked ? 'bg-red-100  cursor-not-allowed' : ''}
-                          ${day.available ? 'bg-[#3CCF911A] ' : ''}
-                          ${isSameDay(day.date, selectedDate) && !day.available && !day.booked 
-                            ? 'bg-[#3CCF91] ' 
-                            : 'hover:bg-gray-100'
-                          }
-                          ${!day.available && !day.booked && !isSameDay(day.date, selectedDate) 
-                            ? 'bg-[#3CCF911A] ' 
-                            : ''
-                          }
-                        `}
-                      >
-                        {day.day}
-                      </button>
-                    ))}
-                  </div>
+            {isLoadingContext ? (
+              <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
+                  Loading booking availability...
                 </div>
-
-                {/* TIME SLOTS */}
-                <div>
-                  <p className="font-medium mb-3">Time Slots</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {timeSlots.map((slot: TimeSlot) => (
-                      <button
-                        key={slot.time}
-                        type="button"
-                        disabled={!slot.available}
-                        onClick={() => setSelectedTime(slot.time)}
-                        className={`
-                          py-3 rounded font-medium transition-colors text-gray-900
-                          ${slot.available && selectedTime === slot.time 
-                            ? 'bg-[#3CCF91] text-white ring-2 ring-[#3CCF91] ring-offset-1' 
-                            : ''
-                          }
-                          ${slot.available && selectedTime !== slot.time 
-                            ? 'bg-white  hover:bg-green-200' 
-                            : ''
-                          }
-                          ${!slot.available 
-                            ? 'bg-[#FEF2F2] text-red-400 cursor-not-allowed border border-red-100 border-1 ' 
-                            : ''
-                          }
-                        `}
-                      >
-                        {slot.time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
               </div>
-            </div>
+            ) : contextError ? (
+              <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
+                <p className="text-sm text-[#B74140]">{contextError}</p>
+              </div>
+            ) : bookingContext && activeMonth ? (
+              <BookingAvailabilityPicker
+                activeMonthLabel={formatMonthLabel(activeMonth)}
+                activeDate={selectedDate}
+                calendarDays={calendarDays}
+                canGoNextMonth={activeMonthIndex < availableMonths.length - 1}
+                canGoPreviousMonth={activeMonthIndex > 0}
+                daysOfWeek={daysOfWeek}
+                durationHours={selectedDuration}
+                hourSlots={hourSlots}
+                multiDateCount={selectedDateKeys.length}
+                onClearActiveDateSelection={handleClearActiveDateSelection}
+                onNextMonth={() => setActiveMonthIndex((currentIndex) => Math.min(currentIndex + 1, availableMonths.length - 1))}
+                onPreviousMonth={() => setActiveMonthIndex((currentIndex) => Math.max(currentIndex - 1, 0))}
+                onSelectDate={handleSelectDate}
+                onToggleHour={handleToggleHour}
+                selectedDateKeys={selectedDateKeys}
+                selectedHours={selectedHours}
+                selectionLabel={selectionLabel}
+              />
+            ) : null}
 
-            {/* EVENT DETAILS */}
-            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-6">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <div className="flex justify-between mb-4">
                 <h2 className="text-xl font-semibold">Event Details</h2>
-                <button 
+                <button
                   type="button"
                   className="bg-[#B74140] text-white px-[15px] py-[2px] rounded-lg hover:bg-[#9a3635] transition-colors flex"
                 >
-                  <Bell/> Notify Me
+                  <Bell /> Notify Me
                 </button>
               </div>
 
@@ -236,9 +433,9 @@ const router = useRouter();
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Event Type
                   </label>
-                  <select 
+                  <select
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
-                    value={eventType} 
+                    value={eventType}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEventType(e.target.value)}
                   >
                     <option value="Corporate Meeting">Corporate Meeting</option>
@@ -251,26 +448,28 @@ const router = useRouter();
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Guests
+                    Number of Guests{typeof maximumGuests === 'number' ? ` (Max ${maximumGuests})` : ''}
                   </label>
-                  <input 
+                  <input
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
-                    type="number" 
-                    min="1"
-                    value={guests} 
+                    type="number"
+                    min="0"
+                    max={maximumGuests}
+                    value={guests}
                     onChange={handleGuestsChange}
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Special Instructions
+                    Location
                   </label>
-                  <textarea 
-                    className="w-full border border-gray-300 rounded-lg p-3 h-[120px] focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none resize-none"
-                    value={specialInstructions} 
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSpecialInstructions(e.target.value)}
-                    placeholder="Any special requirements for your event..."
+                  <input
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
+                    type="text"
+                    value={location}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)}
+                    placeholder="Enter booking location"
                   />
                 </div>
 
@@ -278,70 +477,34 @@ const router = useRouter();
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Duration (hours)
                   </label>
-                  <input 
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
-                    type="number" 
-                    min="1"
-                    value={duration} 
-                    onChange={handleDurationChange}
+                  <input
+                    className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-700 outline-none"
+                    type="text"
+                    value={selectedDuration ? `${selectedDuration}` : ''}
+                    readOnly
+                    placeholder="Auto calculated from all selected hours"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* PAYMENT */}
-            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-6">
-              <h2 className="text-xl font-semibold mb-6">Payment Information</h2>
-
-              <div className="space-y-4">
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Card Number
+                    Special Instructions
                   </label>
-                  <input 
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={handleCardNumberChange}
-                    maxLength={19}
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 h-[120px] focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none resize-none"
+                    value={specialInstructions}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSpecialInstructions(e.target.value)}
+                    placeholder="Any special requirements for your event..."
                   />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Expiry Date
-                    </label>
-                    <input 
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
-                      placeholder="MM/YY"
-                      value={expiry}
-                      onChange={handleExpiryChange}
-                      maxLength={5}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      CVV
-                    </label>
-                    <input 
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#B74140] focus:border-transparent outline-none"
-                      placeholder="123"
-                      type="password"
-                      value={cvv}
-                      onChange={handleCvvChange}
-                      maxLength={4}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
 
-            {/* CONFIRM */}
             <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 space-y-6">
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={agreeTerms} 
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgreeTerms(e.target.checked)}
                   className="w-5 h-5 rounded border-gray-300 text-[#B74140] focus:ring-[#B74140]"
                 />
@@ -350,27 +513,25 @@ const router = useRouter();
                 </span>
               </label>
 
-              <button 
+              <button
                 type="button"
-                disabled={!agreeTerms}
+                disabled={!agreeTerms || !hasBookingSelection || !location.trim() || isSubmitting || isLoadingContext || Boolean(contextError)}
                 onClick={handleConfirmBooking}
                 className={`
                   w-full py-4 rounded-lg text-lg font-semibold transition-all
-                  ${agreeTerms 
-                    ? 'bg-[#B74140] text-white hover:bg-[#9a3635] active:scale-[0.99]' 
+                  ${agreeTerms && hasBookingSelection && location.trim() && !isSubmitting && !isLoadingContext && !contextError
+                    ? 'bg-[#B74140] text-white hover:bg-[#9a3635] active:scale-[0.99]'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }
                 `}
               >
-                Confirm Booking
+                {isSubmitting ? 'Booking...' : 'Confirm Booking'}
               </button>
             </div>
-
           </div>
 
-          {/* RIGHT COLUMN - SUMMARY */}
           <div className="sticky top-6 h-fit">
-            <div className="bg-white rounded-lg border border-[#E5E7EB]  p-[25px]">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-[25px]">
               <h2 className="text-xl font-semibold mb-4">Booking Summary</h2>
 
               <img
@@ -379,14 +540,28 @@ const router = useRouter();
                 className="rounded-lg mb-4 h-[180px] w-full object-cover"
               />
 
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">{venueName}</h3>
+                <p className="text-sm text-gray-600">{venueType}</p>
+                <p className="mt-2 text-sm text-gray-600">{venueAddress || venueDescription}</p>
+              </div>
+
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-600">Date</span>
-                  <span className="font-medium">{formatDate(selectedDate)}</span>
+                  <span className="text-gray-600">Selected Dates</span>
+                  <span className="font-medium">{selectedDateKeys.length || '-'}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-600">Time</span>
-                  <span className="font-medium">{selectedTime}</span>
+                  <span className="text-gray-600">Editing Date</span>
+                  <span className="font-medium">{formatDateDDMMYY(selectedDate, '-')}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Editing Hours</span>
+                  <span className="font-medium">{selectionLabel || '-'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Location</span>
+                  <span className="font-medium">{location || '-'}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Event Type</span>
@@ -394,22 +569,47 @@ const router = useRouter();
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Guests</span>
-                  <span className="font-medium">{guests} people</span>
+                  <span className="font-medium">{guests === '' ? '-' : `${guests}`}</span>
                 </div>
+                {typeof maximumGuests === 'number' ? (
+                  <div className="flex justify-between py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Capacity</span>
+                    <span className="font-medium">{maximumGuests} guests</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Duration</span>
-                  <span className="font-medium">{duration} hours</span>
+                  <span className="font-medium">{selectedDuration ? `${selectedDuration} hours total` : '-'}</span>
                 </div>
+                {selectedScheduleItems.length ? (
+                  <div className="border-b border-gray-100 pb-2">
+                    <p className="mb-2 text-gray-600">Selected Schedule</p>
+                    <div className="space-y-2">
+                      {selectedScheduleItems.map((item) => (
+                        <div key={item.dateKey} className="flex justify-between gap-4 text-sm">
+                          <span className="font-medium text-gray-900">{item.displayDate}</span>
+                          <span className="text-right text-gray-600">{item.timeLabel || '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="flex justify-between py-3 pt-4 text-lg font-bold border-t border-gray-200">
-                  <span>Total</span>
-                  <span>£1,701</span>
+                  <span>Price</span>
+                  <span>{priceDisplay}</span>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
+
+      <BookingPopup
+        open={Boolean(dialog)}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        onClose={handleCloseDialog}
+      />
     </div>
   );
 };
