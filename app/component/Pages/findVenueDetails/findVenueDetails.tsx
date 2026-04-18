@@ -4,8 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Accessibility,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   DollarSign,
   ExternalLink,
   MapPin,
@@ -20,15 +18,30 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
+import ReadOnlyAvailabilityCalendar from '@/app/component/shared/ReadOnlyAvailabilityCalendar';
 import { api, getApiErrorMessage } from '@/lib/api';
+import {
+  findFirstSelectableDate,
+  getCalendarDays,
+  parseMonthKey,
+  type BookingAvailabilityEntry,
+  type BookingMeta,
+} from '@/lib/booking';
 import { formatPoundAmount } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
-
-type AvailabilityStatus = 'available' | 'booked' | 'pending';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface VenueDetailsResponse {
   success: boolean;
   data?: VenueDetails;
+}
+
+interface VenueBookingContextResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, BookingAvailabilityEntry>;
+    bookingMeta: BookingMeta;
+  };
 }
 
 interface VenueDetails {
@@ -82,13 +95,6 @@ interface VenueDetails {
   }>;
 }
 
-interface CalendarDay {
-  date: number;
-  fullDate: string | null;
-  status: AvailabilityStatus;
-  isCurrentMonth: boolean;
-}
-
 interface MediaItem {
   id: string;
   type: 'image' | 'video';
@@ -100,10 +106,7 @@ interface MediaItem {
 
 type VenueReview = NonNullable<VenueDetails['reviews']>[number];
 
-const monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const amenityIconMap = {
   wifi: Wifi,
@@ -181,27 +184,6 @@ const getYouTubeThumbnailUrl = (url: string) => {
   return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 };
 
-const getAvailabilityStatus = (
-  slots?: Array<{
-    hour?: number;
-    status?: string;
-  }>
-): AvailabilityStatus => {
-  const normalizedStatuses = (slots ?? [])
-    .map((slot) => slot.status?.trim().toLowerCase())
-    .filter((status): status is string => Boolean(status));
-
-  if (normalizedStatuses.includes('available')) {
-    return 'available';
-  }
-
-  if (normalizedStatuses.includes('pending')) {
-    return 'pending';
-  }
-
-  return 'booked';
-};
-
 const formatReviewDate = (value?: string) => {
   return formatDateDDMMYY(value, 'Recently');
 };
@@ -234,10 +216,6 @@ const getMapEmbedUrl = (location: string) => {
   return `https://maps.google.com/maps?q=${encodeURIComponent(location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 };
 
-const getDateKey = (year: number, month: number, day: number) => {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-};
-
 const renderStars = (rating: number) => {
   return Array.from({ length: 5 }, (_, index) => (
     <Star
@@ -251,14 +229,17 @@ const renderStars = (rating: number) => {
 const VenueBookingPage: React.FC = () => {
   const params = useParams<{ slug?: string | string[] }>();
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
   const venueId = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
 
   const [venue, setVenue] = useState<VenueDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [bookingContext, setBookingContext] = useState<VenueBookingContextResponse['data'] | null>(null);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+  const [activeMonthIndex, setActiveMonthIndex] = useState(0);
 
   useEffect(() => {
     if (!venueId) {
@@ -308,6 +289,56 @@ const VenueBookingPage: React.FC = () => {
     };
   }, [venueId]);
 
+  useEffect(() => {
+    if (!venueId) {
+      setBookingContext(null);
+      setAvailabilityError('Venue not found.');
+      setIsLoadingAvailability(false);
+      return;
+    }
+
+    if (!token) {
+      setBookingContext(null);
+      setAvailabilityError('Sign in to view the live availability calendar for this venue.');
+      setIsLoadingAvailability(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchBookingContext = async () => {
+      try {
+        setIsLoadingAvailability(true);
+        setAvailabilityError('');
+
+        const response = await api.get<VenueBookingContextResponse>(`/api/v1/bookings/venues/${venueId}/context`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setBookingContext(response.data.data ?? null);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setBookingContext(null);
+        setAvailabilityError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoadingAvailability(false);
+        }
+      }
+    };
+
+    fetchBookingContext();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token, venueId]);
+
   const mediaItems = useMemo<MediaItem[]>(() => {
     if (!venue) {
       return [];
@@ -346,22 +377,38 @@ const VenueBookingPage: React.FC = () => {
     }
   }, [mediaItems]);
 
+  const availableMonths = useMemo(() => {
+    const currentMonth = parseMonthKey(bookingContext?.bookingMeta.currentMonth);
+    const nextMonth = parseMonthKey(bookingContext?.bookingMeta.nextMonth);
+
+    return [currentMonth, nextMonth].filter((month): month is Date => Boolean(month));
+  }, [bookingContext?.bookingMeta.currentMonth, bookingContext?.bookingMeta.nextMonth]);
+
   useEffect(() => {
-    const firstOverrideDate = venue?.availabilityOverrides?.find((item) => item.date)?.date;
-
-    if (!firstOverrideDate) {
+    if (!bookingContext || availableMonths.length === 0) {
+      setActiveMonthIndex(0);
       return;
     }
 
-    const parsed = new Date(firstOverrideDate);
+    const firstSelectableDate = findFirstSelectableDate(
+      availableMonths,
+      bookingContext.bookingMeta,
+      bookingContext.availability
+    );
 
-    if (Number.isNaN(parsed.getTime())) {
+    if (!firstSelectableDate) {
+      setActiveMonthIndex(0);
       return;
     }
 
-    setCurrentMonth(parsed.getMonth());
-    setCurrentYear(parsed.getFullYear());
-  }, [venue]);
+    const matchingMonthIndex = availableMonths.findIndex(
+      (month) =>
+        month.getFullYear() === firstSelectableDate.getFullYear() &&
+        month.getMonth() === firstSelectableDate.getMonth()
+    );
+
+    setActiveMonthIndex(matchingMonthIndex >= 0 ? matchingMonthIndex : 0);
+  }, [availableMonths, bookingContext]);
 
   const selectedMedia = useMemo(() => {
     return mediaItems.find((item) => item.id === selectedMediaId) ?? mediaItems[0] ?? null;
@@ -383,63 +430,23 @@ const VenueBookingPage: React.FC = () => {
   const mapSearchUrl = fullLocation
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullLocation)}`
     : null;
-
-  const availabilityByDate = useMemo(() => {
-    return new Map(
-      (venue?.availabilityOverrides ?? [])
-        .filter((override): override is { date: string; slots?: Array<{ hour?: number; status?: string }> } => Boolean(override.date))
-        .map((override) => [override.date, getAvailabilityStatus(override.slots)])
-    );
-  }, [venue]);
-
-  const calendar = useMemo<CalendarDay[]>(() => {
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    const output: CalendarDay[] = [];
-
-    for (let index = 0; index < firstDayOfMonth; index += 1) {
-      output.push({
-        date: 0,
-        fullDate: null,
-        status: 'booked',
-        isCurrentMonth: false,
-      });
-    }
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const dateKey = getDateKey(currentYear, currentMonth, day);
-
-      output.push({
-        date: day,
-        fullDate: dateKey,
-        status: availabilityByDate.get(dateKey) ?? 'available',
-        isCurrentMonth: true,
-      });
-    }
-
-    return output;
-  }, [availabilityByDate, currentMonth, currentYear]);
+  const activeMonth = availableMonths[activeMonthIndex] ?? null;
+  const calendarDays = useMemo(
+    () =>
+      bookingContext && activeMonth
+        ? getCalendarDays(activeMonth, bookingContext.bookingMeta, bookingContext.availability)
+        : [],
+    [activeMonth, bookingContext]
+  );
 
   const reviews = venue?.reviews ?? [];
 
   const handlePreviousMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear((value) => value - 1);
-      return;
-    }
-
-    setCurrentMonth((value) => value - 1);
+    setActiveMonthIndex((previous) => Math.max(previous - 1, 0));
   };
 
   const handleNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear((value) => value + 1);
-      return;
-    }
-
-    setCurrentMonth((value) => value + 1);
+    setActiveMonthIndex((previous) => Math.min(previous + 1, Math.max(availableMonths.length - 1, 0)));
   };
 
   const bookHandler = () => {
@@ -690,95 +697,46 @@ const VenueBookingPage: React.FC = () => {
           </div>
 
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-lg border border-[#E5E7EB] p-5 sticky top-8">
-              <h3 className="text-base font-semibold mb-2">Check Availability</h3>
-              <p className="mb-4 text-sm text-gray-500">
-                Availability is based on the published override schedule for this venue.
-              </p>
+            <div className="space-y-6 lg:sticky lg:top-8">
+              <ReadOnlyAvailabilityCalendar
+                activeMonth={activeMonth}
+                calendarDays={calendarDays}
+                canGoNextMonth={activeMonthIndex < availableMonths.length - 1}
+                canGoPreviousMonth={activeMonthIndex > 0}
+                daysOfWeek={daysOfWeek}
+                description="This calendar uses `/api/v1/bookings/venues/:venueId/context`, matching the booking page."
+                emptyMessage="No live availability dates are currently open for this venue."
+                error={availabilityError}
+                isLoading={isLoadingAvailability}
+                onNextMonth={handleNextMonth}
+                onPreviousMonth={handlePreviousMonth}
+                title="Check Availability"
+              />
 
-              <div className="flex items-center justify-between mb-4">
+              <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
+                <div className="mb-5 rounded-lg bg-slate-50 p-4 text-sm text-gray-600">
+                  <p className="font-medium text-gray-900">{providerName}</p>
+                  {provider?.venueProvider?.businessMail ? (
+                    <p>{provider.venueProvider.businessMail}</p>
+                  ) : null}
+                  {provider?.venueProvider?.businessPhoneNo ? (
+                    <p>{provider.venueProvider.businessPhoneNo}</p>
+                  ) : null}
+                </div>
+
                 <button
-                  onClick={handlePreviousMonth}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={bookHandler}
+                  className="mb-2.5 w-full rounded-lg bg-[#B74140] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#a03837]"
                 >
-                  <ChevronLeft size={18} className="text-gray-600" />
+                  Book Now
                 </button>
-                <div className="text-sm font-semibold text-gray-800">
-                  {monthNames[currentMonth]} {currentYear}
-                </div>
                 <button
-                  onClick={handleNextMonth}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => { router.push('/home/dashboard/chat'); }}
+                  className="w-full rounded-lg border border-[#E5E7EB] py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <ChevronRight size={18} className="text-gray-600" />
+                  Contact Provider
                 </button>
               </div>
-
-              <div className="grid grid-cols-7 gap-1.5 mb-2">
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                  <div key={day} className="text-center text-xs font-medium text-gray-600">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1.5 mb-5">
-                {calendar.map((day, index) => (
-                  <button
-                    key={`${day.fullDate ?? 'empty'}-${index}`}
-                    disabled={!day.isCurrentMonth}
-                    className={`aspect-square flex items-center justify-center text-xs rounded transition-colors ${
-                      !day.isCurrentMonth
-                        ? 'invisible'
-                        : day.status === 'available'
-                          ? 'bg-[#3CCF911A] text-gray-800 hover:bg-[#3CCF9133]'
-                          : day.status === 'pending'
-                            ? 'bg-[#FACC151A] text-gray-800 hover:bg-[#FACC1533]'
-                            : 'bg-[#FF5A5A1A] text-gray-800'
-                    }`}
-                  >
-                    {day.isCurrentMonth ? day.date : ''}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mb-5 flex flex-wrap items-center gap-3 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-[#3CCF91] rounded"></div>
-                  <span className="text-gray-700">Available</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-[#FACC15] rounded"></div>
-                  <span className="text-gray-700">Pending</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-[#FF5A5A] rounded"></div>
-                  <span className="text-gray-700">Booked</span>
-                </div>
-              </div>
-
-              <div className="mb-5 rounded-lg bg-slate-50 p-4 text-sm text-gray-600">
-                <p className="font-medium text-gray-900">{providerName}</p>
-                {provider?.venueProvider?.businessMail ? (
-                  <p>{provider.venueProvider.businessMail}</p>
-                ) : null}
-                {provider?.venueProvider?.businessPhoneNo ? (
-                  <p>{provider.venueProvider.businessPhoneNo}</p>
-                ) : null}
-              </div>
-
-              <button
-                onClick={bookHandler}
-                className="w-full bg-[#B74140] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#a03837] transition-colors mb-2.5"
-              >
-                Book Now
-              </button>
-              <button
-                onClick={() => { router.push('/home/dashboard/chat'); }}
-                className="w-full border border-[#E5E7EB] text-gray-700 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Contact Provider
-              </button>
             </div>
           </div>
         </div>

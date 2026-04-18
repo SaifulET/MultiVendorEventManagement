@@ -61,6 +61,41 @@ interface VenueBookingContextResponse {
   };
 }
 
+const getRequestErrorDebugInfo = (error: unknown) => {
+  const requestError =
+    typeof error === 'object' && error !== null
+      ? (error as {
+          config?: {
+            baseURL?: string;
+            method?: string;
+            url?: string;
+          };
+          message?: string;
+          response?: {
+            data?: unknown;
+            status?: number;
+          };
+        })
+      : null;
+
+  return {
+    baseURL: requestError?.config?.baseURL,
+    data: requestError?.response?.data,
+    message: requestError?.message ?? (error instanceof Error ? error.message : 'Unknown error'),
+    method: requestError?.config?.method,
+    status: requestError?.response?.status,
+    url: requestError?.config?.url,
+  };
+};
+
+const isUnauthorizedRequestError = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  return (error as { response?: { status?: number } }).response?.status === 401;
+};
+
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const VenueBooking: React.FC = () => {
@@ -174,6 +209,12 @@ const VenueBooking: React.FC = () => {
         setIsLoadingContext(true);
         setContextError('');
 
+        console.info('[VenueBooking] Fetching venue booking context', {
+          hasToken: Boolean(token),
+          userRole: user?.role ?? null,
+          venueId,
+        });
+
         const response = await api.get<VenueBookingContextResponse>(`/api/v1/bookings/venues/${venueId}/context`);
         const nextContext = response.data.data;
 
@@ -181,14 +222,32 @@ const VenueBooking: React.FC = () => {
           return;
         }
 
+        console.info('[VenueBooking] Venue booking context loaded', {
+          hasAvailability: Boolean(nextContext.availability),
+          status: response.status,
+          targetId: nextContext.target?._id ?? null,
+          venueId,
+        });
+
         setBookingContext(nextContext);
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
+        console.error('[VenueBooking] Failed to fetch venue booking context', {
+          hasToken: Boolean(token),
+          userRole: user?.role ?? null,
+          venueId,
+          ...getRequestErrorDebugInfo(error),
+        });
+
         setBookingContext(null);
-        setContextError(getApiErrorMessage(error));
+        setContextError(
+          isUnauthorizedRequestError(error)
+            ? 'Please sign in to load venue booking availability for this page.'
+            : getApiErrorMessage(error)
+        );
       } finally {
         if (isMounted) {
           setIsLoadingContext(false);
@@ -201,7 +260,7 @@ const VenueBooking: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [params?.slug]);
+  }, [params?.slug, token, user?.role]);
 
   useEffect(() => {
     if (!bookingContext || availableMonths.length === 0) {
@@ -338,7 +397,7 @@ const VenueBooking: React.FC = () => {
     if (selectedDateKeys.length === 0) {
       setDialog({
         title: 'Select Dates & Hours',
-        message: 'Please choose at least one available date and any available hours before continuing.',
+        message: 'Please choose at least one available date and consecutive available hours before continuing.',
       });
       return;
     }
@@ -354,6 +413,14 @@ const VenueBooking: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      console.info('[VenueBooking] Submitting venue booking request', {
+        guestCount: typeof guests === 'number' ? guests : 0,
+        hasToken: Boolean(token),
+        selectedDateKeys,
+        userRole: user?.role ?? null,
+        venueId,
+      });
+
       await Promise.all(
         selectedDateKeys.map((dateKey) =>
           api.post(`/api/v1/bookings/venues/${venueId}`, {
@@ -366,8 +433,20 @@ const VenueBooking: React.FC = () => {
         )
       );
 
+      console.info('[VenueBooking] Venue booking request completed', {
+        selectedDateKeys,
+        venueId,
+      });
+
       router.push('/pages/venueBookingconfirmation/confirmed-booking-slug');
     } catch (error) {
+      console.error('[VenueBooking] Failed to submit venue booking request', {
+        guestCount: typeof guests === 'number' ? guests : 0,
+        selectedDateKeys,
+        venueId,
+        ...getRequestErrorDebugInfo(error),
+      });
+
       setDialog({
         title: 'Booking Failed',
         message: getApiErrorMessage(error),

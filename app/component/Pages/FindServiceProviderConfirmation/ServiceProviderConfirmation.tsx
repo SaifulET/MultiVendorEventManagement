@@ -137,7 +137,7 @@ const ServiceProviderConfirmation: React.FC = () => {
   const serviceCategory = bookingContext?.target?.information?.category?.trim() || 'Service booking';
   const serviceDescription =
     bookingContext?.target?.information?.description?.trim() ||
-    'Select available dates and any available hours to book this service provider.';
+    'Select available dates and consecutive available hours to book this service provider.';
   const providerName = bookingContext?.provider?.fullName?.trim() || 'Service Provider';
   const capacity = bookingContext?.target?.settings?.capacity;
   const priceDisplay = formatCurrencyAmount(
@@ -298,7 +298,7 @@ const ServiceProviderConfirmation: React.FC = () => {
     if (selectedDateKeys.length === 0) {
       setDialog({
         title: 'Select Dates & Hours',
-        message: 'Please choose at least one available date and any available hours before continuing.',
+        message: 'Please choose at least one available date and consecutive available hours before continuing.',
       });
       return;
     }

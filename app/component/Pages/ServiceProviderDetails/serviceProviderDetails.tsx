@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   DollarSign,
   MapPin,
   MessageSquare,
@@ -15,11 +13,18 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
+import ReadOnlyAvailabilityCalendar from '@/app/component/shared/ReadOnlyAvailabilityCalendar';
 import { api, getApiErrorMessage } from '@/lib/api';
+import {
+  findFirstSelectableDate,
+  getCalendarDays,
+  parseMonthKey,
+  type BookingAvailabilityEntry,
+  type BookingMeta,
+} from '@/lib/booking';
 import { formatPoundAmount } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
-
-type AvailabilityStatus = 'available' | 'booked' | 'pending';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface ServiceReview {
   rating?: number | string;
@@ -93,11 +98,12 @@ interface ServiceDetailsResponse {
   data?: ServiceDetails | ServiceDetails[];
 }
 
-interface CalendarDay {
-  date: number;
-  fullDate: string | null;
-  status: AvailabilityStatus;
-  isCurrentMonth: boolean;
+interface ServiceBookingContextResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, BookingAvailabilityEntry>;
+    bookingMeta: BookingMeta;
+  };
 }
 
 interface MediaItem {
@@ -109,10 +115,7 @@ interface MediaItem {
   embedUrl?: string | null;
 }
 
-const monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const DEFAULT_IMAGE = '/pp1.svg';
 
@@ -178,34 +181,6 @@ const getYouTubeThumbnailUrl = (url: string) => {
   const videoId = getYouTubeVideoId(url);
   return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 };
-
-const getAvailabilityStatus = (
-  slots?: Array<{
-    hour?: number;
-    status?: string;
-  }>
-): AvailabilityStatus => {
-  const normalizedStatuses = (slots ?? [])
-    .map((slot) => slot.status?.trim().toLowerCase())
-    .filter((status): status is string => Boolean(status));
-
-  if (normalizedStatuses.includes('available')) {
-    return 'available';
-  }
-
-  if (normalizedStatuses.includes('pending')) {
-    return 'pending';
-  }
-
-  if (normalizedStatuses.length > 0 && normalizedStatuses.every((status) => status === 'booked')) {
-    return 'booked';
-  }
-
-  return 'available';
-};
-
-const getDateKey = (year: number, month: number, day: number) =>
-  `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
 const formatReviewDate = (value?: string) => {
   return formatDateDDMMYY(value, 'Recently');
@@ -275,14 +250,17 @@ const normalizeService = (
 export default function ServiceProviderDetails() {
   const params = useParams<{ slug?: string | string[] }>();
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
   const serviceId = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
 
   const [service, setService] = useState<ServiceDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [bookingContext, setBookingContext] = useState<ServiceBookingContextResponse['data'] | null>(null);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+  const [activeMonthIndex, setActiveMonthIndex] = useState(0);
 
   useEffect(() => {
     if (!serviceId) {
@@ -330,6 +308,89 @@ export default function ServiceProviderDetails() {
       isMounted = false;
     };
   }, [serviceId]);
+
+  useEffect(() => {
+    if (!serviceId) {
+      setBookingContext(null);
+      setAvailabilityError('Service not found.');
+      setIsLoadingAvailability(false);
+      return;
+    }
+
+    if (!token) {
+      setBookingContext(null);
+      setAvailabilityError('Sign in to view the live availability calendar for this service.');
+      setIsLoadingAvailability(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchBookingContext = async () => {
+      try {
+        setIsLoadingAvailability(true);
+        setAvailabilityError('');
+
+        const response = await api.get<ServiceBookingContextResponse>(`/api/v1/bookings/services/${serviceId}/context`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setBookingContext(response.data.data ?? null);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setBookingContext(null);
+        setAvailabilityError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoadingAvailability(false);
+        }
+      }
+    };
+
+    fetchBookingContext();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [serviceId, token]);
+
+  const availableMonths = useMemo(() => {
+    const currentMonth = parseMonthKey(bookingContext?.bookingMeta.currentMonth);
+    const nextMonth = parseMonthKey(bookingContext?.bookingMeta.nextMonth);
+
+    return [currentMonth, nextMonth].filter((month): month is Date => Boolean(month));
+  }, [bookingContext?.bookingMeta.currentMonth, bookingContext?.bookingMeta.nextMonth]);
+
+  useEffect(() => {
+    if (!bookingContext || availableMonths.length === 0) {
+      setActiveMonthIndex(0);
+      return;
+    }
+
+    const firstSelectableDate = findFirstSelectableDate(
+      availableMonths,
+      bookingContext.bookingMeta,
+      bookingContext.availability
+    );
+
+    if (!firstSelectableDate) {
+      setActiveMonthIndex(0);
+      return;
+    }
+
+    const matchingMonthIndex = availableMonths.findIndex(
+      (month) =>
+        month.getFullYear() === firstSelectableDate.getFullYear() &&
+        month.getMonth() === firstSelectableDate.getMonth()
+    );
+
+    setActiveMonthIndex(matchingMonthIndex >= 0 ? matchingMonthIndex : 0);
+  }, [availableMonths, bookingContext]);
 
   const serviceName =
     service?.information?.serviceName?.trim() ||
@@ -426,69 +487,45 @@ export default function ServiceProviderDetails() {
     typeof service?.settings?.capacity === 'number'
       ? service.settings.capacity
       : null;
-  const availabilityMap = new Map<string, AvailabilityStatus>();
-
-  (service?.availabilityOverrides ?? []).forEach((override) => {
-    if (!override.date) {
-      return;
-    }
-
-    availabilityMap.set(override.date, getAvailabilityStatus(override.slots));
-  });
-
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-  const calendarDays: CalendarDay[] = [];
-
-  for (let emptyIndex = 0; emptyIndex < firstDayOfMonth; emptyIndex += 1) {
-    calendarDays.push({
-      date: 0,
-      fullDate: null,
-      status: 'available',
-      isCurrentMonth: false,
-    });
-  }
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const dateKey = getDateKey(currentYear, currentMonth, day);
-
-    calendarDays.push({
-      date: day,
-      fullDate: dateKey,
-      status: availabilityMap.get(dateKey) ?? 'available',
-      isCurrentMonth: true,
-    });
-  }
+  const activeMonth = availableMonths[activeMonthIndex] ?? null;
+  const calendarDays = useMemo(
+    () =>
+      bookingContext && activeMonth
+        ? getCalendarDays(activeMonth, bookingContext.bookingMeta, bookingContext.availability)
+        : [],
+    [activeMonth, bookingContext]
+  );
+  const availableDateCount = useMemo(
+    () =>
+      bookingContext
+        ? availableMonths.reduce(
+            (total, month) =>
+              total +
+              getCalendarDays(month, bookingContext.bookingMeta, bookingContext.availability).filter(
+                (day) => day.isSelectable
+              ).length,
+            0
+          )
+        : 0,
+    [availableMonths, bookingContext]
+  );
+  const availabilitySummary = isLoadingAvailability
+    ? 'Loading live schedule'
+    : bookingContext
+      ? `${availableDateCount} available dates`
+      : availabilityError
+        ? 'Live availability unavailable'
+        : 'No published availability';
+  const availabilityDescription = !token
+    ? 'Sign in to see live booked and blocked dates for this service.'
+    : 'Live availability comes from the booking context API used by the confirmation flow.';
 
   const handlePreviousMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear((previous) => previous - 1);
-      return;
-    }
-
-    setCurrentMonth((previous) => previous - 1);
+    setActiveMonthIndex((previous) => Math.max(previous - 1, 0));
   };
 
   const handleNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear((previous) => previous + 1);
-      return;
-    }
-
-    setCurrentMonth((previous) => previous + 1);
-  };
-
-  const getAvailabilityClasses = (status: AvailabilityStatus) => {
-    switch (status) {
-      case 'booked':
-        return 'bg-red-50 text-red-600';
-      case 'pending':
-        return 'bg-amber-50 text-amber-600';
-      default:
-        return 'bg-emerald-50 text-emerald-700';
-    }
+    setActiveMonthIndex((previous) => Math.min(previous + 1, Math.max(availableMonths.length - 1, 0)));
   };
 
   const bookHandler = () => {
@@ -631,12 +668,12 @@ export default function ServiceProviderDetails() {
                 <div>
                   <p className="text-sm text-gray-500">Availability</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {service.availabilityOverrides?.length ? `${service.availabilityOverrides.length} updated dates` : 'Open availability'}
+                    {availabilitySummary}
                   </p>
                 </div>
               </div>
               <p className="mt-3 text-sm text-gray-600">
-                Check the calendar below for booked and pending days.
+                {availabilityDescription}
               </p>
             </div>
 
@@ -720,71 +757,19 @@ export default function ServiceProviderDetails() {
               ) : null}
             </section>
 
-            <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-900">Availability calendar</h2>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Availability is based on the service override dates from the API.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePreviousMonth}
-                    className="rounded-full border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50"
-                    aria-label="Previous month"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <span className="min-w-[140px] text-center font-semibold text-gray-900">
-                    {monthNames[currentMonth]} {currentYear}
-                  </span>
-                  <button
-                    onClick={handleNextMonth}
-                    className="rounded-full border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50"
-                    aria-label="Next month"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-7 gap-2 text-center text-sm font-medium text-gray-500">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div key={day} className="py-2">{day}</div>
-                ))}
-              </div>
-
-              <div className="mt-2 grid grid-cols-7 gap-2">
-                {calendarDays.map((item, index) => (
-                  <div
-                    key={`${item.fullDate ?? 'empty'}-${index}`}
-                    className={`flex h-12 items-center justify-center rounded-xl text-sm font-medium ${
-                      item.isCurrentMonth
-                        ? getAvailabilityClasses(item.status)
-                        : 'bg-transparent text-transparent'
-                    }`}
-                  >
-                    {item.isCurrentMonth ? item.date : ''}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-4 text-sm text-gray-600">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-emerald-500" />
-                  Available
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-amber-500" />
-                  Pending
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-red-400" />
-                  Booked
-                </span>
-              </div>
-            </section>
+            <ReadOnlyAvailabilityCalendar
+              activeMonth={activeMonth}
+              calendarDays={calendarDays}
+              canGoNextMonth={activeMonthIndex < availableMonths.length - 1}
+              canGoPreviousMonth={activeMonthIndex > 0}
+              daysOfWeek={daysOfWeek}
+              description="This calendar uses `/api/v1/bookings/services/:serviceId/context`, matching the confirmation page."
+              emptyMessage="No live availability dates are currently open for this service."
+              error={availabilityError}
+              isLoading={isLoadingAvailability}
+              onNextMonth={handleNextMonth}
+              onPreviousMonth={handlePreviousMonth}
+            />
           </div>
 
           <div className="space-y-8">

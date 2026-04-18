@@ -134,7 +134,7 @@ const ServiceProviderConfirmation: React.FC = () => {
     'Event Planner';
   const plannerDescription =
     bookingContext?.target?.eventPlanner?.description?.trim() ||
-    'Select available dates and any available hours to book this event planner.';
+    'Select available dates and consecutive available hours to book this event planner.';
   const plannerAddress = bookingContext?.target?.eventPlanner?.address?.trim() || '';
   const priceDisplay = formatCurrencyAmount(undefined, bookingContext?.bookingMeta.currency ?? 'BDT', '');
   const selectionLabel = formatHourRange(selectedHours);
@@ -293,7 +293,7 @@ const ServiceProviderConfirmation: React.FC = () => {
     if (selectedDateKeys.length === 0) {
       setDialog({
         title: 'Select Dates & Hours',
-        message: 'Please choose at least one available date and any available hours before continuing.',
+        message: 'Please choose at least one available date and consecutive available hours before continuing.',
       });
       return;
     }

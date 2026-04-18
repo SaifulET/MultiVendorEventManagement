@@ -134,6 +134,9 @@ export const formatHourRange = (hours: number[]) => {
 const normalizeHours = (hours?: number[]) =>
   Array.from(new Set((hours ?? []).filter((hour) => Number.isInteger(hour)))).sort((a, b) => a - b);
 
+const isConsecutiveHourRange = (hours: number[]) =>
+  hours.every((hour, index) => index === 0 || hour === hours[index - 1] + 1);
+
 export const getDateAvailabilityEntry = (
   availability: Record<string, BookingAvailabilityEntry> | undefined,
   isoDate: string
@@ -297,13 +300,23 @@ export const buildNextSelectedHours = (
       return { hours: sortedSelection.slice(0, -1) };
     }
 
-    return { hours: [clickedHour] };
+    return {
+      error: "Selected hours must stay consecutive. Remove hours from the start or end of the selection.",
+      hours: currentSelection,
+    };
   }
 
   const nextSelection = [...sortedSelection, clickedHour].sort((a, b) => a - b);
   if (!nextSelection.every((hour) => selectableSet.has(hour))) {
     return {
       error: "Only available hours can be selected.",
+      hours: currentSelection,
+    };
+  }
+
+  if (!isConsecutiveHourRange(nextSelection)) {
+    return {
+      error: "Please select consecutive available hours only.",
       hours: currentSelection,
     };
   }
