@@ -1,327 +1,199 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  Home, 
-  Calendar, 
-  DollarSign, 
-  Star, 
-  Check, 
-  X, 
-  Eye, 
-  ChevronRight 
+import React, { useEffect, useState } from 'react';
+import {
+  Home,
+  Calendar,
+  DollarSign,
+  Star,
+  Check,
+  X,
+  Eye,
+  ChevronRight,
+  LoaderCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { getApiErrorMessage } from '@/lib/api';
+import {
+  approveServiceProviderBooking,
+  fetchServiceProviderBookings,
+  formatBookingDate,
+  formatBookingTime,
+  getBookingStatus,
+  getBookingStatusLabel,
+  getCustomerAvatar,
+  getCustomerEmail,
+  getCustomerName,
+  getServiceName,
+  rejectServiceProviderBooking,
+  type ServiceProviderBooking,
+} from '@/lib/service-provider-bookings';
+
 interface Booking {
-  id: string;
   client: {
-    name: string;
-    email: string;
     avatar: string;
+    email: string;
+    name: string;
   };
   date: string;
-  time: string;
+  id: string;
   service: {
     name: string;
-    type: string;
   };
-  status: 'pending' | 'approved' | 'declined';
+  status: 'pending' | 'approved' | 'rejected';
+  time: string;
 }
 
-interface VenueDashboardProps {
-  bookings?: Booking[];
-  onApprove?: (bookingId: string) => Promise<void> | void;
-  onDecline?: (bookingId: string) => Promise<void> | void;
-  onViewDetails?: (bookingId: string) => void;
-  onViewAll?: () => void;
-  stats?: {
-    totalVenues?: number;
-    totalVenuesChange?: string;
-    upcomingBookings?: number;
-    upcomingBookingsChange?: string;
-    monthlyRevenue?: number;
-    monthlyRevenueChange?: string;
-    averageRating?: number;
-    averageRatingChange?: string;
-  };
-}
+const DASHBOARD_LIMIT = 5;
 
-const defaultBookings: Booking[] = [
-  {
-    id: '1',
-    client: {
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      avatar: 'https://i.pravatar.cc/150?img=1'
-    },
-    date: '28/12/24',
-    time: '6:00 PM - 11:00 PM',
-    service: {
-      name: 'Grand Ballroom',
-      type: 'Corporate Event'
-    },
-    status: 'pending'
+const mapBooking = (booking: ServiceProviderBooking): Booking => ({
+  client: {
+    avatar: getCustomerAvatar(booking),
+    email: getCustomerEmail(booking),
+    name: getCustomerName(booking),
   },
-  {
-    id: '2',
-    client: {
-      name: 'Michael Chen',
-      email: 'm.chen@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=12'
-    },
-    date: '30/12/24',
-    time: '2:00 PM - 8:00 PM',
-    service: {
-      name: 'Garden Terrace',
-      type: 'Wedding Reception'
-    },
-    status: 'pending'
+  date: formatBookingDate(booking.bookingDate),
+  id: booking._id,
+  service: {
+    name: getServiceName(booking),
   },
-  {
-    id: '3',
-    client: {
-      name: 'Emily Rodriguez',
-      email: 'emily.r@events.com',
-      avatar: 'https://i.pravatar.cc/150?img=5'
-    },
-    date: '05/01/25',
-    time: '10:00 AM - 4:00 PM',
-    service: {
-      name: 'Conference Hall A',
-      type: 'Business Meeting'
-    },
-    status: 'approved'
-  },
-  {
-    id: '4',
-    client: {
-      name: 'David Park',
-      email: 'david.park@startup.io',
-      avatar: 'https://i.pravatar.cc/150?img=15'
-    },
-    date: '08/01/25',
-    time: '7:00 PM - 12:00 AM',
-    service: {
-      name: 'Rooftop Lounge',
-      type: 'Product Launch'
-    },
-    status: 'pending'
-  },
-  {
-    id: '5',
-    client: {
-      name: 'Lisa Thompson',
-      email: 'lisa.t@creative.com',
-      avatar: 'https://i.pravatar.cc/150?img=9'
-    },
-    date: '12/01/25',
-    time: '5:00 PM - 10:00 PM',
-    service: {
-      name: 'Art Gallery Space',
-      type: 'Exhibition Opening'
-    },
-    status: 'pending'
-  }
-];
+  status: getBookingStatus(booking),
+  time: formatBookingTime(booking.hours, booking.durationHours),
+});
 
-const VenueDashboard: React.FC<VenueDashboardProps> = ({ 
-  bookings: initialBookings = defaultBookings,
-  onApprove,
-  onDecline,
-  onViewDetails,
-  onViewAll,
-  stats = {}
-}) => {
+export default function VenueDashboard() {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const router = useRouter();
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
-  const [loadingStates, setLoadingStates] = useState<Record<string, 'approving' | 'declining' | null>>({});
-  const [upcomingBookingsCount, setUpcomingBookingsCount] = useState(47);
-  const [monthlyRevenue, setMonthlyRevenue] = useState(18420);
 
-  const {
-    totalVenues = 24,
-    totalVenuesChange = '+12%',
-    upcomingBookingsChange = '+8%',
-    monthlyRevenueChange = '+24%',
-    averageRating = 4.8,
-    averageRatingChange = '+0.2'
-  } = stats;
-
-  // Mock API call function
-  const mockApiCall = (action: 'approve' | 'decline', bookingId: string): Promise<void> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log(`${action} booking:`, bookingId);
-        resolve();
-      }, 1000);
+  const loadBookings = async () => {
+    const response = await fetchServiceProviderBookings({
+      limit: DASHBOARD_LIMIT,
+      page: 1,
     });
+
+    setBookings((response.data ?? []).map(mapBooking));
   };
 
-  const handleApprove = async (bookingId: string) => {
-    // Set loading state for this specific booking
-    setLoadingStates(prev => ({ ...prev, [bookingId]: 'approving' }));
+  useEffect(() => {
+    let isMounted = true;
 
+    const initialize = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        const response = await fetchServiceProviderBookings({
+          limit: DASHBOARD_LIMIT,
+          page: 1,
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setBookings((response.data ?? []).map(mapBooking));
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(getApiErrorMessage(fetchError));
+        setBookings([]);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initialize();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleAction = async (bookingId: string, action: 'approve' | 'reject') => {
     try {
-      // If parent component provided onApprove callback, use it
-      if (onApprove) {
-        await onApprove(bookingId);
+      setLoadingActionId(bookingId);
+
+      if (action === 'approve') {
+        await approveServiceProviderBooking(bookingId);
       } else {
-        // Otherwise, use mock API call
-        await mockApiCall('approve', bookingId);
+        await rejectServiceProviderBooking(bookingId);
       }
 
-      // Update local state
-      setBookings(prevBookings => 
-        prevBookings.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'approved' as const }
-            : booking
-        )
-      );
-
-      // Update stats
-      setUpcomingBookingsCount(prev => prev + 1);
-      
-      // Simulate revenue increase (you can adjust this logic based on your needs)
-      const booking = bookings.find(b => b.id === bookingId);
-      if (booking) {
-        // Add a random revenue amount between 500 and 5000 for demonstration
-        const revenueIncrease = Math.floor(Math.random() * 4500) + 500;
-        setMonthlyRevenue(prev => prev + revenueIncrease);
-      }
-
-    } catch (error) {
-      console.error('Error approving booking:', error);
-      // You could add error handling UI here
+      await loadBookings();
+    } catch (actionError) {
+      setError(getApiErrorMessage(actionError));
     } finally {
-      // Clear loading state
-      setLoadingStates(prev => ({ ...prev, [bookingId]: null }));
+      setLoadingActionId(null);
     }
-  };
-
-  const handleDecline = async (bookingId: string) => {
-    // Set loading state for this specific booking
-    setLoadingStates(prev => ({ ...prev, [bookingId]: 'declining' }));
-
-    try {
-      // If parent component provided onDecline callback, use it
-      if (onDecline) {
-        await onDecline(bookingId);
-      } else {
-        // Otherwise, use mock API call
-        await mockApiCall('decline', bookingId);
-      }
-
-      // Update local state
-      setBookings(prevBookings => 
-        prevBookings.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'declined' as const }
-            : booking
-        )
-      );
-
-      // Update stats (decrease upcoming bookings count)
-      setUpcomingBookingsCount(prev => Math.max(0, prev - 1));
-
-    } catch (error) {
-      console.error('Error declining booking:', error);
-      // You could add error handling UI here
-    } finally {
-      // Clear loading state
-      setLoadingStates(prev => ({ ...prev, [bookingId]: null }));
-    }
-  };
-
-  const handleViewDetails = (bookingId: string) => {
-    if (onViewDetails) {
-      onViewDetails(bookingId);
-    } else {
-      console.log("View details for booking:", bookingId);
-      router.push("/serviceprovider/bookingRequest/" + bookingId);
-    }
-  };
-
-  const handleViewAll = () => {
-    if (onViewAll) {
-      onViewAll();
-    } else {
-      router.push("/serviceprovider/dashboard/bookingRequest")
-    }
-  };
-
-  // Get loading state for a specific booking
-  const getLoadingState = (bookingId: string) => {
-    return loadingStates[bookingId] || null;
   };
 
   return (
     <div className="min-h-screen">
       <div className="">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Venues Card */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-start justify-between mb-10">
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                 <Home className="w-5 h-5 text-[#B74140]" />
               </div>
-              <span className="text-xs font-medium text-green-500">{totalVenuesChange}</span>
+              <span className="text-xs font-medium text-green-500">+12%</span>
             </div>
             <p className="text-sm font-medium text-gray-600 mb-2">Total Services</p>
-            <p className="text-3xl font-bold text-gray-900">{totalVenues}</p>
+            <p className="text-3xl font-bold text-gray-900">24</p>
           </div>
 
-          {/* Upcoming Bookings Card */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-start justify-between mb-10">
               <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-green-500" />
               </div>
-              <span className="text-xs font-medium text-green-500">{upcomingBookingsChange}</span>
+              <span className="text-xs font-medium text-green-500">+8%</span>
             </div>
             <p className="text-sm font-medium text-gray-600 mb-2">Upcoming Bookings</p>
-            <p className="text-3xl font-bold text-gray-900">{upcomingBookingsCount}</p>
+            <p className="text-3xl font-bold text-gray-900">47</p>
           </div>
 
-          {/* Monthly Revenue Card */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-start justify-between mb-10">
               <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-purple-600" />
               </div>
-              <span className="text-xs font-medium text-green-500">{monthlyRevenueChange}</span>
+              <span className="text-xs font-medium text-green-500">+24%</span>
             </div>
             <p className="text-sm font-medium text-gray-600 mb-2">Monthly Revenue</p>
-            <p className="text-3xl font-bold text-gray-900">£{monthlyRevenue.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-gray-900">£18,420</p>
           </div>
 
-          {/* Average Rating Card */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl p-[24px]">
             <div className="flex items-center justify-between mb-6">
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <Star className="w-5 h-5 text-purple-600 fill-purple-600" />
               </div>
               <span className="px-2 py-1 bg-green-50 text-green-600 text-sm font-medium rounded-lg">
-                {averageRatingChange}
+                +0.2
               </span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{averageRating}</p>
+            <p className="text-2xl font-bold text-gray-900 mb-1">4.8</p>
             <p className="text-base text-gray-600">Average Rating</p>
           </div>
         </div>
 
-        {/* Recent Booking Requests Table */}
         <div className="bg-white border border-gray-100 rounded-xl border border-[#E5E7EB]">
-          {/* Table Header */}
           <div className="border-b  border-[#E5E7EB] px-6 py-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
                 Recent Booking Requests
               </h2>
-              <button 
-                onClick={handleViewAll}
+              <button
+                onClick={() => router.push('/serviceprovider/dashboard/bookingRequest')}
                 className="flex items-center gap-2 text-sm font-medium text-[#B74140] hover:text-[#A03A39] transition-colors"
               >
                 View All
@@ -330,7 +202,12 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
             </div>
           </div>
 
-          {/* Table */}
+          {error ? (
+            <div className="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -363,19 +240,30 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {bookings.map((booking) => {
-                  const isLoading = getLoadingState(booking.id);
-                  const isApproving = isLoading === 'approving';
-                  const isDeclining = isLoading === 'declining';
-                  
-                  return (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
+                      <div className="flex items-center justify-center gap-3">
+                        <LoaderCircle className="w-5 h-5 animate-spin" />
+                        Loading booking requests...
+                      </div>
+                    </td>
+                  </tr>
+                ) : bookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
+                      No booking requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  bookings.map((booking) => (
                     <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img
                             src={booking.client.avatar}
                             alt={booking.client.name}
-                            className="w-10 h-10 rounded-full"
+                            className="w-10 h-10 rounded-full object-cover"
                           />
                           <div>
                             <p className="text-sm font-medium text-gray-900">
@@ -395,7 +283,6 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                         <p className="text-sm font-medium text-gray-900">
                           {booking.service.name}
                         </p>
-                        
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center">
@@ -403,9 +290,9 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                             className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
                               booking.status === 'approved'
                                 ? 'bg-green-100 text-green-800'
-                                : booking.status === 'declined'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                : booking.status === 'rejected'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
                             }`}
                           >
                             <svg
@@ -415,8 +302,7 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                             >
                               <circle cx="4" cy="4" r="3" />
                             </svg>
-                            {booking.status.charAt(0).toUpperCase() +
-                              booking.status.slice(1)}
+                            {getBookingStatusLabel({ _id: booking.id, status: booking.status })}
                           </span>
                         </div>
                       </td>
@@ -425,57 +311,26 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                           {booking.status === 'pending' && (
                             <>
                               <button
-                                onClick={() => handleApprove(booking.id)}
-                                disabled={isLoading !== null}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors ${
-                                  isApproving
-                                    ? 'bg-green-400 cursor-not-allowed'
-                                    : 'bg-green-500 hover:bg-green-600'
-                                } text-white`}
+                                onClick={() => handleAction(booking.id, 'approve')}
+                                disabled={loadingActionId === booking.id}
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors bg-green-500 hover:bg-green-600 text-white disabled:opacity-60 disabled:cursor-not-allowed"
                               >
-                                {isApproving ? (
-                                  <>
-                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Approving...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Check className="w-3 h-3" />
-                                    Approve
-                                  </>
-                                )}
+                                <Check className="w-3 h-3" />
+                                Approve
                               </button>
                               <button
-                                onClick={() => handleDecline(booking.id)}
-                                disabled={isLoading !== null}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors ${
-                                  isDeclining
-                                    ? 'bg-red-200 cursor-not-allowed'
-                                    : 'bg-red-50 hover:bg-red-100'
-                                } text-red-500`}
+                                onClick={() => handleAction(booking.id, 'reject')}
+                                disabled={loadingActionId === booking.id}
+                                className="px-3 py-1.5 bg-red-50 text-red-500 text-xs font-medium rounded-lg hover:bg-red-100 flex items-center gap-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                               >
-                                {isDeclining ? (
-                                  <>
-                                    <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                                    Declining...
-                                  </>
-                                ) : (
-                                  <>
-                                    <X className="w-3 h-3" />
-                                    Decline
-                                  </>
-                                )}
+                                <X className="w-3 h-3" />
+                                Decline
                               </button>
                             </>
                           )}
                           <button
-                            onClick={() => handleViewDetails(booking.id)}
-                            disabled={isLoading !== null}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors ${
-                              isLoading !== null
-                                ? 'bg-gray-100 cursor-not-allowed text-gray-400'
-                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                            }`}
+                            onClick={() => router.push(`/serviceprovider/bookingRequest/${booking.id}`)}
+                            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 flex items-center gap-1 transition-colors"
                           >
                             <Eye className="w-3 h-3" />
                             View Details
@@ -483,8 +338,8 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -492,6 +347,4 @@ const VenueDashboard: React.FC<VenueDashboardProps> = ({
       </div>
     </div>
   );
-};
-
-export default VenueDashboard;
+}

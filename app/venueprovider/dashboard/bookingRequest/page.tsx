@@ -1,197 +1,179 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Clock, 
-  Check, 
-  X, 
-  Eye, 
+import React, { useEffect, useState } from 'react';
+import {
+  FileText,
+  Clock,
+  Check,
+  X,
+  Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LoaderCircle,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-interface Booking {
-  id: string;
+import { getApiErrorMessage } from '@/lib/api';
+import {
+  approveVenueProviderBooking,
+  fetchVenueProviderBookings,
+  fetchVenueProviderBookingStats,
+  formatBookingDate,
+  formatBookingTime,
+  getBookingStatus,
+  getBookingStatusLabel,
+  getCustomerAvatar,
+  getCustomerEmail,
+  getCustomerName,
+  getVenueName,
+  getVenueType,
+  rejectVenueProviderBooking,
+  type VenueProviderBooking,
+  type VenueProviderBookingMeta,
+  type VenueProviderBookingStats,
+} from '@/lib/venue-provider-bookings';
+
+interface BookingRow {
   client: {
-    name: string;
-    email: string;
     avatar: string;
+    email: string;
+    name: string;
   };
   date: string;
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
   time: string;
   venue: {
     name: string;
     type: string;
   };
-  status: 'pending' | 'approved' | 'rejected';
-}
-import { useRouter } from 'next/navigation';
-
-interface VenueDashboardProps {
-  bookings?: Booking[];
-  onApprove?: (bookingId: string) => void;
-  onDecline?: (bookingId: string) => void;
-  onViewDetails?: (bookingId: string) => void;
-  itemsPerPage?: number;
-  stats?: {
-    totalRequests?: number;
-    pending?: number;
-    accepted?: number;
-    rejected?: number;
-  };
 }
 
-// Generate sample data
-const generateSampleBookings = (count: number): Booking[] => {
-  const names = [
-    { name: 'Sarah Johnson', email: 'sarah.j@email.com', avatar: 'https://i.pravatar.cc/150?img=1' },
-    { name: 'Michael Chen', email: 'm.chen@company.com', avatar: 'https://i.pravatar.cc/150?img=12' },
-    { name: 'Emily Rodriguez', email: 'emily.r@events.com', avatar: 'https://i.pravatar.cc/150?img=5' },
-    { name: 'David Park', email: 'david.park@startup.io', avatar: 'https://i.pravatar.cc/150?img=15' },
-    { name: 'Lisa Thompson', email: 'lisa.t@creative.com', avatar: 'https://i.pravatar.cc/150?img=9' },
-    { name: 'James Wilson', email: 'james.w@corp.com', avatar: 'https://i.pravatar.cc/150?img=13' },
-    { name: 'Maria Garcia', email: 'maria.g@events.co', avatar: 'https://i.pravatar.cc/150?img=10' },
-    { name: 'Robert Brown', email: 'robert.b@business.com', avatar: 'https://i.pravatar.cc/150?img=14' },
-    { name: 'Jennifer Lee', email: 'jennifer.l@company.io', avatar: 'https://i.pravatar.cc/150?img=24' },
-    { name: 'William Davis', email: 'william.d@startup.co', avatar: 'https://i.pravatar.cc/150?img=33' }
-  ];
+const ITEMS_PER_PAGE = 10;
 
-  const venues = [
-    { name: 'Grand Ballroom', type: 'Corporate Event' },
-    { name: 'Garden Terrace', type: 'Wedding Reception' },
-    { name: 'Conference Hall A', type: 'Business Meeting' },
-    { name: 'Rooftop Lounge', type: 'Product Launch' },
-    { name: 'Art Gallery Space', type: 'Exhibition Opening' },
-    { name: 'Main Auditorium', type: 'Conference' },
-    { name: 'Sky Lounge', type: 'Networking Event' },
-    { name: 'Banquet Hall', type: 'Gala Dinner' }
-  ];
+const mapBooking = (booking: VenueProviderBooking): BookingRow => ({
+  client: {
+    avatar: getCustomerAvatar(booking),
+    email: getCustomerEmail(booking),
+    name: getCustomerName(booking),
+  },
+  date: formatBookingDate(booking.bookingDate),
+  id: booking._id,
+  status: getBookingStatus(booking),
+  time: formatBookingTime(booking.hours, booking.durationHours),
+  venue: {
+    name: getVenueName(booking),
+    type: getVenueType(booking),
+  },
+});
 
-  const statuses: ('pending' | 'approved' | 'rejected')[] = ['pending', 'approved', 'rejected'];
-  
-  return Array.from({ length: count }, (_, i) => ({
-    id: `booking-${i + 1}`,
-    client: names[i % names.length],
-    date: `${String(5 + (i % 25)).padStart(2, '0')}/01/25`,
-    time: `${6 + (i % 6)}:00 PM - ${10 + (i % 3)}:00 PM`,
-    venue: venues[i % venues.length],
-    status: i < 5 ? 'pending' : statuses[i % 3]
-  }));
-};
-
-const BookingRequest: React.FC<VenueDashboardProps> = ({ 
-  bookings: initialBookings,
-  onApprove,
-  onDecline,
-  onViewDetails,
-  itemsPerPage = 8,
-  stats: initialStats
-}) => {
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings || generateSampleBookings(250));
+export default function BookingRequest() {
+  const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [stats, setStats] = useState<VenueProviderBookingStats>({
+    accepted: 0,
+    pending: 0,
+    rejected: 0,
+    totalRequests: 0,
+  });
+  const [meta, setMeta] = useState<VenueProviderBookingMeta | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const router = useRouter();
 
-  // Update bookings when initialBookings prop changes
-  useEffect(() => {
-    if (initialBookings) {
-      setBookings(initialBookings);
-    }
-  }, [initialBookings]);
+  const loadBookings = async (page: number) => {
+    const [bookingsResponse, statsResponse] = await Promise.all([
+      fetchVenueProviderBookings({
+        limit: ITEMS_PER_PAGE,
+        page,
+      }),
+      fetchVenueProviderBookingStats(),
+    ]);
 
-  // Calculate stats from current bookings state
-  const stats = initialStats || {
-    totalRequests: bookings.length,
-    pending: bookings.filter(b => b.status === 'pending').length,
-    accepted: bookings.filter(b => b.status === 'approved').length,
-    rejected: bookings.filter(b => b.status === 'rejected').length
+    setBookings((bookingsResponse.data ?? []).map(mapBooking));
+    setMeta(bookingsResponse.meta ?? null);
+    setStats(statsResponse);
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(bookings.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentBookings = bookings.slice(startIndex, endIndex);
+  useEffect(() => {
+    let isMounted = true;
 
-  // Generate page numbers for pagination
+    const initialize = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        const [bookingsResponse, statsResponse] = await Promise.all([
+          fetchVenueProviderBookings({
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+          }),
+          fetchVenueProviderBookingStats(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setBookings((bookingsResponse.data ?? []).map(mapBooking));
+        setMeta(bookingsResponse.meta ?? null);
+        setStats(statsResponse);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(getApiErrorMessage(fetchError));
+        setBookings([]);
+        setMeta(null);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initialize();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPage]);
+
+  const totalPages = meta?.totalPages ?? 1;
+  const startIndex = meta ? (meta.page - 1) * meta.limit + 1 : 0;
+  const endIndex = meta ? Math.min(meta.page * meta.limit, meta.total) : 0;
+
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    
+
     if (totalPages <= 7) {
-      // Show all pages if total is 7 or less
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
+      for (let page = 1; page <= totalPages; page += 1) {
+        pages.push(page);
       }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      if (currentPage > 3) {
-        pages.push('...');
-      }
-      
-      // Show pages around current page
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-        pages.push(i);
-      }
-      
-      if (currentPage < totalPages - 2) {
-        pages.push('....');
-      }
-      
-      // Common page numbers
-      if (!pages.includes(30) && totalPages >= 30) pages.push(30);
-      if (!pages.includes(60) && totalPages >= 60) pages.push(60);
-      if (!pages.includes(120) && totalPages >= 120) pages.push(120);
-      
-      // Always show last page
-      if (!pages.includes(totalPages)) {
-        pages.push(totalPages);
-      }
+      return pages;
     }
-    
+
+    pages.push(1);
+
+    if (currentPage > 3) {
+      pages.push('...');
+    }
+
+    for (let page = Math.max(2, currentPage - 1); page <= Math.min(totalPages - 1, currentPage + 1); page += 1) {
+      pages.push(page);
+    }
+
+    if (currentPage < totalPages - 2) {
+      pages.push('....');
+    }
+
+    if (!pages.includes(totalPages)) {
+      pages.push(totalPages);
+    }
+
     return pages;
-  };
-
-  const handleApprove = (bookingId: string) => {
-    // Update local state
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, status: 'approved' as const }
-          : booking
-      )
-    );
-
-    // Call parent callback if provided
-    if (onApprove) {
-      onApprove(bookingId);
-    } else {
-      console.log('Approve booking:', bookingId);
-    }
-  };
-
-  const handleDecline = (bookingId: string) => {
-    // Update local state
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, status: 'rejected' as const }
-          : booking
-      )
-    );
-
-    // Call parent callback if provided
-    if (onDecline) {
-      onDecline(bookingId);
-    } else {
-      console.log('Decline booking:', bookingId);
-    }
-  };
-
-  const handleViewDetails = (bookingId: string) => {
-    console.log(bookingId)
-    router.push("/venueprovider/bookingRequest/"+bookingId);
   };
 
   const goToPage = (page: number) => {
@@ -200,12 +182,35 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
     }
   };
 
+  const handleAction = async (bookingId: string, action: 'approve' | 'reject') => {
+    try {
+      setLoadingActionId(bookingId);
+
+      if (action === 'approve') {
+        await approveVenueProviderBooking(bookingId);
+      } else {
+        await rejectVenueProviderBooking(bookingId);
+      }
+
+      const nextPage = bookings.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+
+      if (nextPage !== currentPage) {
+        setCurrentPage(nextPage);
+        return;
+      }
+
+      await loadBookings(currentPage);
+    } catch (actionError) {
+      setError(getApiErrorMessage(actionError));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <div className="">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Requests Card */}
           <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -218,7 +223,6 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
             </div>
           </div>
 
-          {/* Pending Card */}
           <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -231,7 +235,6 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
             </div>
           </div>
 
-          {/* Accepted Card */}
           <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -244,7 +247,6 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
             </div>
           </div>
 
-          {/* Rejected Card */}
           <div className="bg-white rounded-2xl p-[24px] border border-[#E5E7EB]">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -258,14 +260,17 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
           </div>
         </div>
 
-        {/* Recent Booking Requests Table */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB]">
-          {/* Table Header */}
           <div className="px-[24px] py-[20px] border-b border-[#E5E7EB]">
             <h2 className="text-xl font-bold text-gray-900">Recent Booking Requests</h2>
           </div>
 
-          {/* Table */}
+          {error ? (
+            <div className="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -288,93 +293,111 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {currentBookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={booking.client.avatar}
-                          alt={booking.client.name}
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {booking.client.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {booking.client.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-900">{booking.date}</p>
-                      <p className="text-xs text-gray-500">{booking.time}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-gray-900">
-                        {booking.venue.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {booking.venue.type}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${
-                          booking.status === 'approved'
-                            ? 'bg-green-50 text-green-700'
-                            : booking.status === 'rejected'
-                            ? 'bg-red-50 text-[#B74140]'
-                            : 'bg-yellow-50 text-yellow-700'
-                        }`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {booking.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(booking.id)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleDecline(booking.id)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-[#B74140] text-xs font-medium rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              Decline
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => handleViewDetails(booking.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          View Details
-                        </button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
+                      <div className="flex items-center justify-center gap-3">
+                        <LoaderCircle className="w-5 h-5 animate-spin" />
+                        Loading booking requests...
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : bookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
+                      No booking requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  bookings.map((booking) => (
+                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={booking.client.avatar}
+                            alt={booking.client.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {booking.client.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {booking.client.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-gray-900">{booking.date}</p>
+                        <p className="text-xs text-gray-500">{booking.time}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-gray-900">
+                          {booking.venue.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {booking.venue.type}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${
+                            booking.status === 'approved'
+                              ? 'bg-green-50 text-green-700'
+                              : booking.status === 'rejected'
+                                ? 'bg-red-50 text-[#B74140]'
+                                : 'bg-yellow-50 text-yellow-700'
+                          }`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                          {getBookingStatusLabel({ _id: booking.id, status: booking.status })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {booking.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleAction(booking.id, 'approve')}
+                                disabled={loadingActionId === booking.id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleAction(booking.id, 'reject')}
+                                disabled={loadingActionId === booking.id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-[#B74140] text-xs font-medium rounded-lg hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Decline
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => router.push(`/venueprovider/bookingRequest/${booking.id}`)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View Details
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="px-6 py-4 border-t  border-[#E5E7EB]">
+          <div className="px-6 py-4 border-t border-[#E5E7EB]">
             <div className="flex items-center justify-between">
               <p className="text-sm text-[#B74140] font-medium">
-                SHOWING {startIndex + 1}-{Math.min(endIndex, bookings.length)} OF {bookings.length}
+                SHOWING {bookings.length ? startIndex : 0}-{bookings.length ? endIndex : 0} OF {meta?.total ?? 0}
               </p>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
@@ -419,6 +442,4 @@ const BookingRequest: React.FC<VenueDashboardProps> = ({
       </div>
     </div>
   );
-};
-
-export default BookingRequest;
+}

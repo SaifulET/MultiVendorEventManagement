@@ -6,11 +6,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Hash,
   LoaderCircle,
   MapPin,
   MessageSquare,
-  Receipt,
   Timer,
   Users,
 } from 'lucide-react';
@@ -123,13 +121,13 @@ const toBookingStatus = (status?: string, bookingDate?: string): BookingStatus =
 const getStatusBadgeClasses = (status: BookingStatus) => {
   switch (status) {
     case 'pending':
-      return 'bg-[#FFF4E5] text-[#FFB94F]';
+      return 'border border-[#F2D3A2] bg-[#FFF7ED]/95 text-[#9A5B00]';
     case 'upcoming':
-      return 'bg-[#FEE5E5] text-[#B74140]';
+      return 'border border-[#E7B5B3] bg-[#FDECEC]/95 text-[#8F2D2C]';
     case 'completed':
-      return 'bg-[#E5F9F0] text-[#3CCF91]';
+      return 'border border-[#B7E8D2] bg-[#ECFDF5]/95 text-[#166534]';
     case 'cancelled':
-      return 'bg-[#FFE5E5] text-[#FF5A5A]';
+      return 'border border-[#F6B8B8] bg-[#FEF2F2]/95 text-[#B91C1C]';
   }
 };
 
@@ -413,7 +411,7 @@ const BookingDetailsPage = () => {
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/35 flex flex-col justify-end p-6 md:p-8">
-          <span className={`inline-block w-fit rounded px-3 py-1 text-xs font-semibold text-white mb-3 ${getStatusBadgeClasses(bookingStatus)}`}>
+          <span className={`inline-block w-fit rounded-md px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm mb-3 ${getStatusBadgeClasses(bookingStatus)}`}>
             {bookingStatus.charAt(0).toUpperCase() + bookingStatus.slice(1)}
           </span>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
@@ -505,18 +503,6 @@ const BookingDetailsPage = () => {
                   {booking.specialInstructions?.trim() || 'No special instructions were provided.'}
                 </p>
               </div>
-              {reservedSlots.length > 0 ? (
-                <div className="mt-5">
-                  <p className="text-sm text-gray-500 mb-2">Reserved Slot References</p>
-                  <div className="space-y-2">
-                    {reservedSlots.map((slot) => (
-                      <div key={slot} className="rounded-lg bg-[#FAFAFA] px-3 py-2 text-xs text-gray-700 break-all">
-                        {slot}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <div className="bg-white rounded-lg shadow-sm p-[12px] md:p-[32px]">
@@ -644,30 +630,6 @@ const BookingDetailsPage = () => {
                       </span>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                    <Hash size={14} />
-                    Booking ID
-                  </div>
-                  <p className="text-sm font-medium break-all">{booking._id}</p>
-                </div>
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                    <Receipt size={14} />
-                    Target ID
-                  </div>
-                  <p className="text-sm font-medium break-all">{booking.targetId || 'Unavailable'}</p>
-                </div>
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                    <Users size={14} />
-                    Provider ID
-                  </div>
-                  <p className="text-sm font-medium break-all">{booking.providerId || 'Unavailable'}</p>
                 </div>
               </div>
             </div>
