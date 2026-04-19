@@ -27,6 +27,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   successMessage: string | null;
+  updateUser: (updates: Partial<AuthUser>) => void;
   register: (payload: RegisterPayload) => Promise<RegisterResponseData>;
   verifyEmail: (payload: VerifyEmailPayload) => Promise<AuthSuccessData>;
   login: (payload: LoginPayload) => Promise<AuthSuccessData>;
@@ -54,6 +55,16 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       successMessage: null,
+
+      updateUser: (updates) =>
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                ...updates,
+              }
+            : state.user,
+        })),
 
       register: async (payload) => {
         try {

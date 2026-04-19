@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import profile from "@/public/profile.jpg";
 import { useAuthStore } from "@/store/useAuthStore";
 import { formatRoleLabel, getFirstName } from "@/lib/user-display";
-import { fetchAuthMeProfile } from "@/lib/auth-me";
+import { fetchAuthMeProfile, PROFILE_DETAILS_UPDATED_EVENT } from "@/lib/auth-me";
 import { PROFILE_IMAGE_UPDATED_EVENT } from "@/lib/profile-image";
 
 interface NavbarProps {
@@ -19,7 +19,8 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const [profileImage, setProfileImage] = useState(profile.src);
-  const displayName = getFirstName(user?.fullName);
+  const [profileName, setProfileName] = useState(user?.fullName?.trim() || "");
+  const displayName = getFirstName(profileName || user?.fullName);
   const roleLabel = formatRoleLabel(user?.role ?? "customer");
 
   const isActive = (path: string) => pathname === path;
@@ -29,6 +30,10 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
   };
 
   useEffect(() => {
+    setProfileName(user?.fullName?.trim() || "");
+  }, [user?.fullName]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const syncProfileImage = async () => {
@@ -36,6 +41,9 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
         const profileData = await fetchAuthMeProfile();
         if (isMounted && profileData.profileImage) {
           setProfileImage(profileData.profileImage);
+        }
+        if (isMounted) {
+          setProfileName(profileData.fullName.trim() || user?.fullName?.trim() || "");
         }
       } catch {
         if (isMounted) {
@@ -52,8 +60,23 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
       }
     };
 
+    const handleProfileDetailsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ fullName?: string; profileImage?: string }>;
+      const nextName = customEvent.detail?.fullName?.trim();
+      const nextImage = customEvent.detail?.profileImage?.trim();
+
+      if (nextName) {
+        setProfileName(nextName);
+      }
+
+      if (nextImage) {
+        setProfileImage(nextImage);
+      }
+    };
+
     void syncProfileImage();
     window.addEventListener(PROFILE_IMAGE_UPDATED_EVENT, handleProfileImageUpdated);
+    window.addEventListener(PROFILE_DETAILS_UPDATED_EVENT, handleProfileDetailsUpdated);
 
     return () => {
       isMounted = false;
@@ -61,8 +84,12 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
         PROFILE_IMAGE_UPDATED_EVENT,
         handleProfileImageUpdated
       );
+      window.removeEventListener(
+        PROFILE_DETAILS_UPDATED_EVENT,
+        handleProfileDetailsUpdated
+      );
     };
-  }, []);
+  }, [user?.fullName]);
 
   return (
     <header

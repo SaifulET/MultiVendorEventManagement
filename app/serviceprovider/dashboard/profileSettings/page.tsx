@@ -3,11 +3,17 @@
 import React, { useEffect, useState, type ChangeEvent } from 'react';
 import { Camera, Check, Lock, Mail, Phone, RefreshCcw, Trash2, User, X } from 'lucide-react';
 
-import { fetchAuthMeProfile, formatRole } from '@/lib/auth-me';
+import {
+  fetchAuthMeProfile,
+  formatRole,
+  PROFILE_DETAILS_UPDATED_EVENT,
+  updateServiceProviderProfile,
+} from '@/lib/auth-me';
 import { getApiErrorMessage } from '@/lib/api';
-import { uploadProfileImage } from '@/lib/profile-image';
+import { uploadCoverImage, uploadProfileImage } from '@/lib/profile-image';
 import cover from '@/public/bg.svg';
 import profileimg from '@/public/profile.jpg';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface Profile {
   fullName: string;
@@ -23,10 +29,12 @@ interface Passwords {
 }
 
 const ProfilePage: React.FC = () => {
+  const updateUser = useAuthStore((state) => state.updateUser);
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [coverPhoto, setCoverPhoto] = useState(cover.src);
   const [profilePhoto, setProfilePhoto] = useState(profileimg.src);
+  const [pendingCoverImageFile, setPendingCoverImageFile] = useState<File | null>(null);
   const [pendingProfileImageFile, setPendingProfileImageFile] = useState<File | null>(null);
   const [profile, setProfile] = useState<Profile>({
     fullName: '',
@@ -54,9 +62,12 @@ const ProfilePage: React.FC = () => {
         ...current,
         fullName: data.fullName,
         email: data.email,
+        phone: data.phone,
         role: data.role,
       }));
+      setCoverPhoto(data.coverImage || cover.src);
       setProfilePhoto(data.profileImage || profileimg.src);
+      setPendingCoverImageFile(null);
       setPendingProfileImageFile(null);
     } catch (fetchError) {
       setError(getApiErrorMessage(fetchError));
@@ -78,12 +89,39 @@ const ProfilePage: React.FC = () => {
       try {
         setIsSaving(true);
         setError('');
+        let nextCoverPhoto = coverPhoto;
+        let nextProfilePhoto = profilePhoto;
+
+        const updateResponse = await updateServiceProviderProfile({
+          fullName: profile.fullName,
+          phoneNumber: profile.phone,
+        });
+        console.log('Service provider profile update response:', updateResponse);
+
+        if (pendingCoverImageFile) {
+          nextCoverPhoto = await uploadCoverImage(pendingCoverImageFile);
+          setCoverPhoto(nextCoverPhoto);
+        }
 
         if (pendingProfileImageFile) {
-          const nextProfilePhoto = await uploadProfileImage(pendingProfileImageFile);
+          nextProfilePhoto = await uploadProfileImage(pendingProfileImageFile);
           setProfilePhoto(nextProfilePhoto);
         }
 
+        updateUser({
+          fullName: profile.fullName.trim(),
+          email: profile.email.trim(),
+        });
+        window.dispatchEvent(
+          new CustomEvent(PROFILE_DETAILS_UPDATED_EVENT, {
+            detail: {
+              fullName: profile.fullName.trim(),
+              email: profile.email.trim(),
+              profileImage: nextProfilePhoto,
+            },
+          })
+        );
+        setPendingCoverImageFile(null);
         setPendingProfileImageFile(null);
         setIsEditing(false);
       } catch (saveError) {
@@ -124,6 +162,10 @@ const ProfilePage: React.FC = () => {
 
     if (setter === setProfilePhoto) {
       setPendingProfileImageFile(file);
+    }
+
+    if (setter === setCoverPhoto) {
+      setPendingCoverImageFile(file);
     }
   };
 
@@ -262,15 +304,14 @@ const ProfilePage: React.FC = () => {
                 <input
                   type="email"
                   value={profile.email}
-                  onChange={(event) => handleProfileChange('email', event.target.value)}
-                  disabled={!isEditing}
-                  className={`w-full rounded-lg border py-3 pl-11 pr-4 outline-none transition-all ${
-                    isEditing
-                      ? 'border-[#E5E7EB] bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200'
-                      : 'border-[#E5E7EB] bg-slate-50 text-slate-600'
-                  }`}
+                  readOnly
+                  disabled
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-slate-50 py-3 pl-11 pr-4 text-slate-600 outline-none transition-all"
                 />
               </div>
+              {isEditing ? (
+                <p className="mt-2 text-sm text-slate-500">Email cannot be changed from this page.</p>
+              ) : null}
             </div>
 
             <div>

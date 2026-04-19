@@ -2,9 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 
-import { fetchAuthMeProfile } from "@/lib/auth-me";
+import {
+  fetchAuthMeProfile,
+  PROFILE_DETAILS_UPDATED_EVENT,
+  updateVenueProviderProfile,
+} from "@/lib/auth-me";
 import { getApiErrorMessage } from "@/lib/api";
 import profileImageFallback from "@/public/profile.jpg";
+import { useAuthStore } from "@/store/useAuthStore";
 import EditProfile from "./EditProfile";
 
 interface ProfileData {
@@ -15,6 +20,7 @@ interface ProfileData {
 }
 
 export default function ProfileSettings() {
+  const updateUser = useAuthStore((state) => state.updateUser);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,6 +43,7 @@ export default function ProfileSettings() {
           ...current,
           fullName: data.fullName,
           email: data.email,
+          phone: data.phone,
           profileImage: data.profileImage || current.profileImage,
         }));
       } catch (fetchError) {
@@ -49,12 +56,24 @@ export default function ProfileSettings() {
     void loadProfile();
   }, []);
 
-  const handleSaveChanges = (updatedData: {
+  const handleSaveChanges = async (updatedData: {
     fullName: string;
     email: string;
     phone: string;
     profileImage: string;
   }) => {
+    setError("");
+
+    try {
+      await updateVenueProviderProfile({
+        fullName: updatedData.fullName,
+        phoneNumber: updatedData.phone,
+      });
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError));
+      throw saveError;
+    }
+
     setProfileData((prev) => ({
       ...prev,
       fullName: updatedData.fullName,
@@ -62,6 +81,19 @@ export default function ProfileSettings() {
       phone: updatedData.phone,
       profileImage: updatedData.profileImage,
     }));
+    updateUser({
+      fullName: updatedData.fullName.trim(),
+      email: updatedData.email.trim(),
+    });
+    window.dispatchEvent(
+      new CustomEvent(PROFILE_DETAILS_UPDATED_EVENT, {
+        detail: {
+          fullName: updatedData.fullName.trim(),
+          email: updatedData.email.trim(),
+          profileImage: updatedData.profileImage,
+        },
+      })
+    );
 
     setIsEditMode(false);
   };
@@ -150,7 +182,7 @@ export default function ProfileSettings() {
                   setProfileData({ ...profileData, phone: event.target.value })
                 }
                 className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
-                placeholder="Not returned by /api/v1/auth/me"
+                placeholder={isLoading ? "Loading..." : "Mobile number"}
                 readOnly
               />
             </div>

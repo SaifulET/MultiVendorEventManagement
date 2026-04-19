@@ -182,12 +182,11 @@ export default function EditProfile({ onSave, onCancel, initialData }: EditProfi
               <input
                 type="email"
                 value={formData.email}
-                onChange={(event) =>
-                  setFormData({ ...formData, email: event.target.value })
-                }
-                className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-slate-900 transition-all duration-200"
-                placeholder="Enter email address"
+                readOnly
+                className="w-full rounded-lg border border-[#E5E7EB] bg-slate-50 px-4 py-2.5 text-slate-500 transition-all duration-200"
+                placeholder="Email address"
               />
+              <p className="mt-2 text-sm text-slate-500">Email cannot be changed from this page.</p>
             </div>
 
             <div className="sm:col-span-2">

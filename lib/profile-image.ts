@@ -26,6 +26,8 @@ const tryExtractImageUrl = (value: unknown): string | null => {
   const record = value as Record<string, unknown>;
   const directKeys = [
     "imageUrl",
+    "coverImage",
+    "coverPhoto",
     "profileImage",
     "avatar",
     "url",
@@ -84,6 +86,37 @@ export const uploadProfileImage = async (imageFile: File) => {
         detail: { imageUrl },
       })
     );
+  }
+
+  return imageUrl;
+};
+
+export const uploadCoverImage = async (imageFile: File) => {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+  const token = getStoredToken();
+  const response = await api.post<UploadProfileImageResponse>(
+    "/api/v1/uploads/cover-image",
+    formData,
+    token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      : undefined
+  );
+
+  if (response.data?.success === false) {
+    throw new Error(response.data.message || "Failed to upload cover image.");
+  }
+
+  const imageUrl =
+    tryExtractImageUrl(response.data?.data) ||
+    tryExtractImageUrl(response.data);
+
+  if (!imageUrl) {
+    throw new Error("Cover image uploaded, but no image URL was returned.");
   }
 
   return imageUrl;

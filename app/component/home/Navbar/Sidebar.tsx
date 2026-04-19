@@ -14,7 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { fetchAuthMeProfile } from "@/lib/auth-me";
+import { fetchAuthMeProfile, PROFILE_DETAILS_UPDATED_EVENT } from "@/lib/auth-me";
 import { PROFILE_IMAGE_UPDATED_EVENT } from "@/lib/profile-image";
 
 const MENU = [
@@ -98,14 +98,42 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
       }
     };
 
+    const handleProfileDetailsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        fullName?: string;
+        email?: string;
+        profileImage?: string;
+      }>;
+      const nextName = customEvent.detail?.fullName?.trim();
+      const nextEmail = customEvent.detail?.email?.trim();
+      const nextImage = customEvent.detail?.profileImage?.trim();
+
+      if (nextName) {
+        setProfileName(nextName);
+      }
+
+      if (nextEmail) {
+        setProfileEmail(nextEmail);
+      }
+
+      if (nextImage) {
+        setProfileImage(nextImage);
+      }
+    };
+
     void syncProfile();
     window.addEventListener(PROFILE_IMAGE_UPDATED_EVENT, handleProfileImageUpdated);
+    window.addEventListener(PROFILE_DETAILS_UPDATED_EVENT, handleProfileDetailsUpdated);
 
     return () => {
       isMounted = false;
       window.removeEventListener(
         PROFILE_IMAGE_UPDATED_EVENT,
         handleProfileImageUpdated
+      );
+      window.removeEventListener(
+        PROFILE_DETAILS_UPDATED_EVENT,
+        handleProfileDetailsUpdated
       );
     };
   }, [user?.email, user?.fullName]);
