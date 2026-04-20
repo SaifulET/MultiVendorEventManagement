@@ -7,6 +7,7 @@ import {
   Check,
   X,
   Eye,
+  MessageSquare,
   ChevronLeft,
   ChevronRight,
   LoaderCircle,
@@ -376,6 +377,13 @@ export default function BookingRequest() {
                               </button>
                             </>
                           )}
+                          <button
+                            onClick={() => router.push('/serviceprovider/dashboard/bookingRequest/chat')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#B74140] text-white text-xs font-medium rounded-lg hover:bg-[#9a3635] transition-colors"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            Message
+                          </button>
                           <button
                             onClick={() => router.push(`/serviceprovider/bookingRequest/${booking.id}`)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"

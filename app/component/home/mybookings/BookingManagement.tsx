@@ -139,6 +139,14 @@ const toBookingStatus = (status?: string, bookingDate?: string): BookingStatus =
 const buildBookingTitle = (type: BookingType, bookingId: string) =>
   `${bookingTypeLabels[type]} Booking #${bookingId.slice(-6).toUpperCase()}`;
 
+const getReviewPath = (booking: BookingCard) => {
+  if (booking.type === 'event') {
+    return `/pages/reviewEventPlanner/${booking.id}`;
+  }
+
+  return `/pages/reviewProvider/${booking.id}`;
+};
+
 const buildQueryStatus = (tab: TabId) => {
   switch (tab) {
     case 'pending':
@@ -189,6 +197,14 @@ export default function BookingManagement() {
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<BookingListMeta | null>(null);
   const router = useRouter();
+
+  const handleReview = (booking: BookingCard) => {
+    if (booking.status !== 'completed') {
+      return;
+    }
+
+    router.push(getReviewPath(booking));
+  };
 
   useEffect(() => {
     setPage(1);
@@ -292,7 +308,10 @@ export default function BookingManagement() {
   const getActionButton = (booking: BookingCard) => {
     if (booking.status === 'completed') {
       return (
-        <button className="px-4 py-2 bg-[#3CCF91] text-white rounded-lg text-sm font-medium hover:bg-[#2DB67D] transition-colors flex items-center gap-1">
+        <button
+          onClick={() => handleReview(booking)}
+          className="px-4 py-2 bg-[#3CCF91] text-white rounded-lg text-sm font-medium hover:bg-[#2DB67D] transition-colors flex items-center gap-1"
+        >
           <Star size={16} />
           Leave Review
         </button>

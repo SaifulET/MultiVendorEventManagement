@@ -27,9 +27,20 @@ import { formatDateDDMMYY } from '@/lib/date';
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface ServiceReview {
+  _id?: string;
+  bookingId?: string;
+  customerId?: {
+    _id?: string;
+    fullName?: string;
+    profileImage?: string;
+  } | string;
+  providerId?: string;
+  targetType?: string;
+  targetId?: string;
   rating?: number | string;
   comment?: string;
   createdAt?: string;
+  updatedAt?: string;
   user?: {
     fullName?: string;
   };
@@ -104,6 +115,11 @@ interface ServiceBookingContextResponse {
     availability?: Record<string, BookingAvailabilityEntry>;
     bookingMeta: BookingMeta;
   };
+}
+
+interface TargetReviewsResponse {
+  success: boolean;
+  data?: ServiceReview[];
 }
 
 interface MediaItem {
@@ -187,6 +203,7 @@ const formatReviewDate = (value?: string) => {
 };
 
 const getReviewName = (review: ServiceReview, fallbackIndex: number) =>
+  (typeof review.customerId === 'object' ? review.customerId?.fullName : undefined) ||
   review.user?.fullName ||
   review.reviewer?.fullName ||
   review.name ||
@@ -261,6 +278,9 @@ export default function ServiceProviderDetails() {
   const [availabilityError, setAvailabilityError] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+  const [reviews, setReviews] = useState<ServiceReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [reviewsError, setReviewsError] = useState('');
 
   useEffect(() => {
     if (!serviceId) {
@@ -303,6 +323,49 @@ export default function ServiceProviderDetails() {
     };
 
     fetchServiceDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [serviceId]);
+
+  useEffect(() => {
+    if (!serviceId) {
+      setReviews([]);
+      setReviewsError('Service not found.');
+      setIsLoadingReviews(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchReviews = async () => {
+      try {
+        setIsLoadingReviews(true);
+        setReviewsError('');
+
+        const response = await api.get<TargetReviewsResponse>(`/api/v1/reviews/target/${serviceId}`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setReviews(Array.isArray(response.data.data) ? response.data.data : []);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setReviews([]);
+        setReviewsError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoadingReviews(false);
+        }
+      }
+    };
+
+    void fetchReviews();
 
     return () => {
       isMounted = false;
@@ -476,7 +539,6 @@ export default function ServiceProviderDetails() {
     mediaItems.find((item) => item.id === resolvedSelectedMediaId) ||
     mediaItems[0] ||
     null;
-  const reviews = Array.isArray(service?.reviews) ? service.reviews : [];
   const reviewRatings = reviews
     .map((review) => getReviewRating(review.rating))
     .filter((rating) => Number.isFinite(rating));
@@ -843,7 +905,11 @@ export default function ServiceProviderDetails() {
               </div>
 
               <div className="mt-6 space-y-5">
-                {reviews.length ? reviews.map((review, index) => {
+                {isLoadingReviews ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    Loading customer reviews...
+                  </div>
+                ) : reviews.length ? reviews.map((review, index) => {
                   const reviewName = getReviewName(review, index);
                   const reviewRating = getReviewRating(review.rating);
 
@@ -866,7 +932,11 @@ export default function ServiceProviderDetails() {
                       </p>
                     </div>
                   );
-                }) : (
+                }) : reviewsError ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    {reviewsError}
+                  </div>
+                ) : (
                   <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
                     No customer reviews have been published for this service yet.
                   </div>

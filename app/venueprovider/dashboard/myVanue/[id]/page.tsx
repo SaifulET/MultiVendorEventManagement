@@ -55,6 +55,23 @@ interface VenueDetailResponse {
   data?: VenueDetail;
 }
 
+interface VenueListMeta {
+  page?: number;
+  totalPages?: number;
+}
+
+interface VenueListResponse {
+  success: boolean;
+  meta?: VenueListMeta;
+  data?: VenueDetail[];
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
 interface AvailabilityOverride {
   date: string;
   slots: Array<{ hour: number; status: OverrideStatus }>;
@@ -63,6 +80,12 @@ interface AvailabilityOverride {
 interface UploadPreview {
   file: File;
   previewUrl: string;
+}
+
+interface DisplayedVenueImage {
+  id: string;
+  isNewUpload: boolean;
+  src: string;
 }
 
 interface VenueFormState {
@@ -85,15 +108,44 @@ interface VenueFormState {
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const normalizeAmenities = (amenities?: Record<string, boolean>) => {
+  const normalizedAmenities: Record<string, boolean> = {};
+
+  if (!amenities) {
+    return normalizedAmenities;
+  }
+
+  Object.entries(amenities).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+
+    if (key === 'airConditioned') {
+      normalizedAmenities.ac = true;
+      return;
+    }
+
+    if (key === 'stage') {
+      normalizedAmenities.soundSystem = true;
+      return;
+    }
+
+    normalizedAmenities[key] = true;
+  });
+
+  return normalizedAmenities;
+};
+
 const amenityDefinitions = [
   { id: 'wifi', label: 'Wi-Fi', icon: <Wifi className="h-4 w-4" /> },
   { id: 'parking', label: 'Parking', icon: <Car className="h-4 w-4" /> },
-  { id: 'airConditioned', label: 'AC', icon: <Snowflake className="h-4 w-4" /> },
+  { id: 'ac', label: 'AC', icon: <Snowflake className="h-4 w-4" /> },
   { id: 'catering', label: 'Catering', icon: <Utensils className="h-4 w-4" /> },
   { id: 'audioVideo', label: 'Audio/Video', icon: <Music className="h-4 w-4" /> },
   { id: 'security', label: 'Security', icon: <Shield className="h-4 w-4" /> },
   { id: 'accessible', label: 'Accessible', icon: <Accessibility className="h-4 w-4" /> },
-  { id: 'stage', label: 'Sound System', icon: <Presentation className="h-4 w-4" /> },
+  { id: 'soundSystem', label: 'Sound System', icon: <Presentation className="h-4 w-4" /> },
 ];
 
 const createEmptyFormState = (): VenueFormState => ({
@@ -146,6 +198,35 @@ const formatDisplayDate = (date: string) => {
   return formatDateDDMMYY(date, date);
 };
 
+const findVenueInProviderList = async (venueId: string) => {
+  let currentPage = 1;
+  let totalPages = 1;
+
+  while (currentPage <= totalPages) {
+    const response = await api.get<VenueListResponse>('/api/v1/venue-provider/my-venues', {
+      params: {
+        page: currentPage,
+        limit: 100,
+      },
+    });
+
+    const venues = Array.isArray(response.data.data) ? response.data.data : [];
+    const matchedVenue = venues.find((venue) => venue._id === venueId);
+
+    if (matchedVenue) {
+      return matchedVenue;
+    }
+
+    totalPages =
+      typeof response.data.meta?.totalPages === 'number' && response.data.meta.totalPages > 0
+        ? response.data.meta.totalPages
+        : currentPage;
+    currentPage += 1;
+  }
+
+  return null;
+};
+
 export default function EditVenuePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -154,7 +235,9 @@ export default function EditVenuePage() {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [uploadPreviews, setUploadPreviews] = useState<UploadPreview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const venueId = params?.id;
@@ -168,8 +251,19 @@ export default function EditVenuePage() {
       try {
         setIsLoading(true);
         setError('');
-        const response = await api.get<VenueDetailResponse>(`/api/v1/venue-provider/venues/${venueId}`);
-        const venue = response.data.data;
+        let venue: VenueDetail | null = null;
+
+        try {
+          const response = await api.get<VenueDetailResponse>(`/api/v1/venue-provider/venues/${venueId}`);
+          venue = response.data.data ?? null;
+        } catch (detailError) {
+          venue = await findVenueInProviderList(venueId);
+
+          if (!venue) {
+            throw detailError;
+          }
+        }
+
         if (!venue) {
           setError('Venue details were not found.');
           return;
@@ -201,7 +295,7 @@ export default function EditVenuePage() {
           galleryImages: Array.isArray(venue.media?.galleryImages)
             ? venue.media.galleryImages.filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))
             : [],
-          amenities: venue.pricing?.amenities ?? {},
+          amenities: normalizeAmenities(venue.pricing?.amenities),
           availabilityOverrides,
         });
 
@@ -222,11 +316,63 @@ export default function EditVenuePage() {
     uploadPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
   }, [uploadPreviews]);
 
+  const validateForm = () => {
+    if (!formData.venueName.trim()) {
+      return 'Venue name is required.';
+    }
+
+    if (!formData.venueType.trim()) {
+      return 'Venue type is required.';
+    }
+
+    if (!formData.description.trim()) {
+      return 'Description is required.';
+    }
+
+    if (!formData.addressLine.trim()) {
+      return 'Address line is required.';
+    }
+
+    if (!formData.city.trim()) {
+      return 'City is required.';
+    }
+
+    if (!formData.area.trim()) {
+      return 'Area is required.';
+    }
+
+    if (!formData.basePrice.trim() || Number(formData.basePrice) <= 0) {
+      return 'Base price must be greater than zero.';
+    }
+
+    if (!formData.maximumGuests.trim() || Number(formData.maximumGuests) <= 0) {
+      return 'Maximum guests must be greater than zero.';
+    }
+
+    if (formData.galleryImages.length + uploadPreviews.length <= 0) {
+      return 'Add at least one venue image.';
+    }
+
+    return '';
+  };
+
   const handleInputChange = (field: keyof Omit<VenueFormState, 'galleryImages' | 'amenities' | 'availabilityOverrides'>, value: string) => {
+    if (error) {
+      setError('');
+    }
+
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
     setFormData((current) => ({ ...current, [field]: value }));
   };
 
   const handleAmenityToggle = (amenityId: string) => {
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
     setFormData((current) => ({
       ...current,
       amenities: { ...current.amenities, [amenityId]: !current.amenities[amenityId] },
@@ -235,6 +381,11 @@ export default function EditVenuePage() {
 
   const handleSlotStatusChange = (slotIndex: number, status: OverrideStatus) => {
     if (!selectedDateKey) return;
+
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
     setFormData((current) => ({
       ...current,
       availabilityOverrides: current.availabilityOverrides.map((override) =>
@@ -253,17 +404,112 @@ export default function EditVenuePage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
+    if (error) {
+      setError('');
+    }
+    if (successMessage) {
+      setSuccessMessage('');
+    }
     const nextPreviews = files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
     setUploadPreviews((current) => [...current, ...nextPreviews]);
     event.target.value = '';
   };
 
   const removeUploadPreview = (index: number) => {
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
     setUploadPreviews((current) => {
       const target = current[index];
       if (target) URL.revokeObjectURL(target.previewUrl);
       return current.filter((_, currentIndex) => currentIndex !== index);
     });
+  };
+
+  const removeExistingGalleryImage = (index: number) => {
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
+    setFormData((current) => ({
+      ...current,
+      galleryImages: current.galleryImages.filter((_, currentIndex) => currentIndex !== index),
+    }));
+  };
+
+  const handleSubmit = async () => {
+    const venueId = params?.id;
+    const validationError = validateForm();
+
+    if (!venueId) {
+      setError('Venue id is missing.');
+      return;
+    }
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      setSuccessMessage('');
+
+      const multipartPayload = new FormData();
+      const requestPayload = {
+        information: {
+          venueName: formData.venueName.trim(),
+          venueType: formData.venueType.trim(),
+          description: formData.description.trim(),
+          addressLine: formData.addressLine.trim(),
+          city: formData.city.trim(),
+          area: formData.area.trim(),
+        },
+        pricing: {
+          basePrice: Number(formData.basePrice),
+          currency: formData.currency,
+          discount: {
+            type: formData.discountType,
+            value: Number(formData.discountValue || 0),
+          },
+          amenities: formData.amenities,
+        },
+        capacity: {
+          maximumGuests: Number(formData.maximumGuests),
+        },
+        media: {
+          galleryImages: formData.galleryImages,
+          videoUrl: formData.videoUrl.trim(),
+        },
+        availabilityOverrides: formData.availabilityOverrides.map((override) => ({
+          date: override.date,
+          slots: override.slots.map((slot) => ({
+            hour: slot.hour,
+            status: slot.status,
+          })),
+        })),
+      };
+
+      uploadPreviews.forEach((preview) => {
+        multipartPayload.append('images', preview.file, preview.file.name);
+      });
+
+      multipartPayload.append('payload', JSON.stringify(requestPayload));
+
+      const response = await api.patch<ApiResponse<VenueDetail>>(
+        `/api/v1/venue-provider/venues/${venueId}`,
+        multipartPayload
+      );
+
+      setSuccessMessage(response.data.message || 'Venue updated successfully.');
+      router.push('/venueprovider/dashboard/myVanue');
+    } catch (submissionError) {
+      setError(getApiErrorMessage(submissionError));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const availabilityMap = useMemo(
@@ -282,8 +528,19 @@ export default function EditVenuePage() {
     [formData.availabilityOverrides, selectedDateKey]
   );
 
-  const displayedImages = useMemo(
-    () => [...formData.galleryImages, ...uploadPreviews.map((preview) => preview.previewUrl)],
+  const displayedImages = useMemo<DisplayedVenueImage[]>(
+    () => [
+      ...formData.galleryImages.map((image, index) => ({
+        id: `existing-${index}-${image}`,
+        isNewUpload: false,
+        src: image,
+      })),
+      ...uploadPreviews.map((preview, index) => ({
+        id: `upload-${index}-${preview.previewUrl}`,
+        isNewUpload: true,
+        src: preview.previewUrl,
+      })),
+    ],
     [formData.galleryImages, uploadPreviews]
   );
 
@@ -303,7 +560,14 @@ export default function EditVenuePage() {
         ) : error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <>
+            {successMessage ? (
+              <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                {successMessage}
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
                 <h2 className="mb-6 text-xl font-bold text-gray-900">Venue Information</h2>
@@ -510,21 +774,27 @@ export default function EditVenuePage() {
                     {displayedImages.length ? (
                       <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
                         {displayedImages.map((image, index) => {
+                          const existingIndex = index;
                           const uploadIndex = index - formData.galleryImages.length;
-                          const isNewUpload = uploadIndex >= 0;
 
                           return (
-                            <div key={`${image}-${index}`} className="group relative aspect-video overflow-hidden rounded-lg bg-gray-100">
-                              <Image src={image} alt={`Venue image ${index + 1}`} fill unoptimized className="object-cover" />
-                              {isNewUpload ? (
-                                <button
-                                  type="button"
-                                  onClick={() => removeUploadPreview(uploadIndex)}
-                                  className="absolute right-2 top-2 rounded-full bg-[#B74140] p-1 text-white opacity-0 transition-opacity hover:bg-[#862c2a] group-hover:opacity-100"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              ) : null}
+                            <div key={image.id} className="group relative aspect-video overflow-hidden rounded-lg bg-gray-100">
+                              <Image src={image.src} alt={`Venue image ${index + 1}`} fill unoptimized className="object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (image.isNewUpload) {
+                                    removeUploadPreview(uploadIndex);
+                                    return;
+                                  }
+
+                                  removeExistingGalleryImage(existingIndex);
+                                }}
+                                className="absolute right-2 top-2 rounded-full bg-[#B74140] p-1 text-white opacity-0 transition-opacity hover:bg-[#862c2a] group-hover:opacity-100"
+                                aria-label={`Remove venue image ${index + 1}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           );
                         })}
@@ -647,17 +917,27 @@ export default function EditVenuePage() {
 
               <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
                 <h2 className="mb-6 text-xl font-bold text-gray-900">Publish Settings</h2>
-                <p className="mb-4 text-sm text-gray-500">This page now follows the add venue layout. Update submission is not connected yet.</p>
+                <p className="mb-4 text-sm text-gray-500">Review your changes, then confirm the edit to update this venue.</p>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={isSubmitting}
+                  className="mb-3 w-full rounded-lg bg-[#B74140] py-3 font-semibold text-white transition-colors outline-none hover:bg-[#802423] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? 'Saving Changes...' : 'Confirm Edit'}
+                </button>
                 <button
                   type="button"
                   onClick={() => router.push('/venueprovider/dashboard/myVanue')}
-                  className="w-full rounded-lg bg-[#B74140] py-3 font-semibold text-white transition-colors outline-none hover:bg-[#802423]"
+                  disabled={isSubmitting}
+                  className="w-full rounded-lg border border-[#E5E7EB] py-3 font-semibold text-gray-700 transition-colors outline-none hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Back to Venue List
                 </button>
               </div>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

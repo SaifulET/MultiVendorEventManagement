@@ -3,11 +3,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Accessibility,
+  Car,
   Calendar,
   DollarSign,
   ExternalLink,
   MapPin,
+  Music,
   Play,
+  Snowflake,
   Shield,
   Star,
   Users,
@@ -42,6 +45,37 @@ interface VenueBookingContextResponse {
     availability?: Record<string, BookingAvailabilityEntry>;
     bookingMeta: BookingMeta;
   };
+}
+
+interface ReviewCustomer {
+  _id?: string;
+  fullName?: string;
+  profileImage?: string;
+}
+
+interface TargetReview {
+  _id: string;
+  bookingId?: string;
+  customerId?: ReviewCustomer | string;
+  providerId?: string;
+  targetType?: string;
+  targetId?: string;
+  rating?: number | string;
+  comment?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: {
+    fullName?: string;
+  };
+  reviewer?: {
+    fullName?: string;
+  };
+  name?: string;
+}
+
+interface TargetReviewsResponse {
+  success: boolean;
+  data?: TargetReview[];
 }
 
 interface VenueDetails {
@@ -104,20 +138,41 @@ interface MediaItem {
   embedUrl?: string | null;
 }
 
-type VenueReview = NonNullable<VenueDetails['reviews']>[number];
+type VenueReview = TargetReview;
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const amenityDefinitions = [
+  { id: 'wifi', label: 'Wi-Fi', icon: Wifi },
+  { id: 'parking', label: 'Parking', icon: Car },
+  { id: 'ac', label: 'AC', icon: Snowflake },
+  { id: 'catering', label: 'Catering', icon: Utensils },
+  { id: 'audioVideo', label: 'Audio/Video', icon: Music },
+  { id: 'security', label: 'Security', icon: Shield },
+  { id: 'accessible', label: 'Accessible', icon: Accessibility },
+  { id: 'soundSystem', label: 'Sound System', icon: Volume2 },
+] as const;
+
 const amenityIconMap = {
   wifi: Wifi,
-  parking: Calendar,
+  parking: Car,
   catering: Utensils,
-  ac: Wind,
+  ac: Snowflake,
   accessible: Accessibility,
   soundSystem: Volume2,
-  stage: Shield,
   security: Shield,
-  audiovisual: Volume2,
+  audioVideo: Music,
+};
+
+const amenityLabelMap: Record<string, string> = {
+  wifi: 'Wi-Fi',
+  parking: 'Parking',
+  catering: 'Catering',
+  ac: 'AC',
+  accessible: 'Accessible',
+  soundSystem: 'Sound System',
+  security: 'Security',
+  audioVideo: 'Audio/Video',
 };
 
 const formatCurrencyValue = (amount?: number) =>
@@ -132,7 +187,19 @@ const formatAmenityLabel = (value: string) => {
 
 const getAmenities = (amenities?: Record<string, boolean> | string[]) => {
   if (Array.isArray(amenities)) {
-    return amenities.filter((item): item is string => typeof item === 'string');
+    return amenities
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => {
+        if (item === 'airConditioned') {
+          return 'ac';
+        }
+
+        if (item === 'stage') {
+          return 'soundSystem';
+        }
+
+        return item;
+      });
   }
 
   if (!amenities || typeof amenities !== 'object') {
@@ -141,7 +208,24 @@ const getAmenities = (amenities?: Record<string, boolean> | string[]) => {
 
   return Object.entries(amenities)
     .filter(([, enabled]) => Boolean(enabled))
-    .map(([key]) => key);
+    .map(([key]) => {
+      if (key === 'airConditioned') {
+        return 'ac';
+      }
+
+      if (key === 'stage') {
+        return 'soundSystem';
+      }
+
+      return key;
+    });
+};
+
+const getAmenityStateMap = (amenities?: Record<string, boolean> | string[]) => {
+  return getAmenities(amenities).reduce<Record<string, boolean>>((accumulator, amenity) => {
+    accumulator[amenity] = true;
+    return accumulator;
+  }, {});
 };
 
 const getYouTubeVideoId = (url: string) => {
@@ -190,6 +274,7 @@ const formatReviewDate = (value?: string) => {
 
 const getReviewName = (review: VenueReview, fallbackIndex: number) => {
   return (
+    (typeof review.customerId === 'object' ? review.customerId?.fullName : undefined) ||
     review.user?.fullName ||
     review.reviewer?.fullName ||
     review.name ||
@@ -240,6 +325,9 @@ const VenueBookingPage: React.FC = () => {
   const [availabilityError, setAvailabilityError] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+  const [reviews, setReviews] = useState<TargetReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [reviewsError, setReviewsError] = useState('');
 
   useEffect(() => {
     if (!venueId) {
@@ -283,6 +371,49 @@ const VenueBookingPage: React.FC = () => {
     };
 
     fetchVenueDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [venueId]);
+
+  useEffect(() => {
+    if (!venueId) {
+      setReviews([]);
+      setReviewsError('Venue not found.');
+      setIsLoadingReviews(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchReviews = async () => {
+      try {
+        setIsLoadingReviews(true);
+        setReviewsError('');
+
+        const response = await api.get<TargetReviewsResponse>(`/api/v1/reviews/target/${venueId}`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setReviews(Array.isArray(response.data.data) ? response.data.data : []);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setReviews([]);
+        setReviewsError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoadingReviews(false);
+        }
+      }
+    };
+
+    void fetchReviews();
 
     return () => {
       isMounted = false;
@@ -426,6 +557,7 @@ const VenueBookingPage: React.FC = () => {
     .filter((value): value is string => Boolean(value?.trim()))
     .join(', ');
   const amenities = getAmenities(venuePricing.amenities);
+  const amenityStateMap = getAmenityStateMap(venuePricing.amenities);
   const mapEmbedUrl = fullLocation ? getMapEmbedUrl(fullLocation) : null;
   const mapSearchUrl = fullLocation
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullLocation)}`
@@ -438,8 +570,6 @@ const VenueBookingPage: React.FC = () => {
         : [],
     [activeMonth, bookingContext]
   );
-
-  const reviews = venue?.reviews ?? [];
 
   const handlePreviousMonth = () => {
     setActiveMonthIndex((previous) => Math.max(previous - 1, 0));
@@ -606,14 +736,24 @@ const VenueBookingPage: React.FC = () => {
 
               <h2 className="text-lg font-semibold mb-3">Amenities</h2>
               {amenities.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                  {amenities.map((amenity) => {
-                    const AmenityIcon = amenityIconMap[amenity as keyof typeof amenityIconMap] || Shield;
+                <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
+                  {amenityDefinitions.map((amenity) => {
+                    const AmenityIcon = amenity.icon;
+                    const isEnabled = Boolean(amenityStateMap[amenity.id]);
 
                     return (
-                      <div key={amenity} className="flex items-center gap-2 text-gray-700">
-                        <AmenityIcon size={16} className="text-[#B74140]" />
-                        <span className="text-sm">{formatAmenityLabel(amenity)}</span>
+                      <div
+                        key={amenity.id}
+                        className={`rounded-2xl border px-4 py-5 text-center transition-colors ${
+                          isEnabled
+                            ? 'border-[#EF4444] bg-[#FFF7F7] text-[#334155]'
+                            : 'border-[#E5E7EB] bg-white text-[#64748B]'
+                        }`}
+                      >
+                        <AmenityIcon className="mx-auto h-5 w-5" />
+                        <p className="mt-3 text-sm font-medium">
+                          {amenity.label}
+                        </p>
                       </div>
                     );
                   })}
@@ -657,7 +797,9 @@ const VenueBookingPage: React.FC = () => {
 
             <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
               <h2 className="text-lg font-semibold mb-6">Reviews ({reviews.length})</h2>
-              {reviews.length > 0 ? (
+              {isLoadingReviews ? (
+                <p className="text-sm text-gray-500">Loading reviews...</p>
+              ) : reviews.length > 0 ? (
                 <div className="space-y-4">
                   {reviews.map((review, index) => {
                     const reviewName = getReviewName(review, index);
@@ -690,6 +832,8 @@ const VenueBookingPage: React.FC = () => {
                     );
                   })}
                 </div>
+              ) : reviewsError ? (
+                <p className="text-sm text-gray-500">{reviewsError}</p>
               ) : (
                 <p className="text-sm text-gray-500">No reviews have been submitted for this venue yet.</p>
               )}
@@ -704,7 +848,7 @@ const VenueBookingPage: React.FC = () => {
                 canGoNextMonth={activeMonthIndex < availableMonths.length - 1}
                 canGoPreviousMonth={activeMonthIndex > 0}
                 daysOfWeek={daysOfWeek}
-                description="This calendar uses `/api/v1/bookings/venues/:venueId/context`, matching the booking page."
+                description=""
                 emptyMessage="No live availability dates are currently open for this venue."
                 error={availabilityError}
                 isLoading={isLoadingAvailability}
@@ -729,12 +873,6 @@ const VenueBookingPage: React.FC = () => {
                   className="mb-2.5 w-full rounded-lg bg-[#B74140] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#a03837]"
                 >
                   Book Now
-                </button>
-                <button
-                  onClick={() => { router.push('/home/dashboard/chat'); }}
-                  className="w-full rounded-lg border border-[#E5E7EB] py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  Contact Provider
                 </button>
               </div>
             </div>

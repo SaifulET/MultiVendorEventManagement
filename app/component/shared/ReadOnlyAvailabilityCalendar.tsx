@@ -48,7 +48,9 @@ const ReadOnlyAvailabilityCalendar: React.FC<ReadOnlyAvailabilityCalendarProps> 
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">{title}</h2>
-          <p className="mt-2 text-sm text-gray-500">{description}</p>
+          {description.trim() ? (
+            <p className="mt-2 text-sm text-gray-500">{description}</p>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <button

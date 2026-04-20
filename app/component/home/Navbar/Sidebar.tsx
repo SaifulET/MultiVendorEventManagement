@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import logo from "@/public/logo.svg";
 import profile from "@/public/profile.jpg";
 import {
+  House,
   LayoutDashboard,
   Calendar,
   Crown,
@@ -60,6 +61,10 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   const handleLogout = () => {
     logout();
     router.push("/home/auth/signin");
+  };
+
+  const handleGoHome = () => {
+    router.push("/pages/homepage");
   };
 
   const isActive = (route: string) => pathname.startsWith(route);
@@ -219,6 +224,16 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
             />
           )}
         </div>
+
+        <button
+          onClick={handleGoHome}
+          className={`flex items-center gap-3 px-3 py-3 mt-2 w-full text-gray-700 hover:bg-gray-50 rounded-lg transition ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <House className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span className="text-[15px] font-normal">Back To Home</span>}
+        </button>
 
         <button
           onClick={handleLogout}

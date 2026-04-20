@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BriefcaseBusiness,
   Building2,
@@ -66,6 +66,28 @@ interface EventPlannerDetailsResponse {
   data?: EventPlannerDetails | EventPlannerDetails[];
 }
 
+interface PlannerReview {
+  _id: string;
+  bookingId?: string;
+  customerId?: {
+    _id?: string;
+    fullName?: string;
+    profileImage?: string;
+  } | string;
+  providerId?: string;
+  targetType?: string;
+  targetId?: string;
+  rating?: number | string;
+  comment?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface TargetReviewsResponse {
+  success: boolean;
+  data?: PlannerReview[];
+}
+
 const getArrayValues = (value?: string[]) =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
@@ -104,6 +126,25 @@ const formatLabel = (value?: string) => {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 };
 
+const getReviewName = (review: PlannerReview, fallbackIndex: number) =>
+  (typeof review.customerId === 'object' ? review.customerId?.fullName : undefined) ||
+  `Guest ${fallbackIndex + 1}`;
+
+const getReviewRating = (rating?: number | string) => {
+  if (typeof rating === 'number' && Number.isFinite(rating)) {
+    return Math.max(0, Math.min(5, Number(rating.toFixed(1))));
+  }
+
+  if (typeof rating === 'string') {
+    const parsed = Number(rating);
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.min(5, Number(parsed.toFixed(1))));
+    }
+  }
+
+  return 0;
+};
+
 const renderStars = (rating: number) =>
   Array.from({ length: 5 }, (_, index) => (
     <Star
@@ -120,6 +161,9 @@ export default function WeddingPlannerProfile() {
   const [planner, setPlanner] = useState<EventPlannerDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reviews, setReviews] = useState<PlannerReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [reviewsError, setReviewsError] = useState('');
 
   useEffect(() => {
     if (!plannerId) {
@@ -168,6 +212,49 @@ export default function WeddingPlannerProfile() {
     };
   }, [plannerId]);
 
+  useEffect(() => {
+    if (!plannerId) {
+      setReviews([]);
+      setReviewsError('Event planner not found.');
+      setIsLoadingReviews(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchReviews = async () => {
+      try {
+        setIsLoadingReviews(true);
+        setReviewsError('');
+
+        const response = await api.get<TargetReviewsResponse>(`/api/v1/reviews/target/${plannerId}`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setReviews(Array.isArray(response.data.data) ? response.data.data : []);
+      } catch (fetchError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setReviews([]);
+        setReviewsError(getApiErrorMessage(fetchError));
+      } finally {
+        if (isMounted) {
+          setIsLoadingReviews(false);
+        }
+      }
+    };
+
+    void fetchReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [plannerId]);
+
   const profileInfo = planner?.onboarding?.eventProvider?.profileInfo;
   const categories = getArrayValues(planner?.serviceCategories);
   const plannerName =
@@ -208,6 +295,13 @@ export default function WeddingPlannerProfile() {
 
     return values.findIndex((item) => item === value) === index;
   }).join(', ');
+  const reviewRatings = useMemo(
+    () => reviews.map((review) => getReviewRating(review.rating)).filter((rating) => Number.isFinite(rating)),
+    [reviews]
+  );
+  const averageRating = reviewRatings.length
+    ? Number((reviewRatings.reduce((total, rating) => total + rating, 0) / reviewRatings.length).toFixed(1))
+    : 0;
 
   const bookHandler = () => {
     if (!planner?._id) {
@@ -298,10 +392,12 @@ export default function WeddingPlannerProfile() {
 
                   <div className="mt-2 flex items-center gap-2">
                     <div className="flex items-center">
-                      {renderStars(0)}
+                      {renderStars(averageRating)}
                     </div>
-                    <span className="font-semibold text-gray-900">New</span>
-                    <span className="text-sm text-gray-500">(0 reviews)</span>
+                    <span className="font-semibold text-gray-900">
+                      {averageRating > 0 ? averageRating.toFixed(1) : 'New'}
+                    </span>
+                    <span className="text-sm text-gray-500">({reviews.length} reviews)</span>
                   </div>
                 </div>
               </div>
@@ -488,9 +584,60 @@ export default function WeddingPlannerProfile() {
             </section>
 
             <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 md:p-8">
-              <h2 className="text-2xl font-semibold text-gray-900">Reviews & ratings</h2>
-              <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-                Reviews are not included in the current public event planner API yet, so this section will fill automatically once the backend starts returning them.
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">Reviews & ratings</h2>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {reviews.length ? `${reviews.length} customer reviews` : 'No reviews yet'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-gray-900">
+                    {averageRating > 0 ? averageRating.toFixed(1) : 'New'}
+                  </p>
+                  <div className="mt-1 flex items-center justify-end gap-1">
+                    {renderStars(averageRating)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-5">
+                {isLoadingReviews ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    Loading customer reviews...
+                  </div>
+                ) : reviews.length ? reviews.map((review, index) => {
+                  const reviewName = getReviewName(review, index);
+                  const reviewRating = getReviewRating(review.rating);
+
+                  return (
+                    <div
+                      key={review._id || `${reviewName}-${index}`}
+                      className="rounded-2xl border border-[#F0E7E6] bg-[#FFFCFB] p-5"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{reviewName}</h3>
+                          <p className="mt-1 text-sm text-gray-500">{formatDisplayDate(review.createdAt)}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {renderStars(reviewRating)}
+                        </div>
+                      </div>
+                      <p className="mt-4 leading-7 text-gray-600">
+                        {review.comment?.trim() || 'Customer feedback will appear here soon.'}
+                      </p>
+                    </div>
+                  );
+                }) : reviewsError ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    {reviewsError}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    No customer reviews have been published for this event planner yet.
+                  </div>
+                )}
               </div>
             </section>
           </div>

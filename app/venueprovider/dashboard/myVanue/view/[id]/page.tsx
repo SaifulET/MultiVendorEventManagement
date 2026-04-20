@@ -24,6 +24,7 @@ import { formatDateDDMMYY } from '@/lib/date';
 type OverrideStatus = 'available' | 'pending' | 'booked';
 
 interface VenueDetail {
+  _id: string;
   information?: {
     venueName?: string;
     venueType?: string;
@@ -62,6 +63,17 @@ interface VenueDetailResponse {
   data?: VenueDetail;
 }
 
+interface VenueListMeta {
+  page?: number;
+  totalPages?: number;
+}
+
+interface VenueListResponse {
+  success: boolean;
+  meta?: VenueListMeta;
+  data?: VenueDetail[];
+}
+
 interface AmenityDefinition {
   id: string;
   label: string;
@@ -93,15 +105,43 @@ const monthNames = [
 
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const normalizeAmenities = (amenities?: Record<string, boolean>) => {
+  const normalizedAmenities: Record<string, boolean> = {};
+
+  if (!amenities) {
+    return normalizedAmenities;
+  }
+
+  Object.entries(amenities).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+
+    if (key === 'airConditioned') {
+      normalizedAmenities.ac = true;
+      return;
+    }
+
+    if (key === 'stage') {
+      normalizedAmenities.soundSystem = true;
+      return;
+    }
+
+    normalizedAmenities[key] = true;
+  });
+
+  return normalizedAmenities;
+};
+
 const amenityDefinitions: AmenityDefinition[] = [
   { id: 'wifi', label: 'Wi-Fi', icon: <Wifi className="h-4 w-4" /> },
   { id: 'parking', label: 'Parking', icon: <Car className="h-4 w-4" /> },
-  { id: 'airConditioned', label: 'AC', icon: <Snowflake className="h-4 w-4" /> },
+  { id: 'ac', label: 'AC', icon: <Snowflake className="h-4 w-4" /> },
   { id: 'catering', label: 'Catering', icon: <Utensils className="h-4 w-4" /> },
   { id: 'audioVideo', label: 'Audio/Video', icon: <Music className="h-4 w-4" /> },
   { id: 'security', label: 'Security', icon: <Shield className="h-4 w-4" /> },
   { id: 'accessible', label: 'Accessible', icon: <Accessibility className="h-4 w-4" /> },
-  { id: 'stage', label: 'Sound System', icon: <Presentation className="h-4 w-4" /> },
+  { id: 'soundSystem', label: 'Sound System', icon: <Presentation className="h-4 w-4" /> },
 ];
 
 const normalizeStatus = (status?: string): OverrideStatus =>
@@ -168,6 +208,35 @@ const formatDisplayDate = (date: string) => {
   return formatDateDDMMYY(date, date);
 };
 
+const findVenueInProviderList = async (venueId: string) => {
+  let currentPage = 1;
+  let totalPages = 1;
+
+  while (currentPage <= totalPages) {
+    const response = await api.get<VenueListResponse>('/api/v1/venue-provider/my-venues', {
+      params: {
+        page: currentPage,
+        limit: 100,
+      },
+    });
+
+    const venues = Array.isArray(response.data.data) ? response.data.data : [];
+    const matchedVenue = venues.find((venue) => venue._id === venueId);
+
+    if (matchedVenue) {
+      return matchedVenue;
+    }
+
+    totalPages =
+      typeof response.data.meta?.totalPages === 'number' && response.data.meta.totalPages > 0
+        ? response.data.meta.totalPages
+        : currentPage;
+    currentPage += 1;
+  }
+
+  return null;
+};
+
 export default function ViewVenuePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -190,10 +259,21 @@ export default function ViewVenuePage() {
       try {
         setIsLoading(true);
         setError('');
-        const response = await api.get<VenueDetailResponse>(
-          `/api/v1/venue-provider/venues/${venueId}`
-        );
-        const nextVenue = response.data.data ?? null;
+        let nextVenue: VenueDetail | null = null;
+
+        try {
+          const response = await api.get<VenueDetailResponse>(
+            `/api/v1/venue-provider/venues/${venueId}`
+          );
+          nextVenue = response.data.data ?? null;
+        } catch (detailError) {
+          nextVenue = await findVenueInProviderList(venueId);
+
+          if (!nextVenue) {
+            throw detailError;
+          }
+        }
+
         setVenue(nextVenue);
 
         const overrides = (nextVenue?.availabilityOverrides ?? [])
@@ -241,6 +321,10 @@ export default function ViewVenuePage() {
   const selectedOverride = useMemo(
     () => overrides.find((override) => override.date === selectedDateKey) ?? null,
     [overrides, selectedDateKey]
+  );
+  const venueAmenities = useMemo(
+    () => normalizeAmenities(venue?.pricing?.amenities),
+    [venue?.pricing?.amenities]
   );
 
   const daysInMonth = new Date(
@@ -370,7 +454,7 @@ export default function ViewVenuePage() {
                     <div
                       key={amenity.id}
                       className={`rounded-xl border p-4 ${
-                        venue.pricing?.amenities?.[amenity.id]
+                        venueAmenities[amenity.id]
                           ? 'border-[#B74140] bg-[#B74140]/5'
                           : 'border-[#E5E7EB]'
                       }`}

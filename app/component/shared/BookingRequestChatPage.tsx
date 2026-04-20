@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, MessageSquare, Search, Send, Wifi, WifiOff } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  MessageSquare,
+  Search,
+  Send,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 
-import { getApiErrorMessage } from '@/lib/api';
+import { getApiErrorMessage } from "@/lib/api";
 import {
   createOrderChatSocket,
   fetchOrderChatConversations,
@@ -17,34 +24,32 @@ import {
   type OrderChatParticipants,
   type OrderChatPresenceUpdatePayload,
   type OrderChatSocketClient,
-} from '@/lib/order-chat';
-import { useAuthStore } from '@/store/useAuthStore';
-import type { AuthUser } from '@/types/auth';
+} from "@/lib/order-chat";
+import { useAuthStore } from "@/store/useAuthStore";
+import type { AuthUser } from "@/types/auth";
 
-const styles = `
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-`;
+interface BookingRequestChatPageProps {
+  dashboardName: string;
+  emptyStateDescription: string;
+  searchPlaceholder: string;
+  sendButtonLabel: string;
+  composerPlaceholder: string;
+}
 
 const formatThreadTime = (value?: string | null) => {
   if (!value) {
-    return '';
+    return "";
   }
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return '';
+    return "";
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
   }).format(date);
 };
 
@@ -52,12 +57,12 @@ const formatMessageTime = (value: string) => {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return '';
+    return "";
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date);
 };
 
@@ -65,14 +70,34 @@ const buildInitials = (name?: string | null) => {
   const normalized = name?.trim();
 
   if (!normalized) {
-    return 'U';
+    return "U";
   }
 
   return normalized
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
-    .join('');
+    .join("");
+};
+
+const formatRoleLabel = (role?: string | null) => {
+  if (!role) {
+    return "participant";
+  }
+
+  return role.replaceAll("_", " ").toLowerCase();
+};
+
+const formatDisplayedMessageContent = (message: OrderChatMessage) => {
+  if (message.type !== "system") {
+    return message.content;
+  }
+
+  return message.content
+    .replace(/\b[a-f0-9]{20,}\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .trim();
 };
 
 const getCurrentChatUserId = (
@@ -98,7 +123,7 @@ const getCurrentChatUserId = (
       }
     }
 
-    if (userRecord.role === 'customer') {
+    if (userRecord.role === "customer") {
       return participants.customer._id;
     }
 
@@ -107,7 +132,7 @@ const getCurrentChatUserId = (
     }
   }
 
-  return userRecord.id || userRecord.userId || userRecord._id || '';
+  return userRecord.id || userRecord.userId || userRecord._id || "";
 };
 
 const withMessageOwnership = (
@@ -129,7 +154,10 @@ const sortMessages = (items: OrderChatMessage[]) =>
       new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
   );
 
-const upsertMessage = (items: OrderChatMessage[], nextMessage: OrderChatMessage) => {
+const upsertMessage = (
+  items: OrderChatMessage[],
+  nextMessage: OrderChatMessage
+) => {
   const existingIndex = items.findIndex((item) => item._id === nextMessage._id);
 
   if (existingIndex >= 0) {
@@ -146,7 +174,7 @@ const getCounterpartFromParticipants = (
   userId?: string
 ) => {
   if (!userId) {
-    return participants.provider;
+    return participants.customer;
   }
 
   return participants.customer._id === userId
@@ -182,7 +210,7 @@ const updateConversationOrder = (
   latestMessage: OrderChatMessage,
   options?: {
     conversation?: OrderChatConversationSummary | null;
-    counterpart?: OrderChatConversationItem['counterpart'] | null;
+    counterpart?: OrderChatConversationItem["counterpart"] | null;
     latestBooking?: OrderChatBookingSummary | null;
   }
 ) => {
@@ -208,7 +236,7 @@ const updateConversationOrder = (
       }
     : {
         conversation: options?.conversation as OrderChatConversationSummary,
-        counterpart: options?.counterpart as OrderChatConversationItem['counterpart'],
+        counterpart: options?.counterpart as OrderChatConversationItem["counterpart"],
         latestBooking: options?.latestBooking ?? null,
         latestMessage,
       };
@@ -219,31 +247,37 @@ const updateConversationOrder = (
   ];
 };
 
-export default function MessagingApp() {
+export default function BookingRequestChatPage({
+  dashboardName,
+  emptyStateDescription,
+  searchPlaceholder,
+  sendButtonLabel,
+  composerPlaceholder,
+}: BookingRequestChatPageProps) {
   const user = useAuthStore((state) => state.user);
   const [conversations, setConversations] = useState<OrderChatConversationItem[]>([]);
-  const [selectedConversationId, setSelectedConversationId] = useState('');
+  const [selectedConversationId, setSelectedConversationId] = useState("");
   const [activeConversation, setActiveConversation] =
     useState<OrderChatConversationSummary | null>(null);
   const [activeBookings, setActiveBookings] = useState<OrderChatBookingSummary[]>([]);
   const [participants, setParticipants] = useState<OrderChatParticipants | null>(null);
   const [messages, setMessages] = useState<OrderChatMessage[]>([]);
-  const [messageText, setMessageText] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showChat, setShowChat] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showMobileThread, setShowMobileThread] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [connectionState, setConnectionState] = useState<
-    'connecting' | 'connected' | 'disconnected'
-  >('disconnected');
-  const [error, setError] = useState('');
+    "connecting" | "connected" | "disconnected"
+  >("disconnected");
+  const [error, setError] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<OrderChatSocketClient | null>(null);
-  const activeConversationRef = useRef('');
-  const activeBookingIdRef = useRef('');
-  const joinedConversationRef = useRef('');
+  const activeConversationRef = useRef("");
+  const activeBookingIdRef = useRef("");
+  const joinedConversationRef = useRef("");
 
   const selectedConversation =
     conversations.find(
@@ -251,7 +285,6 @@ export default function MessagingApp() {
     ) ?? null;
   const activeBooking =
     activeBookings[0] ?? selectedConversation?.latestBooking ?? null;
-  const visibleMessages = messages.filter((message) => message.type !== 'system');
   const currentChatUserId = getCurrentChatUserId(user, participants);
   const counterpart =
     participants && currentChatUserId
@@ -268,9 +301,7 @@ export default function MessagingApp() {
     return (
       conversation.counterpart.fullName.toLowerCase().includes(normalizedQuery) ||
       conversation.counterpart.email.toLowerCase().includes(normalizedQuery) ||
-      (conversation.latestBooking?.targetName ?? '')
-        .toLowerCase()
-        .includes(normalizedQuery)
+      (conversation.latestMessage?.content ?? "").toLowerCase().includes(normalizedQuery)
     );
   });
 
@@ -279,12 +310,12 @@ export default function MessagingApp() {
   }, [selectedConversationId]);
 
   useEffect(() => {
-    activeBookingIdRef.current = activeBooking?._id ?? '';
+    activeBookingIdRef.current = activeBooking?._id ?? "";
   }, [activeBooking?._id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [visibleMessages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   useEffect(() => {
     if (!currentChatUserId) {
@@ -300,7 +331,7 @@ export default function MessagingApp() {
     const loadConversations = async () => {
       try {
         setIsLoadingConversations(true);
-        setError('');
+        setError("");
 
         const response = await fetchOrderChatConversations();
         setConversations(response.data);
@@ -322,19 +353,19 @@ export default function MessagingApp() {
     }
 
     socketRef.current = socket;
-    setConnectionState('connecting');
+    setConnectionState("connecting");
 
     const handleConnect = () => {
-      setConnectionState('connected');
+      setConnectionState("connected");
     };
 
     const handleDisconnect = () => {
-      setConnectionState('disconnected');
+      setConnectionState("disconnected");
     };
 
     const handleConnectError = (socketError: Error) => {
-      setConnectionState('disconnected');
-      setError(socketError.message || 'Unable to connect to chat server.');
+      setConnectionState("disconnected");
+      setError(socketError.message || "Unable to connect to chat server.");
     };
 
     const handlePresenceUpdate = (payload: OrderChatPresenceUpdatePayload) => {
@@ -421,28 +452,28 @@ export default function MessagingApp() {
       );
     };
 
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectError);
-    socket.on('order-chat:presence:update', handlePresenceUpdate);
-    socket.on('order-chat:message:new', handleNewMessage);
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleConnectError);
+    socket.on("order-chat:presence:update", handlePresenceUpdate);
+    socket.on("order-chat:message:new", handleNewMessage);
     socket.connect();
 
     return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      socket.off('connect_error', handleConnectError);
-      socket.off('order-chat:presence:update', handlePresenceUpdate);
-      socket.off('order-chat:message:new', handleNewMessage);
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleConnectError);
+      socket.off("order-chat:presence:update", handlePresenceUpdate);
+      socket.off("order-chat:message:new", handleNewMessage);
       socket.disconnect();
       socketRef.current = null;
-      joinedConversationRef.current = '';
+      joinedConversationRef.current = "";
     };
   }, [currentChatUserId, user]);
 
   useEffect(() => {
     const socket = socketRef.current;
-    const bookingId = activeBooking?._id ?? selectedConversation?.latestBooking?._id ?? '';
+    const bookingId = activeBooking?._id ?? selectedConversation?.latestBooking?._id ?? "";
 
     if (!socket || !socket.connected || !selectedConversationId) {
       return;
@@ -452,14 +483,14 @@ export default function MessagingApp() {
       joinedConversationRef.current &&
       joinedConversationRef.current !== selectedConversationId
     ) {
-      socket.emit('order-chat:leave', {
+      socket.emit("order-chat:leave", {
         conversationId: joinedConversationRef.current,
         bookingId: activeBookingIdRef.current,
       });
     }
 
     socket.emit(
-      'order-chat:join',
+      "order-chat:join",
       {
         conversationId: selectedConversationId,
         bookingId,
@@ -501,14 +532,19 @@ export default function MessagingApp() {
         }
       }
     );
-  }, [connectionState, selectedConversationId, activeBooking?._id, selectedConversation?.latestBooking?._id]);
+  }, [
+    connectionState,
+    selectedConversationId,
+    activeBooking?._id,
+    selectedConversation?.latestBooking?._id,
+  ]);
 
   const handleSelectConversation = async (conversation: OrderChatConversationItem) => {
     try {
-      setShowChat(true);
+      setShowMobileThread(true);
       setSelectedConversationId(conversation.conversation._id);
       setIsLoadingMessages(true);
-      setError('');
+      setError("");
 
       const response = await fetchOrderChatMessages({
         conversationId: conversation.conversation._id,
@@ -520,7 +556,6 @@ export default function MessagingApp() {
       setActiveBookings(response.bookings);
       setParticipants(response.participants);
       const resolvedChatUserId = getCurrentChatUserId(user, response.participants);
-
       setMessages(
         sortMessages(withMessageOwnershipList(response.data, resolvedChatUserId))
       );
@@ -531,13 +566,8 @@ export default function MessagingApp() {
     }
   };
 
-  const handleBackToContacts = () => {
-    setShowChat(false);
-    setSelectedConversationId('');
-    setActiveConversation(null);
-    setActiveBookings([]);
-    setParticipants(null);
-    setMessages([]);
+  const handleBackToInbox = () => {
+    setShowMobileThread(false);
   };
 
   const handleSendMessage = async () => {
@@ -550,14 +580,14 @@ export default function MessagingApp() {
 
     try {
       setIsSending(true);
-      setError('');
+      setError("");
 
       const socket = socketRef.current;
 
       if (socket?.connected) {
         await new Promise<void>((resolve, reject) => {
           socket.emit(
-            'order-chat:message:send',
+            "order-chat:message:send",
             {
               conversationId: selectedConversationId,
               bookingId,
@@ -574,7 +604,7 @@ export default function MessagingApp() {
               data?: OrderChatMessage;
             }) => {
               if (!response?.success || !response.data) {
-                reject(new Error(response?.message || 'Failed to send message.'));
+                reject(new Error(response?.message || "Failed to send message."));
                 return;
               }
 
@@ -611,7 +641,9 @@ export default function MessagingApp() {
               setConversations((current) =>
                 updateConversationOrder(
                   current,
-                  response.conversation?._id || response.data?.conversationId || selectedConversationId,
+                  response.conversation?._id ||
+                    response.data?.conversationId ||
+                    selectedConversationId,
                   nextMessage,
                   {
                     conversation: response.conversation ?? activeConversation,
@@ -650,7 +682,9 @@ export default function MessagingApp() {
           setConversations((current) =>
             updateConversationOrder(
               current,
-              response.conversation?._id || response.data?.conversationId || selectedConversationId,
+              response.conversation?._id ||
+                response.data?.conversationId ||
+                selectedConversationId,
               nextMessage,
               {
                 conversation: response.conversation ?? activeConversation,
@@ -678,7 +712,7 @@ export default function MessagingApp() {
         }
       }
 
-      setMessageText('');
+      setMessageText("");
     } catch (sendError) {
       setError(getApiErrorMessage(sendError));
     } finally {
@@ -687,67 +721,66 @@ export default function MessagingApp() {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void handleSendMessage();
     }
   };
 
   return (
-    <>
-      <style>{styles}</style>
-      <div className="flex h-screen bg-gray-50">
-        <div
-          className={`w-full border-r border-gray-200 bg-white md:w-80 ${
-            showChat ? 'hidden md:flex' : 'flex'
-          } flex-col`}
-        >
-          <div className="border-b border-gray-200 p-4 md:p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h1 className="text-xl font-semibold text-slate-900">Messages</h1>
-              <div
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                  connectionState === 'connected'
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : connectionState === 'connecting'
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {connectionState === 'connected' ? (
-                  <Wifi className="h-3.5 w-3.5" />
-                ) : (
-                  <WifiOff className="h-3.5 w-3.5" />
-                )}
-                {connectionState}
-              </div>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search chats..."
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="w-full rounded-lg bg-gray-50 py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#B74140]"
-              />
+    <div className="flex h-[calc(100vh-9.25rem)] min-h-[640px] overflow-hidden rounded-[28px] border border-[#E5E7EB] bg-white">
+      <section
+        className={`w-full border-r border-[#E5E7EB] bg-white lg:max-w-[320px] ${
+          showMobileThread ? "hidden lg:block" : "block"
+        }`}
+      >
+        <div className="border-b border-[#E5E7EB] px-6 py-7">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h1 className="text-[20px] font-bold text-[#0F172A]">Messages</h1>
+            <div
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                connectionState === "connected"
+                  ? "bg-[#EAF8EF] text-[#059669]"
+                  : connectionState === "connecting"
+                    ? "bg-[#FFF7E7] text-[#D97706]"
+                    : "bg-[#F1F5F9] text-[#64748B]"
+              }`}
+            >
+              {connectionState === "connected" ? (
+                <Wifi className="h-3.5 w-3.5" />
+              ) : (
+                <WifiOff className="h-3.5 w-3.5" />
+              )}
+              {connectionState}
             </div>
           </div>
 
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-11 w-full rounded-2xl border border-transparent bg-[#F8FAFC] pl-11 pr-4 text-sm text-[#0F172A] outline-none transition focus:border-[#E2E8F0] focus:bg-white"
+            />
+          </div>
+
           {error ? (
-            <div className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 md:mx-6">
+            <div className="mt-4 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-xs text-[#B91C1C]">
               {error}
             </div>
           ) : null}
+        </div>
 
-          <div className="hide-scrollbar flex-1 overflow-y-auto py-4 md:py-6">
-            {isLoadingConversations ? (
-              <div className="px-6 py-10 text-center text-sm text-slate-500">
-                Loading conversations...
-              </div>
-            ) : filteredConversations.length ? (
-              filteredConversations.map((conversation) => {
+        <div className="h-[calc(100%-117px)] overflow-y-auto px-3 py-4">
+          {isLoadingConversations ? (
+            <div className="px-3 py-10 text-sm text-[#64748B]">
+              Loading conversations...
+            </div>
+          ) : filteredConversations.length ? (
+            <div className="space-y-2">
+              {filteredConversations.map((conversation) => {
                 const isSelected =
                   selectedConversationId === conversation.conversation._id;
                 const latestTimestamp =
@@ -759,167 +792,177 @@ export default function MessagingApp() {
                   <button
                     key={conversation.conversation._id}
                     onClick={() => void handleSelectConversation(conversation)}
-                    className={`mx-3 flex w-[calc(100%-24px)] items-start gap-3 rounded-2xl px-4 py-4 text-left transition md:mx-4 md:w-[calc(100%-32px)] ${
-                      isSelected ? 'bg-[#B7414014]' : 'hover:bg-gray-50'
+                    className={`w-full rounded-3xl px-4 py-4 text-left transition ${
+                      isSelected
+                        ? "bg-[#FBF1F1]"
+                        : "bg-white hover:bg-[#F8FAFC]"
                     }`}
                   >
-                    <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#B74140] to-[#812321] text-sm font-semibold text-white">
-                      {buildInitials(conversation.counterpart.fullName)}
-                      {conversation.counterpart.isOnline ? (
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                      ) : null}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-start justify-between gap-3">
-                        <span className="truncate font-semibold text-slate-900">
-                          {conversation.counterpart.fullName}
-                        </span>
-                        <span className="flex-shrink-0 text-xs text-slate-500">
-                          {formatThreadTime(latestTimestamp)}
-                        </span>
-                      </div>
-                      <p className="truncate text-sm text-slate-600">
-                        {conversation.latestMessage?.content ||
-                          `${conversation.latestBooking?.targetType ?? 'booking'}: ${
-                            conversation.latestBooking?.targetName ?? 'Conversation'
+                    <div className="flex items-start gap-3">
+                      <div className="relative mt-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#B74140] text-sm font-semibold text-white">
+                        {buildInitials(conversation.counterpart.fullName)}
+                        <span
+                          className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                            conversation.counterpart.isOnline
+                              ? "bg-[#10B981]"
+                              : "bg-[#CBD5E1]"
                           }`}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {conversation.counterpart.role.replaceAll('_', ' ')}
-                      </p>
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="truncate text-[15px] font-bold text-[#0F172A]">
+                            {conversation.counterpart.fullName}
+                          </p>
+                          <span className="shrink-0 text-xs text-[#64748B]">
+                            {formatThreadTime(latestTimestamp)}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 text-xs capitalize text-[#7C8DB5]">
+                          {formatRoleLabel(conversation.counterpart.role)}
+                        </p>
+                      </div>
                     </div>
                   </button>
                 );
-              })
-            ) : (
-              <div className="px-6 py-12 text-center text-slate-500">
-                <MessageSquare className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-                <p className="text-sm">No conversations found.</p>
-              </div>
-            )}
-          </div>
+              })}
+            </div>
+          ) : (
+            <div className="px-3 py-12 text-center text-sm text-[#64748B]">
+              <MessageSquare className="mx-auto mb-3 h-10 w-10 text-[#CBD5E1]" />
+              No chat threads found.
+            </div>
+          )}
         </div>
+      </section>
 
-        <div
-          className={`flex-1 flex-col ${
-            !showChat ? 'hidden md:flex' : 'flex'
-          }`}
-        >
+      <section className={`${showMobileThread ? "block" : "hidden lg:block"} flex-1`}>
+        <div className="flex h-full flex-col bg-white">
           {selectedConversation && counterpart ? (
             <>
-              <div className="flex items-center justify-between border-b border-gray-200 bg-white p-4 md:p-6">
-                <div className="flex items-center gap-3">
+              <div className="border-b border-[#E5E7EB] px-6 py-6">
+                <div className="flex items-center gap-4">
                   <button
-                    onClick={handleBackToContacts}
-                    className="rounded-full p-2 transition hover:bg-gray-100 md:hidden"
+                    onClick={handleBackToInbox}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E2E8F0] text-[#475569] lg:hidden"
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4" />
                   </button>
 
-                  <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#B74140] to-[#812321] text-sm font-semibold text-white">
+                  <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[#B74140] text-sm font-semibold text-white">
                     {buildInitials(counterpart.fullName)}
-                    {counterpart.isOnline ? (
-                      <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                    ) : null}
+                    <span
+                      className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                        counterpart.isOnline ? "bg-[#10B981]" : "bg-[#CBD5E1]"
+                      }`}
+                    />
                   </div>
 
                   <div>
-                    <h2 className="font-semibold text-slate-900">
+                    <h2 className="text-[16px] font-bold text-[#0F172A]">
                       {counterpart.fullName}
                     </h2>
-                    <p className="text-sm text-slate-500">
-                      {counterpart.isOnline
-                        ? 'Online'
-                        : counterpart.lastSeenAt
-                          ? `Last seen ${formatThreadTime(counterpart.lastSeenAt)}`
-                          : activeBooking?.targetName || 'Conversation'}
+                    <p className="text-sm text-[#64748B]">
+                      {counterpart.isOnline ? "Online" : "Offline"}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="hide-scrollbar flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
+              <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
                 {isLoadingMessages ? (
-                  <div className="py-12 text-center text-sm text-slate-500">
+                  <div className="py-16 text-center text-sm text-[#64748B]">
                     Loading messages...
                   </div>
-                ) : visibleMessages.length ? (
-                  <div className="space-y-4">
-                    {visibleMessages.map((message) => (
+                ) : messages.length ? (
+                  <div className="space-y-5">
+                    {messages.map((message) => (
                       <div
                         key={message._id}
-                        className={`flex ${message.isMine ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${
+                          message.isMine ? "justify-end" : "justify-start"
+                        }`}
                       >
-                        <div className="max-w-[85%] md:max-w-2xl">
+                        <div className="max-w-[85%]">
                           <div
-                            className={`rounded-2xl px-4 py-3 text-sm md:text-base ${
-                              message.isMine
-                                ? 'rounded-br-sm bg-[#B74140] text-white'
-                                : 'rounded-bl-sm bg-white text-slate-800 shadow-sm'
+                            className={`rounded-[18px] px-4 py-3 text-sm leading-6 ${
+                              message.type === "system"
+                                ? "border border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]"
+                                : message.isMine
+                                  ? "bg-[#C34444] text-white"
+                                  : "bg-[#F8FAFC] text-[#0F172A]"
                             }`}
                           >
-                            {message.content}
+                            {formatDisplayedMessageContent(message)}
                           </div>
-                          <span
-                            className={`mt-1 block text-xs ${
+                          <p
+                            className={`mt-1 text-xs ${
                               message.isMine
-                                ? 'text-right text-slate-500'
-                                : 'text-slate-400'
+                                ? "text-right text-[#64748B]"
+                                : "text-[#94A3B8]"
                             }`}
                           >
                             {formatMessageTime(message.createdAt)}
-                          </span>
+                          </p>
                         </div>
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
                   </div>
                 ) : (
-                  <div className="py-12 text-center text-sm text-slate-500">
-                    No messages yet. Start the conversation.
+                  <div className="flex h-full items-center justify-center">
+                    <div className="max-w-sm text-center">
+                      <MessageSquare className="mx-auto mb-3 h-12 w-12 text-[#CBD5E1]" />
+                      <h3 className="text-lg font-semibold text-[#0F172A]">
+                        Start the conversation
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-[#64748B]">
+                        Send a quick message from the {dashboardName} dashboard.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="border-t border-gray-200 bg-white p-3 md:p-4">
-                <div className="flex items-center gap-3">
+              <div className="border-t border-[#E5E7EB] bg-white px-6 py-4">
+                <div className="flex items-center gap-3 rounded-[20px] border border-[#E5E7EB] bg-white px-3 py-3">
                   <input
                     type="text"
                     value={messageText}
                     onChange={(event) => setMessageText(event.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
-                    className="flex-1 rounded-lg bg-gray-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                    placeholder={composerPlaceholder}
+                    className="flex-1 border-0 bg-transparent px-2 text-sm text-[#0F172A] outline-none"
                   />
                   <button
                     onClick={() => void handleSendMessage()}
                     disabled={!messageText.trim() || isSending || !activeBooking?._id}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#B74140] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#9d3635] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#C34444] px-4 text-sm font-semibold text-white transition hover:bg-[#AB3737] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <span className="hidden sm:inline">
-                      {isSending ? 'Sending...' : 'Send'}
-                    </span>
+                    {isSending ? "Sending..." : sendButtonLabel}
                     <Send className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center bg-gray-50">
-              <div className="px-6 text-center">
-                <MessageSquare className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-                <h2 className="text-xl font-semibold text-slate-700">
-                  Select a conversation
+            <div className="flex h-full items-center justify-center px-6">
+              <div className="max-w-md text-center">
+                <MessageSquare className="mx-auto mb-4 h-14 w-14 text-[#CBD5E1]" />
+                <h2 className="text-2xl font-semibold text-[#0F172A]">
+                  Open a conversation
                 </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Choose a conversation to view messages.
+                <p className="mt-3 text-sm leading-6 text-[#64748B]">
+                  Select a message from the left panel to chat from the {dashboardName}
+                  {" "}dashboard. {emptyStateDescription}
                 </p>
               </div>
             </div>
           )}
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

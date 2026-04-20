@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { ArrowLeftIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ArrowLeftIcon, ChevronLeft, ChevronRight, Plus, Upload, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { api, getApiErrorMessage } from '@/lib/api';
@@ -41,12 +41,40 @@ interface ServiceDetailResponse {
   data?: ServiceDetail;
 }
 
+interface ServiceListMeta {
+  page?: number;
+  totalPages?: number;
+}
+
+interface ServiceListResponse {
+  success: boolean;
+  meta?: ServiceListMeta;
+  data?: ServiceDetail[];
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
 interface AvailabilityOverride {
   date: string;
   slots: Array<{
     hour: number;
     status: OverrideStatus;
   }>;
+}
+
+interface UploadPreview {
+  file: File;
+  previewUrl: string;
+}
+
+interface DisplayedServiceImage {
+  id: string;
+  isNewUpload: boolean;
+  src: string;
 }
 
 interface ServiceFormState {
@@ -143,14 +171,46 @@ const formatHourLabel = (hour: number) => {
   return `${normalizedHour}:00 ${suffix}`;
 };
 
+const findServiceInProviderList = async (serviceId: string) => {
+  let currentPage = 1;
+  let totalPages = 1;
+
+  while (currentPage <= totalPages) {
+    const response = await api.get<ServiceListResponse>('/api/v1/service-provider/my-services', {
+      params: {
+        page: currentPage,
+        limit: 100,
+      },
+    });
+
+    const services = Array.isArray(response.data.data) ? response.data.data : [];
+    const matchedService = services.find((service) => service._id === serviceId);
+
+    if (matchedService) {
+      return matchedService;
+    }
+
+    totalPages =
+      typeof response.data.meta?.totalPages === 'number' && response.data.meta.totalPages > 0
+        ? response.data.meta.totalPages
+        : currentPage;
+    currentPage += 1;
+  }
+
+  return null;
+};
+
 export default function EditServicePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [formData, setFormData] = useState<ServiceFormState>(createEmptyFormState);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [uploadPreviews, setUploadPreviews] = useState<UploadPreview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const serviceId = params?.id;
@@ -165,11 +225,20 @@ export default function EditServicePage() {
       try {
         setIsLoading(true);
         setError('');
+        let service: ServiceDetail | null = null;
 
-        const response = await api.get<ServiceDetailResponse>(
-          `/api/v1/service-provider/services/${serviceId}`
-        );
-        const service = response.data.data;
+        try {
+          const response = await api.get<ServiceDetailResponse>(
+            `/api/v1/service-provider/services/${serviceId}`
+          );
+          service = response.data.data ?? null;
+        } catch (detailError) {
+          service = await findServiceInProviderList(serviceId);
+
+          if (!service) {
+            throw detailError;
+          }
+        }
 
         if (!service) {
           setError('Service details were not found.');
@@ -217,7 +286,43 @@ export default function EditServicePage() {
     fetchService();
   }, [params?.id]);
 
+  useEffect(() => () => {
+    uploadPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
+  }, [uploadPreviews]);
+
+  const validateForm = () => {
+    if (!formData.serviceName.trim()) {
+      return 'Service name is required.';
+    }
+
+    if (!formData.category.trim()) {
+      return 'Service category is required.';
+    }
+
+    if (!formData.description.trim()) {
+      return 'Description is required.';
+    }
+
+    if (!formData.amount.trim() || Number(formData.amount) <= 0) {
+      return 'Service amount must be greater than zero.';
+    }
+
+    if (formData.galleryImages.length + uploadPreviews.length <= 0) {
+      return 'Add at least one service image.';
+    }
+
+    return '';
+  };
+
   const handleInputChange = (field: keyof Omit<ServiceFormState, 'galleryImages' | 'availabilityOverrides'>, value: string) => {
+    if (error) {
+      setError('');
+    }
+
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
     setFormData((current) => ({
       ...current,
       [field]: value,
@@ -234,6 +339,21 @@ export default function EditServicePage() {
     () =>
       formData.availabilityOverrides.find((override) => override.date === selectedDateKey) ?? null,
     [formData.availabilityOverrides, selectedDateKey]
+  );
+  const displayedImages = useMemo<DisplayedServiceImage[]>(
+    () => [
+      ...formData.galleryImages.map((image, index) => ({
+        id: `existing-${index}-${image}`,
+        isNewUpload: false,
+        src: image,
+      })),
+      ...uploadPreviews.map((preview, index) => ({
+        id: `upload-${index}-${preview.previewUrl}`,
+        isNewUpload: true,
+        src: preview.previewUrl,
+      })),
+    ],
+    [formData.galleryImages, uploadPreviews]
   );
 
   const daysInMonth = new Date(
@@ -253,9 +373,64 @@ export default function EditServicePage() {
     );
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+
+    if (!files.length) {
+      return;
+    }
+
+    if (error) {
+      setError('');
+    }
+
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
+    const nextPreviews = files.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+
+    setUploadPreviews((current) => [...current, ...nextPreviews]);
+    event.target.value = '';
+  };
+
+  const removeUploadPreview = (index: number) => {
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
+    setUploadPreviews((current) => {
+      const target = current[index];
+
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+
+      return current.filter((_, currentIndex) => currentIndex !== index);
+    });
+  };
+
+  const removeExistingGalleryImage = (index: number) => {
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+
+    setFormData((current) => ({
+      ...current,
+      galleryImages: current.galleryImages.filter((_, currentIndex) => currentIndex !== index),
+    }));
+  };
+
   const handleSlotStatusChange = (slotIndex: number, status: OverrideStatus) => {
     if (!selectedDateKey) {
       return;
+    }
+
+    if (successMessage) {
+      setSuccessMessage('');
     }
 
     setFormData((current) => ({
@@ -273,6 +448,69 @@ export default function EditServicePage() {
     }));
   };
 
+  const handleSubmit = async () => {
+    const serviceId = params?.id;
+    const validationError = validateForm();
+
+    if (!serviceId) {
+      setError('Service id is missing.');
+      return;
+    }
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      setSuccessMessage('');
+
+      const multipartPayload = new FormData();
+      const requestPayload = {
+        information: {
+          serviceName: formData.serviceName.trim(),
+          category: formData.category.trim(),
+          description: formData.description.trim(),
+        },
+        pricing: {
+          amount: Number(formData.amount),
+          currency: formData.currency,
+        },
+        media: {
+          galleryImages: formData.galleryImages,
+          videoUrl: formData.videoUrl.trim(),
+        },
+        availabilityOverrides: formData.availabilityOverrides.map((override) => ({
+          date: override.date,
+          slots: override.slots.map((slot) => ({
+            hour: slot.hour,
+            status: slot.status,
+          })),
+        })),
+      };
+
+      uploadPreviews.forEach((preview) => {
+        multipartPayload.append('images', preview.file, preview.file.name);
+      });
+
+      multipartPayload.append('payload', JSON.stringify(requestPayload));
+
+      const response = await api.patch<ApiResponse<ServiceDetail>>(
+        `/api/v1/service-provider/services/${serviceId}`,
+        multipartPayload
+      );
+
+      setSuccessMessage(response.data.message || 'Service updated successfully.');
+      router.push('/serviceprovider/dashboard/myServices');
+    } catch (submissionError) {
+      setError(getApiErrorMessage(submissionError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] p-4 md:p-8">
       <div className="mx-auto max-w-6xl">
@@ -288,10 +526,11 @@ export default function EditServicePage() {
 
           <button
             type="button"
-            onClick={() => router.push('/serviceprovider/dashboard/myServices')}
-            className="rounded-md bg-[#B74140] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#9d3837]"
+            onClick={() => void handleSubmit()}
+            disabled={isSubmitting}
+            className="rounded-md bg-[#B74140] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#9d3837] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Publish Service
+            {isSubmitting ? 'Saving Changes...' : 'Confirm Edit'}
           </button>
         </div>
 
@@ -305,6 +544,12 @@ export default function EditServicePage() {
           </div>
         ) : (
           <div className="space-y-6">
+            {successMessage ? (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                {successMessage}
+              </div>
+            ) : null}
+
             <section className="rounded-xl border border-[#EDEDED] bg-white p-6">
               <div className="mb-5 flex items-start gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FCECEC] text-sm font-semibold text-[#B74140]">
@@ -400,22 +645,63 @@ export default function EditServicePage() {
                 <label className="mb-3 block text-sm font-medium text-gray-700">
                   Image Gallery
                 </label>
+                <div className="mb-4 rounded-xl border-2 border-dashed border-[#E5E7EB] p-6 text-center">
+                  <Upload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                  <p className="mb-1 font-medium text-gray-700">Upload service images</p>
+                  <p className="mb-4 text-sm text-gray-500">
+                    Add new images or remove existing ones before confirming your edit.
+                  </p>
+                  <input
+                    type="file"
+                    id="service-edit-images-upload"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="service-edit-images-upload"
+                    className="inline-block cursor-pointer rounded-lg bg-[#B74140] px-6 py-2.5 text-white transition-colors hover:bg-[#862c2a]"
+                  >
+                    Choose Images
+                  </label>
+                </div>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  {formData.galleryImages.map((image, index) => (
-                    <div
-                      key={`${image}-${index}`}
-                      className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F7F7F7]"
-                    >
-                      <Image
-                        src={image}
-                        alt={`Service image ${index + 1}`}
-                        width={320}
-                        height={240}
-                        unoptimized
-                        className="h-40 w-full object-cover"
-                      />
-                    </div>
-                  ))}
+                  {displayedImages.map((image, index) => {
+                    const existingIndex = index;
+                    const uploadIndex = index - formData.galleryImages.length;
+
+                    return (
+                      <div
+                        key={image.id}
+                        className="group relative overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F7F7F7]"
+                      >
+                        <Image
+                          src={image.src}
+                          alt={`Service image ${index + 1}`}
+                          width={320}
+                          height={240}
+                          unoptimized
+                          className="h-40 w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (image.isNewUpload) {
+                              removeUploadPreview(uploadIndex);
+                              return;
+                            }
+
+                            removeExistingGalleryImage(existingIndex);
+                          }}
+                          className="absolute right-2 top-2 rounded-full bg-[#B74140] p-1 text-white opacity-0 transition-opacity hover:bg-[#862c2a] group-hover:opacity-100"
+                          aria-label={`Remove service image ${index + 1}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                   <div className="flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] text-gray-400">
                     <Plus className="mb-2 h-6 w-6" />
                     <span className="text-sm">Add Image</span>

@@ -1,10 +1,10 @@
 import BookingRequestChatPage from "@/app/component/shared/BookingRequestChatPage";
 
-export default function ServiceProviderBookingRequestChatPage() {
+export default function EventPlannerBookingRequestChatPage() {
   return (
     <BookingRequestChatPage
-      dashboardName="service provider"
-      emptyStateDescription="Use chat to confirm service details, timing, and any booking updates with less back-and-forth."
+      dashboardName="event planner"
+      emptyStateDescription="Use chat to keep approvals, timing, and event requirements clear."
       searchPlaceholder="Search by client or booking..."
       sendButtonLabel="Reply"
       composerPlaceholder="Write a helpful reply for your client..."

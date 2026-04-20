@@ -581,6 +581,10 @@ export default function VenueManagement() {
 
       console.log("Add venue request body:", requestPayload);
       console.log(
+        "Add venue request body JSON:",
+        JSON.stringify(requestPayload, null, 2)
+      );
+      console.log(
         "Add venue image payload:",
         selectedImages.map((image) => ({
           name: image.file.name,
@@ -589,6 +593,24 @@ export default function VenueManagement() {
         }))
       );
       console.log("Add venue multipart field names:", Array.from(multipartPayload.keys()));
+      console.log(
+        "Add venue multipart entries:",
+        Array.from(multipartPayload.entries()).map(([key, value]) => {
+          if (value instanceof File) {
+            return {
+              key,
+              fileName: value.name,
+              fileSize: value.size,
+              fileType: value.type,
+            };
+          }
+
+          return {
+            key,
+            value,
+          };
+        })
+      );
 
       const response = await api.post<ApiResponse<VenueResponseData>>(
         "/api/v1/venue-provider/venues",

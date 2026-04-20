@@ -25,7 +25,9 @@ import { formatDateDDMMYY } from '@/lib/date';
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface BookingDialogState {
+  actionLabel?: string;
   message: string;
+  redirectPath?: string;
   title: string;
 }
 
@@ -361,7 +363,12 @@ const VenueBooking: React.FC = () => {
   };
 
   const handleCloseDialog = () => {
+    const redirectPath = dialog?.redirectPath;
     setDialog(null);
+
+    if (redirectPath) {
+      router.push(redirectPath);
+    }
   };
 
   const handleConfirmBooking = async () => {
@@ -438,7 +445,12 @@ const VenueBooking: React.FC = () => {
         venueId,
       });
 
-      router.push('/pages/venueBookingconfirmation/confirmed-booking-slug');
+      setDialog({
+        title: 'Booking Successful',
+        message: 'Your booking has been submitted successfully.',
+        actionLabel: 'Go To Home',
+        redirectPath: '/pages/homepage',
+      });
     } catch (error) {
       console.error('[VenueBooking] Failed to submit venue booking request', {
         guestCount: typeof guests === 'number' ? guests : 0,
@@ -687,6 +699,7 @@ const VenueBooking: React.FC = () => {
         open={Boolean(dialog)}
         title={dialog?.title ?? ''}
         message={dialog?.message ?? ''}
+        actionLabel={dialog?.actionLabel}
         onClose={handleCloseDialog}
       />
     </div>

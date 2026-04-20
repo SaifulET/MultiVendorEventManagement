@@ -160,6 +160,12 @@ export default function VenueManagement() {
           }
         );
 
+        console.log('Venue provider venues response:', response.data);
+        console.log(
+          'Venue provider venues list:',
+          Array.isArray(response.data.data) ? response.data.data : []
+        );
+
         setVenues(Array.isArray(response.data.data) ? response.data.data : []);
         setMeta(normalizeMeta(response.data.meta, currentPage));
       } catch (fetchError) {

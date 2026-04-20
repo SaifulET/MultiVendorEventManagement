@@ -12,6 +12,7 @@ import { formatDateDDMMYY } from '@/lib/date';
 type OverrideStatus = 'available' | 'pending' | 'booked';
 
 interface ServiceDetail {
+  _id: string;
   information?: {
     serviceName?: string;
     category?: string;
@@ -39,6 +40,17 @@ interface ServiceDetail {
 interface ServiceDetailResponse {
   success: boolean;
   data?: ServiceDetail;
+}
+
+interface ServiceListMeta {
+  page?: number;
+  totalPages?: number;
+}
+
+interface ServiceListResponse {
+  success: boolean;
+  meta?: ServiceListMeta;
+  data?: ServiceDetail[];
 }
 
 interface AvailabilityOverride {
@@ -121,6 +133,35 @@ const formatHourLabel = (hour: number) => {
   return `${normalizedHour}:00 ${suffix}`;
 };
 
+const findServiceInProviderList = async (serviceId: string) => {
+  let currentPage = 1;
+  let totalPages = 1;
+
+  while (currentPage <= totalPages) {
+    const response = await api.get<ServiceListResponse>('/api/v1/service-provider/my-services', {
+      params: {
+        page: currentPage,
+        limit: 100,
+      },
+    });
+
+    const services = Array.isArray(response.data.data) ? response.data.data : [];
+    const matchedService = services.find((service) => service._id === serviceId);
+
+    if (matchedService) {
+      return matchedService;
+    }
+
+    totalPages =
+      typeof response.data.meta?.totalPages === 'number' && response.data.meta.totalPages > 0
+        ? response.data.meta.totalPages
+        : currentPage;
+    currentPage += 1;
+  }
+
+  return null;
+};
+
 export default function ViewServicePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -143,10 +184,21 @@ export default function ViewServicePage() {
       try {
         setIsLoading(true);
         setError('');
-        const response = await api.get<ServiceDetailResponse>(
-          `/api/v1/service-provider/services/${serviceId}`
-        );
-        const nextService = response.data.data ?? null;
+        let nextService: ServiceDetail | null = null;
+
+        try {
+          const response = await api.get<ServiceDetailResponse>(
+            `/api/v1/service-provider/services/${serviceId}`
+          );
+          nextService = response.data.data ?? null;
+        } catch (detailError) {
+          nextService = await findServiceInProviderList(serviceId);
+
+          if (!nextService) {
+            throw detailError;
+          }
+        }
+
         setService(nextService);
 
         const overrides = (nextService?.availabilityOverrides ?? [])
