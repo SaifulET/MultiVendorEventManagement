@@ -56,6 +56,7 @@ interface VenueBookingContextResponse {
       };
       pricing?: {
         basePrice?: number;
+        pricePerPerson?: number;
         currency?: string;
       };
     };
@@ -189,7 +190,7 @@ const VenueBooking: React.FC = () => {
   const maximumGuests =
     bookingContext?.bookingMeta.maximumGuests ?? bookingContext?.target?.capacity?.maximumGuests ?? undefined;
   const priceDisplay = formatCurrencyAmount(
-    bookingContext?.target?.pricing?.basePrice,
+    bookingContext?.target?.pricing?.pricePerPerson ?? bookingContext?.target?.pricing?.basePrice,
     bookingContext?.bookingMeta.currency ?? bookingContext?.target?.pricing?.currency ?? 'BDT'
   );
   const selectionLabel = formatHourRange(selectedHours);

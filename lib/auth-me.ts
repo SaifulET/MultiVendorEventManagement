@@ -46,6 +46,8 @@ export interface ProfileSettingsData {
 interface UpdateBasicProfilePayload {
   fullName: string;
   phoneNumber: string;
+  hourlyRate?: number;
+  currency?: string;
 }
 
 export const emptyProfileSettingsData: ProfileSettingsData = {
@@ -174,10 +176,21 @@ export const updateServiceProviderProfile = async ({
 export const updateEventPlannerProfile = async ({
   fullName,
   phoneNumber,
+  hourlyRate,
+  currency,
 }: UpdateBasicProfilePayload) => {
   const response = await api.patch("/api/v1/auth/profile/event-planner", {
     fullName: fullName.trim(),
     phoneNumber: phoneNumber.trim(),
+    eventPlanner:
+      typeof hourlyRate === "number" || currency?.trim()
+        ? {
+            profileInfo: {
+              ...(typeof hourlyRate === "number" ? { hourlyRate } : {}),
+              ...(currency?.trim() ? { currency: currency.trim() } : {}),
+            },
+          }
+        : undefined,
   });
 
   return response.data;

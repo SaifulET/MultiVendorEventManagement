@@ -38,12 +38,14 @@ interface VenueDetail {
   };
   pricing?: {
     basePrice?: number;
+    pricePerPerson?: number;
     currency?: string;
     discount?: { type?: string; value?: number };
     amenities?: Record<string, boolean>;
   };
   capacity?: { maximumGuests?: number };
   media?: { galleryImages?: string[]; videoUrl?: string };
+  availability?: Record<string, number[]>;
   availabilityOverrides?: Array<{
     date?: string;
     slots?: Array<{ hour?: number; status?: string }>;
@@ -95,7 +97,7 @@ interface VenueFormState {
   addressLine: string;
   city: string;
   area: string;
-  basePrice: string;
+  pricePerPerson: string;
   currency: string;
   discountType: string;
   discountValue: string;
@@ -108,6 +110,9 @@ interface VenueFormState {
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const fullDayHours = Array.from({ length: 16 }, (_, index) => index + 8);
+const createBlockedDaySlots = (hours: number[] = fullDayHours) =>
+  hours.map((hour) => ({ hour, status: 'booked' as OverrideStatus }));
 
 const normalizeAmenities = (amenities?: Record<string, boolean>) => {
   const normalizedAmenities: Record<string, boolean> = {};
@@ -155,7 +160,7 @@ const createEmptyFormState = (): VenueFormState => ({
   addressLine: '',
   city: '',
   area: '',
-  basePrice: '',
+  pricePerPerson: '',
   currency: GBP_CURRENCY_CODE,
   discountType: 'percentage',
   discountValue: '',
@@ -269,15 +274,29 @@ export default function EditVenuePage() {
           return;
         }
 
-        const availabilityOverrides = (venue.availabilityOverrides ?? [])
-          .filter((override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] => Boolean(override?.date))
-          .map((override) => ({
-            date: override.date?.trim() || '',
-            slots: (override.slots ?? []).map((slot) => ({
-              hour: typeof slot.hour === 'number' ? slot.hour : 0,
-              status: normalizeStatus(slot.status?.trim().toLowerCase()),
-            })),
-          }));
+        const availabilityOverrides =
+          venue.availability && typeof venue.availability === 'object'
+            ? Object.entries(venue.availability)
+                .filter(
+                  ([date, hours]) =>
+                    Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0
+                )
+                .map(([date, hours]) => ({
+                  date,
+                  slots: createBlockedDaySlots(hours),
+                }))
+            : (venue.availabilityOverrides ?? [])
+                .filter(
+                  (override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] =>
+                    Boolean(override?.date)
+                )
+                .map((override) => ({
+                  date: override.date?.trim() || '',
+                  slots: (override.slots ?? []).map((slot) => ({
+                    hour: typeof slot.hour === 'number' ? slot.hour : 0,
+                    status: normalizeStatus(slot.status?.trim().toLowerCase()),
+                  })),
+                }));
 
         setFormData({
           venueName: venue.information?.venueName?.trim() || '',
@@ -286,8 +305,13 @@ export default function EditVenuePage() {
           addressLine: venue.information?.addressLine?.trim() || '',
           city: venue.information?.city?.trim() || '',
           area: venue.information?.area?.trim() || '',
-          basePrice: typeof venue.pricing?.basePrice === 'number' ? String(venue.pricing.basePrice) : '',
-          currency: GBP_CURRENCY_CODE,
+          pricePerPerson:
+            typeof venue.pricing?.pricePerPerson === 'number'
+              ? String(venue.pricing.pricePerPerson)
+              : typeof venue.pricing?.basePrice === 'number'
+                ? String(venue.pricing.basePrice)
+                : '',
+          currency: venue.pricing?.currency?.trim() || GBP_CURRENCY_CODE,
           discountType: venue.pricing?.discount?.type?.trim() || 'percentage',
           discountValue: typeof venue.pricing?.discount?.value === 'number' ? String(venue.pricing.discount.value) : '',
           maximumGuests: typeof venue.capacity?.maximumGuests === 'number' ? String(venue.capacity.maximumGuests) : '',
@@ -341,8 +365,8 @@ export default function EditVenuePage() {
       return 'Area is required.';
     }
 
-    if (!formData.basePrice.trim() || Number(formData.basePrice) <= 0) {
-      return 'Base price must be greater than zero.';
+    if (!formData.pricePerPerson.trim() || Number(formData.pricePerPerson) <= 0) {
+      return 'Price per person must be greater than zero.';
     }
 
     if (!formData.maximumGuests.trim() || Number(formData.maximumGuests) <= 0) {
@@ -379,26 +403,27 @@ export default function EditVenuePage() {
     }));
   };
 
-  const handleSlotStatusChange = (slotIndex: number, status: OverrideStatus) => {
+  const handleDayBlocking = (blocked: boolean) => {
     if (!selectedDateKey) return;
 
     if (successMessage) {
       setSuccessMessage('');
     }
 
-    setFormData((current) => ({
-      ...current,
-      availabilityOverrides: current.availabilityOverrides.map((override) =>
-        override.date !== selectedDateKey
-          ? override
-          : {
-              ...override,
-              slots: override.slots.map((slot, currentIndex) =>
-                currentIndex === slotIndex ? { ...slot, status } : slot
-              ),
-            }
-      ),
-    }));
+    setFormData((current) => {
+      const remainingOverrides = current.availabilityOverrides.filter(
+        (override) => override.date !== selectedDateKey
+      );
+
+      return {
+        ...current,
+        availabilityOverrides: blocked
+          ? [...remainingOverrides, { date: selectedDateKey, slots: createBlockedDaySlots() }].sort(
+              (left, right) => left.date.localeCompare(right.date)
+            )
+          : remainingOverrides,
+      };
+    });
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -468,7 +493,7 @@ export default function EditVenuePage() {
           area: formData.area.trim(),
         },
         pricing: {
-          basePrice: Number(formData.basePrice),
+          pricePerPerson: Number(formData.pricePerPerson),
           currency: formData.currency,
           discount: {
             type: formData.discountType,
@@ -483,12 +508,9 @@ export default function EditVenuePage() {
           galleryImages: formData.galleryImages,
           videoUrl: formData.videoUrl.trim(),
         },
-        availabilityOverrides: formData.availabilityOverrides.map((override) => ({
+        availabilityCalendar: formData.availabilityOverrides.map((override) => ({
           date: override.date,
-          slots: override.slots.map((slot) => ({
-            hour: slot.hour,
-            status: slot.status,
-          })),
+          hours: override.slots.map((slot) => slot.hour),
         })),
       };
 
@@ -663,11 +685,11 @@ export default function EditVenuePage() {
                 <div className="space-y-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Base Price</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-900">Price Per Person</label>
                       <input
                         type="number"
-                        value={formData.basePrice}
-                        onChange={(event) => handleInputChange('basePrice', event.target.value)}
+                        value={formData.pricePerPerson}
+                        onChange={(event) => handleInputChange('pricePerPerson', event.target.value)}
                         placeholder="5000"
                         className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
                       />
@@ -877,28 +899,35 @@ export default function EditVenuePage() {
 
                 <div className="border-t pt-4">
                   <p className="mb-3 text-sm font-medium text-gray-900">
-                    {selectedDateKey ? `Hourly slots for ${formatDisplayDate(selectedDateKey)}` : 'Select a date to review hourly slots'}
+                    {selectedDateKey ? `Block the full day on ${formatDisplayDate(selectedDateKey)}` : 'Select a date to block the full day'}
                   </p>
 
-                  {selectedOverride?.slots.length ? (
-                    <div className="space-y-2">
-                      {selectedOverride.slots.map((slot, index) => (
-                        <div key={`${slot.hour}-${index}`} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                          <span className="text-sm font-medium text-gray-800">{formatHourLabel(slot.hour)}</span>
-                          <select
-                            value={slot.status}
-                            onChange={(event) => handleSlotStatusChange(index, normalizeStatus(event.target.value))}
-                            className="rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-sm outline-none transition-colors focus:border-gray-400"
-                          >
-                            <option value="available">Available</option>
-                            <option value="pending">Pending</option>
-                            <option value="booked">Booked</option>
-                          </select>
-                        </div>
-                      ))}
+                  {selectedDateKey ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600">
+                        {selectedOverride?.slots.length
+                          ? 'This day is blocked for the full booking window.'
+                          : 'This day is currently open.'}
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleDayBlocking(true)}
+                          className="rounded-lg bg-[#B74140] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#9d3837]"
+                        >
+                          Block Full Day
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDayBlocking(false)}
+                          className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                        >
+                          Clear Block
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">No override slots for the selected day.</p>
+                    <p className="text-sm text-gray-500">Select a date to block or unblock the full day.</p>
                   )}
                 </div>
 
@@ -908,7 +937,7 @@ export default function EditVenuePage() {
                     {formData.availabilityOverrides.map((override) => (
                       <div key={override.date} className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
                         <p className="font-medium text-gray-800">{formatDisplayDate(override.date)}</p>
-                        <p className="text-xs text-gray-500">{override.slots.length} slot{override.slots.length === 1 ? '' : 's'} saved</p>
+                        <p className="text-xs text-gray-500">Full day blocked</p>
                       </div>
                     ))}
                   </div>

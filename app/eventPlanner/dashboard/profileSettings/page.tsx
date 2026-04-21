@@ -20,6 +20,8 @@ interface Profile {
   email: string;
   phone: string;
   role: string;
+  hourlyRate: string;
+  currency: string;
 }
 
 interface Passwords {
@@ -41,6 +43,8 @@ const ProfilePage: React.FC = () => {
     email: '',
     phone: '',
     role: '',
+    hourlyRate: '',
+    currency: 'GBP',
   });
   const [passwords, setPasswords] = useState<Passwords>({
     current: '',
@@ -64,6 +68,21 @@ const ProfilePage: React.FC = () => {
         email: data.email,
         phone: data.phone,
         role: data.role,
+        hourlyRate:
+          typeof (data.onboarding as { eventProvider?: { profileInfo?: { hourlyRate?: unknown } } })
+            ?.eventProvider?.profileInfo?.hourlyRate === 'number'
+            ? String(
+                (data.onboarding as { eventProvider?: { profileInfo?: { hourlyRate?: number } } })
+                  .eventProvider?.profileInfo?.hourlyRate ?? ''
+              )
+            : '',
+        currency:
+          typeof (data.onboarding as { eventProvider?: { profileInfo?: { currency?: unknown } } })
+            ?.eventProvider?.profileInfo?.currency === 'string'
+            ? ((data.onboarding as {
+                eventProvider?: { profileInfo?: { currency?: string } };
+              }).eventProvider?.profileInfo?.currency ?? 'GBP')
+            : 'GBP',
       }));
       setCoverPhoto(data.coverImage || cover.src);
       setProfilePhoto(data.profileImage || profileimg.src);
@@ -95,6 +114,8 @@ const ProfilePage: React.FC = () => {
         await updateEventPlannerProfile({
           fullName: profile.fullName,
           phoneNumber: profile.phone,
+          hourlyRate: profile.hourlyRate.trim() ? Number(profile.hourlyRate) : undefined,
+          currency: profile.currency,
         });
 
         if (pendingCoverImageFile) {
@@ -324,6 +345,41 @@ const ProfilePage: React.FC = () => {
                   disabled={!isEditing}
                   placeholder="Not returned by /api/v1/auth/me"
                   className={`w-full rounded-lg border py-3 pl-11 pr-4 outline-none transition-all ${
+                    isEditing
+                      ? 'border-[#E5E7EB] bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                      : 'border-[#E5E7EB] bg-slate-50 text-slate-600'
+                  }`}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Hourly Rate</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  value={profile.hourlyRate}
+                  onChange={(event) => handleProfileChange('hourlyRate', event.target.value)}
+                  disabled={!isEditing}
+                  className={`w-full rounded-lg border px-4 py-3 outline-none transition-all ${
+                    isEditing
+                      ? 'border-[#E5E7EB] bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                      : 'border-[#E5E7EB] bg-slate-50 text-slate-600'
+                  }`}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Currency</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={profile.currency}
+                  onChange={(event) => handleProfileChange('currency', event.target.value)}
+                  disabled={!isEditing}
+                  className={`w-full rounded-lg border px-4 py-3 uppercase outline-none transition-all ${
                     isEditing
                       ? 'border-[#E5E7EB] bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200'
                       : 'border-[#E5E7EB] bg-slate-50 text-slate-600'

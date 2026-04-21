@@ -90,6 +90,7 @@ interface VenueDetails {
   };
   pricing?: {
     basePrice?: number;
+    pricePerPerson?: number;
     currency?: string;
     amenities?: Record<string, boolean> | string[];
   };
@@ -715,9 +716,9 @@ const VenueBookingPage: React.FC = () => {
                     <DollarSign size={18} className="text-[#B74140]" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-600">Per Day</div>
+                    <div className="text-xs text-gray-600">Per Person</div>
                     <div className="font-semibold text-sm">
-                      {formatCurrencyValue(venuePricing.basePrice)}
+                      {formatCurrencyValue(venuePricing.pricePerPerson ?? venuePricing.basePrice)}
                     </div>
                   </div>
                 </div>

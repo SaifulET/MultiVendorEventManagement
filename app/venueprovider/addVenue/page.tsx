@@ -105,7 +105,12 @@ const monthNames = [
 
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const slotHours = Array.from({ length: 15 }, (_, index) => index + 8);
+const slotHours = Array.from({ length: 16 }, (_, index) => index + 8);
+const createFullDaySlots = () =>
+  slotHours.map((hour) => ({
+    hour,
+    status: "booked" as OverrideStatus,
+  }));
 
 const amenities: AmenityDefinition[] = [
   { id: "parking", label: "Parking", icon: <Car className="h-6 w-6" /> },
@@ -248,7 +253,7 @@ export default function VenueManagement() {
     addressLine: "",
     city: "",
     area: "",
-    basePrice: "",
+    pricePerPerson: "",
     currency: GBP_CURRENCY_CODE,
     discountType: "percentage",
     discountValue: "",
@@ -435,28 +440,16 @@ export default function VenueManagement() {
     setSlotDraft(nextDraft);
   };
 
-  const handleSlotClick = (hour: number) => {
-    setSlotDraft((current) => ({
-      ...current,
-      [hour]: cycleSlotStatus(current[hour]),
-    }));
-  };
-
   const handleSaveOverride = () => {
     if (!selectedDateKey) {
-      setError("Select a date before saving an availability override.");
-      return;
-    }
-
-    if (!draftSlots.length) {
-      setError("Select at least one hourly slot before saving the override.");
+      setError("Select a date before blocking availability.");
       return;
     }
 
     setAvailabilityOverrides((current) => {
       const nextOverride = {
         date: selectedDateKey,
-        slots: draftSlots,
+        slots: createFullDaySlots(),
       };
 
       const existingIndex = current.findIndex(
@@ -475,7 +468,7 @@ export default function VenueManagement() {
     });
 
     setError("");
-    setSuccessMessage(`Availability override saved for ${formatDisplayDate(selectedDateKey)}.`);
+    setSuccessMessage(`Availability blocked for ${formatDisplayDate(selectedDateKey)}.`);
   };
 
   const handleRemoveOverride = (date: string) => {
@@ -488,7 +481,7 @@ export default function VenueManagement() {
       setSlotDraft(createEmptySlotDraft());
     }
 
-    setSuccessMessage("Availability override removed.");
+    setSuccessMessage("Availability block removed.");
   };
 
   const validateForm = () => {
@@ -516,8 +509,8 @@ export default function VenueManagement() {
       return "Area is required.";
     }
 
-    if (!formData.basePrice.trim() || Number(formData.basePrice) <= 0) {
-      return "Base price must be greater than zero.";
+    if (!formData.pricePerPerson.trim() || Number(formData.pricePerPerson) <= 0) {
+      return "Price per person must be greater than zero.";
     }
 
     if (!formData.maximumGuests.trim() || Number(formData.maximumGuests) <= 0) {
@@ -555,7 +548,7 @@ export default function VenueManagement() {
           area: formData.area.trim(),
         },
         pricing: {
-          basePrice: Number(formData.basePrice),
+          pricePerPerson: Number(formData.pricePerPerson),
           currency: formData.currency,
           discount: {
             type: formData.discountType,
@@ -570,7 +563,10 @@ export default function VenueManagement() {
           galleryImages: [],
           videoUrl: formData.videoUrl.trim(),
         },
-        availabilityOverrides,
+        availabilityCalendar: availabilityOverrides.map((override) => ({
+          date: override.date,
+          hours: override.slots.map((slot) => slot.hour),
+        })),
       };
 
       selectedImages.forEach((image) => {
@@ -821,12 +817,12 @@ export default function VenueManagement() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-900">
-                      Base Price
+                      Price Per Person
                     </label>
                     <input
                       type="number"
-                      name="basePrice"
-                      value={formData.basePrice}
+                      name="pricePerPerson"
+                      value={formData.pricePerPerson}
                       onChange={handleInputChange}
                       placeholder="5000"
                       className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
@@ -1038,25 +1034,9 @@ export default function VenueManagement() {
               <div className="border-t pt-4">
                 <p className="mb-3 text-sm font-medium text-gray-900">
                   {selectedDateKey
-                    ? `Hourly slots for ${formatDisplayDate(selectedDateKey)}`
-                    : "Select a date to configure hourly slots"}
+                    ? `Block the full day on ${formatDisplayDate(selectedDateKey)}`
+                    : "Select a date to block the full day"}
                 </p>
-
-                <div className="grid grid-cols-2 gap-2">
-                  {slotHours.map((hour) => (
-                    <button
-                      key={hour}
-                      type="button"
-                      disabled={!selectedDateKey}
-                      onClick={() => handleSlotClick(hour)}
-                      className={`rounded-lg border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${getSlotButtonClassName(
-                        slotDraft[hour]
-                      )}`}
-                    >
-                      {formatHour(hour)}
-                    </button>
-                  ))}
-                </div>
 
                 <button
                   type="button"
@@ -1064,7 +1044,7 @@ export default function VenueManagement() {
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#B74140] px-4 py-2.5 font-medium text-[#B74140] transition-colors hover:bg-[#B74140]/5"
                 >
                   <Plus className="h-4 w-4" />
-                  Save Override Day
+                  Block Full Day
                 </button>
               </div>
 
@@ -1083,8 +1063,7 @@ export default function VenueManagement() {
                           {formatDisplayDate(override.date)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {override.slots.length} slot
-                          {override.slots.length === 1 ? "" : "s"} selected
+                          Full day blocked
                         </p>
                       </div>
                       <button

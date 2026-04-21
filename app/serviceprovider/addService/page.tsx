@@ -62,11 +62,7 @@ const serviceCategories = [
   "Other",
 ];
 
-const pricingTypes = [
-  { value: "package", label: "Package" },
-  { value: "hourly", label: "Hourly" },
-  { value: "custom", label: "Custom" },
-];
+const pricingTypes = [{ value: "hourly", label: "Hourly" }];
 
 const discountTypes = [
   { value: "percentage", label: "Percentage" },
@@ -95,7 +91,12 @@ const monthNames = [
 ];
 
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const slotHours = Array.from({ length: 15 }, (_, index) => index + 8);
+const slotHours = Array.from({ length: 16 }, (_, index) => index + 8);
+const createFullDaySlots = () =>
+  slotHours.map((hour) => ({
+    hour,
+    status: "booked" as OverrideStatus,
+  }));
 
 const splitValues = (value: string) =>
   value
@@ -208,7 +209,7 @@ export default function AddServicePage() {
     serviceArea: "",
     tags: "",
     amount: "",
-    pricingType: "package",
+    pricingType: "hourly",
     currency: GBP_CURRENCY_CODE,
     discountType: "percentage",
     discountValue: "",
@@ -364,28 +365,16 @@ export default function AddServicePage() {
     setSlotDraft(nextDraft);
   };
 
-  const handleSlotClick = (hour: number) => {
-    setSlotDraft((current) => ({
-      ...current,
-      [hour]: cycleSlotStatus(current[hour]),
-    }));
-  };
-
   const handleSaveOverride = () => {
     if (!selectedDateKey) {
-      setError("Select a date before saving an availability override.");
-      return;
-    }
-
-    if (!draftSlots.length) {
-      setError("Select at least one hourly slot before saving the override.");
+      setError("Select a date before blocking availability.");
       return;
     }
 
     setAvailabilityOverrides((current) => {
       const nextOverride = {
         date: selectedDateKey,
-        slots: draftSlots,
+        slots: createFullDaySlots(),
       };
 
       const existingIndex = current.findIndex(
@@ -404,7 +393,7 @@ export default function AddServicePage() {
     });
 
     setError("");
-    setSuccessMessage(`Availability override saved for ${formatDisplayDate(selectedDateKey)}.`);
+    setSuccessMessage(`Availability blocked for ${formatDisplayDate(selectedDateKey)}.`);
   };
 
   const handleRemoveOverride = (date: string) => {
@@ -417,7 +406,7 @@ export default function AddServicePage() {
       setSlotDraft(createEmptySlotDraft());
     }
 
-    setSuccessMessage("Availability override removed.");
+    setSuccessMessage("Availability block removed.");
   };
 
   const validateForm = () => {
@@ -474,7 +463,7 @@ export default function AddServicePage() {
         },
         pricing: {
           amount: Number(formData.amount),
-          pricingType: formData.pricingType,
+          pricingType: "hourly",
           currency: formData.currency.trim() || GBP_CURRENCY_CODE,
           discount: {
             type: formData.discountType,
@@ -489,7 +478,10 @@ export default function AddServicePage() {
           galleryImages: [],
           videoUrl: formData.videoUrl.trim(),
         },
-        availabilityOverrides,
+        availabilityCalendar: availabilityOverrides.map((override) => ({
+          date: override.date,
+          hours: override.slots.map((slot) => slot.hour),
+        })),
       };
 
       multipartPayload.append("payload", JSON.stringify(requestPayload));
@@ -674,7 +666,7 @@ export default function AddServicePage() {
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-900">
-                    Amount
+                    Hourly Rate
                   </label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -698,6 +690,7 @@ export default function AddServicePage() {
                     name="pricingType"
                     value={formData.pricingType}
                     onChange={handleInputChange}
+                    disabled
                     className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
                   >
                     {pricingTypes.map((pricingType) => (
@@ -918,53 +911,29 @@ export default function AddServicePage() {
 
               <div className="flex flex-wrap gap-4 border-t pt-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 rounded bg-emerald-400" />
-                  <span className="text-gray-700">Available</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 rounded bg-yellow-400" />
-                  <span className="text-gray-700">Pending</span>
-                </div>
-                <div className="flex items-center gap-2">
                   <div className="h-4 w-4 rounded bg-red-400" />
-                  <span className="text-gray-700">Booked</span>
+                  <span className="text-gray-700">Blocked day</span>
                 </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
               <h2 className="mb-4 text-xl font-bold text-gray-900">
-                Daily Slots
+                Day Blocking
               </h2>
 
               <p className="mb-4 text-sm text-gray-500">
                 {selectedDateKey
-                  ? `Editing ${formatDisplayDate(selectedDateKey)}`
-                  : "Choose a date from the calendar to set override slots."}
+                  ? `Block the full day on ${formatDisplayDate(selectedDateKey)}`
+                  : "Choose a date from the calendar to block the full day."}
               </p>
-
-              <div className="grid grid-cols-2 gap-2">
-                {slotHours.map((hour) => (
-                  <button
-                    key={hour}
-                    type="button"
-                    disabled={!selectedDateKey}
-                    onClick={() => handleSlotClick(hour)}
-                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${getSlotButtonClassName(
-                      slotDraft[hour]
-                    )}`}
-                  >
-                    {formatHour(hour)}
-                  </button>
-                ))}
-              </div>
 
               <button
                 type="button"
                 onClick={handleSaveOverride}
                 className="mt-4 w-full rounded-lg bg-[#B74140] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#862c2a]"
               >
-                Save Availability Override
+                Block Full Day
               </button>
             </div>
 
@@ -989,8 +958,7 @@ export default function AddServicePage() {
                               {formatDisplayDate(override.date)}
                             </p>
                             <p className="mt-1 text-sm text-gray-500">
-                              {override.slots.length} slot
-                              {override.slots.length === 1 ? "" : "s"} updated
+                              Full day blocked
                             </p>
                           </div>
                           <span

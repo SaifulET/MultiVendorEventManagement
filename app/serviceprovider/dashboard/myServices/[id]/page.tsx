@@ -27,6 +27,7 @@ interface ServiceDetail {
     galleryImages?: string[];
     videoUrl?: string;
   };
+  availability?: Record<string, number[]>;
   availabilityOverrides?: Array<{
     date?: string;
     slots?: Array<{
@@ -104,6 +105,12 @@ const monthNames = [
 ];
 
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const fullDayHours = Array.from({ length: 16 }, (_, index) => index + 8);
+const createBlockedDaySlots = (hours: number[] = fullDayHours) =>
+  hours.map((hour) => ({
+    hour,
+    status: 'booked' as OverrideStatus,
+  }));
 
 const createEmptyFormState = (): ServiceFormState => ({
   serviceName: '',
@@ -245,15 +252,29 @@ export default function EditServicePage() {
           return;
         }
 
-        const availabilityOverrides = (service.availabilityOverrides ?? [])
-          .filter((override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] => Boolean(override?.date))
-          .map((override) => ({
-            date: override.date?.trim() || '',
-            slots: (override.slots ?? []).map((slot) => ({
-              hour: typeof slot.hour === 'number' ? slot.hour : 0,
-              status: normalizeStatus(slot.status?.trim().toLowerCase()),
-            })),
-          }));
+        const availabilityOverrides =
+          service.availability && typeof service.availability === 'object'
+            ? Object.entries(service.availability)
+                .filter(
+                  ([date, hours]) =>
+                    Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0
+                )
+                .map(([date, hours]) => ({
+                  date,
+                  slots: createBlockedDaySlots(hours),
+                }))
+            : (service.availabilityOverrides ?? [])
+                .filter(
+                  (override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] =>
+                    Boolean(override?.date)
+                )
+                .map((override) => ({
+                  date: override.date?.trim() || '',
+                  slots: (override.slots ?? []).map((slot) => ({
+                    hour: typeof slot.hour === 'number' ? slot.hour : 0,
+                    status: normalizeStatus(slot.status?.trim().toLowerCase()),
+                  })),
+                }));
 
         setFormData({
           serviceName: service.information?.serviceName?.trim() || '',
@@ -263,7 +284,7 @@ export default function EditServicePage() {
             '',
           description: service.information?.description?.trim() || '',
           amount: typeof service.pricing?.amount === 'number' ? String(service.pricing.amount) : '',
-          currency: GBP_CURRENCY_CODE,
+          currency: service.pricing?.currency?.trim() || GBP_CURRENCY_CODE,
           videoUrl: service.media?.videoUrl?.trim() || '',
           galleryImages: Array.isArray(service.media?.galleryImages)
             ? service.media.galleryImages.filter(
@@ -424,7 +445,7 @@ export default function EditServicePage() {
     }));
   };
 
-  const handleSlotStatusChange = (slotIndex: number, status: OverrideStatus) => {
+  const handleDayBlocking = (blocked: boolean) => {
     if (!selectedDateKey) {
       return;
     }
@@ -433,19 +454,20 @@ export default function EditServicePage() {
       setSuccessMessage('');
     }
 
-    setFormData((current) => ({
-      ...current,
-      availabilityOverrides: current.availabilityOverrides.map((override) =>
-        override.date !== selectedDateKey
-          ? override
-          : {
-              ...override,
-              slots: override.slots.map((slot, currentSlotIndex) =>
-                currentSlotIndex === slotIndex ? { ...slot, status } : slot
-              ),
-            }
-      ),
-    }));
+    setFormData((current) => {
+      const remainingOverrides = current.availabilityOverrides.filter(
+        (override) => override.date !== selectedDateKey
+      );
+
+      return {
+        ...current,
+        availabilityOverrides: blocked
+          ? [...remainingOverrides, { date: selectedDateKey, slots: createBlockedDaySlots() }].sort(
+              (left, right) => left.date.localeCompare(right.date)
+            )
+          : remainingOverrides,
+      };
+    });
   };
 
   const handleSubmit = async () => {
@@ -476,18 +498,16 @@ export default function EditServicePage() {
         },
         pricing: {
           amount: Number(formData.amount),
+          pricingType: 'hourly',
           currency: formData.currency,
         },
         media: {
           galleryImages: formData.galleryImages,
           videoUrl: formData.videoUrl.trim(),
         },
-        availabilityOverrides: formData.availabilityOverrides.map((override) => ({
+        availabilityCalendar: formData.availabilityOverrides.map((override) => ({
           date: override.date,
-          slots: override.slots.map((slot) => ({
-            hour: slot.hour,
-            status: slot.status,
-          })),
+          hours: override.slots.map((slot) => slot.hour),
         })),
       };
 
@@ -806,37 +826,37 @@ export default function EditServicePage() {
               <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900">
                   {selectedDateKey
-                    ? `Override Slots for ${formatDateDDMMYY(selectedDateKey, selectedDateKey)}`
-                    : 'Override Slots'}
+                    ? `Day Blocking for ${formatDateDDMMYY(selectedDateKey, selectedDateKey)}`
+                    : 'Day Blocking'}
                 </h3>
 
-                {selectedOverride?.slots.length ? (
+                {selectedDateKey ? (
                   <div className="space-y-3">
-                    {selectedOverride.slots.map((slot, slotIndex) => (
-                      <div
-                        key={`${slot.hour}-${slotIndex}`}
-                        className="flex flex-col gap-3 rounded-lg border border-[#E5E7EB] bg-white p-3 md:flex-row md:items-center md:justify-between"
+                    <p className="text-sm text-gray-600">
+                      {selectedOverride?.slots.length
+                        ? 'This day is blocked for the full booking window.'
+                        : 'This day is currently open.'}
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDayBlocking(true)}
+                        className="rounded-lg bg-[#B74140] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#9d3837]"
                       >
-                        <span className="text-sm font-medium text-gray-700">
-                          {formatHourLabel(slot.hour)}
-                        </span>
-                        <select
-                          value={slot.status}
-                          onChange={(e) =>
-                            handleSlotStatusChange(slotIndex, normalizeStatus(e.target.value))
-                          }
-                          className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#B74140]"
-                        >
-                          <option value="available">Available</option>
-                          <option value="pending">Pending</option>
-                          <option value="booked">Booked</option>
-                        </select>
-                      </div>
-                    ))}
+                        Block Full Day
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDayBlocking(false)}
+                        className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                      >
+                        Clear Block
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500">
-                    No availability override slots for the selected day.
+                    Select a date to block or unblock the full day.
                   </p>
                 )}
               </div>

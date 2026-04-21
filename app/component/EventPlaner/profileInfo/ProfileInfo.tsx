@@ -38,6 +38,8 @@ export default function BusinessProfileForm() {
     description: "",
     coverageArea: "",
     address: "",
+    hourlyRate: "",
+    currency: "GBP",
     businessType: "individual",
     companyName: "",
     nidNumber: "",
@@ -107,6 +109,10 @@ export default function BusinessProfileForm() {
       return "Address is required.";
     }
 
+    if (!formData.hourlyRate.trim() || Number(formData.hourlyRate) <= 0) {
+      return "Hourly rate must be greater than zero.";
+    }
+
     if (!formData.nidNumber.trim()) {
       return "National ID / trade license number is required.";
     }
@@ -143,6 +149,8 @@ export default function BusinessProfileForm() {
           description: formData.description.trim(),
           coverageArea: splitValues(formData.coverageArea),
           address: formData.address.trim(),
+          hourlyRate: Number(formData.hourlyRate),
+          currency: formData.currency.trim().toUpperCase(),
           verification: {
             businessType: normalizeBusinessType(formData.businessType),
             companyName: formData.companyName.trim(),
@@ -297,6 +305,47 @@ export default function BusinessProfileForm() {
                 className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
                 required
               />
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="hourlyRate"
+                  className="mb-2 block text-sm font-medium text-gray-900"
+                >
+                  Hourly Rate<span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="hourlyRate"
+                  name="hourlyRate"
+                  min="0"
+                  value={formData.hourlyRate}
+                  onChange={handleInputChange}
+                  placeholder="5000"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="currency"
+                  className="mb-2 block text-sm font-medium text-gray-900"
+                >
+                  Currency<span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="currency"
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  placeholder="GBP"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm uppercase placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#B74140]"
+                  required
+                />
+              </div>
             </div>
 
             <div className="pt-4">
