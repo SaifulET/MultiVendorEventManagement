@@ -24,7 +24,7 @@ import { api, getApiErrorMessage } from '@/lib/api';
 import { GBP_CURRENCY_CODE, GBP_CURRENCY_LABEL } from '@/lib/currency';
 import { formatDateDDMMYY } from '@/lib/date';
 
-type OverrideStatus = 'available' | 'pending' | 'booked';
+type OverrideStatus = 'available' | 'pending' | 'booked' | 'blocked';
 
 interface VenueDetail {
   _id: string;
@@ -45,6 +45,7 @@ interface VenueDetail {
   };
   capacity?: { maximumGuests?: number };
   media?: { galleryImages?: string[]; videoUrl?: string };
+  publishStatus?: string;
   availability?: Record<string, number[]>;
   availabilityOverrides?: Array<{
     date?: string;
@@ -112,7 +113,7 @@ const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'Jul
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const fullDayHours = Array.from({ length: 16 }, (_, index) => index + 8);
 const createBlockedDaySlots = (hours: number[] = fullDayHours) =>
-  hours.map((hour) => ({ hour, status: 'booked' as OverrideStatus }));
+  hours.map((hour) => ({ hour, status: 'blocked' as OverrideStatus }));
 
 const normalizeAmenities = (amenities?: Record<string, boolean>) => {
   const normalizedAmenities: Record<string, boolean> = {};
@@ -172,11 +173,12 @@ const createEmptyFormState = (): VenueFormState => ({
 });
 
 const normalizeStatus = (status?: string): OverrideStatus =>
-  status === 'booked' || status === 'pending' ? status : 'available';
+  status === 'booked' || status === 'pending' || status === 'blocked' ? status : 'available';
 
 const getOverrideSummaryStatus = (override?: AvailabilityOverride): OverrideStatus | null => {
   if (!override?.slots.length) return null;
   if (override.slots.some((slot) => slot.status === 'booked')) return 'booked';
+  if (override.slots.some((slot) => slot.status === 'blocked')) return 'blocked';
   if (override.slots.some((slot) => slot.status === 'pending')) return 'pending';
   return 'available';
 };
@@ -189,12 +191,36 @@ const getInitialMonthDate = (overrides: AvailabilityOverride[]) => {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 };
 
-const getCalendarCellClassName = (status: OverrideStatus | null, isSelected: boolean) => {
+const isPastDateKey = (dateKey: string) => {
+  const parsedDate = new Date(`${dateKey}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  return parsedDate < todayStart;
+};
+
+const getCalendarCellClassName = (
+  status: OverrideStatus | null,
+  isSelected: boolean,
+  isPast: boolean
+) => {
   const selectedClass = isSelected ? ' ring-2 ring-[#B74140] ring-offset-1' : '';
-  if (status === 'booked') return `aspect-square rounded-lg bg-[#FDECEC] text-[#B74444] hover:bg-[#f9dede]${selectedClass}`;
-  if (status === 'pending') return `aspect-square rounded-lg bg-[#FFF4D6] text-[#946200] hover:bg-[#fdeec0]${selectedClass}`;
-  if (status === 'available') return `aspect-square rounded-lg bg-[#E8F8F0] text-[#2F855A] hover:bg-[#dcf1e7]${selectedClass}`;
-  return `aspect-square rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50${selectedClass}`;
+  const baseClassName = `aspect-square rounded-lg transition-colors${selectedClass}`;
+
+  if (isPast) {
+    return `${baseClassName} cursor-not-allowed bg-[#F3F4F6] text-gray-400`;
+  }
+
+  if (status === 'booked') return `${baseClassName} bg-[#DCFCE7] text-[#166534] hover:bg-[#BBF7D0]`;
+  if (status === 'blocked') return `${baseClassName} bg-[#FDECEC] text-[#B74444] hover:bg-[#f9dede]`;
+  if (status === 'pending') return `${baseClassName} bg-[#FFF4D6] text-[#946200] hover:bg-[#fdeec0]`;
+  if (status === 'available') return `${baseClassName} bg-[#E8F8F0] text-[#2F855A] hover:bg-[#dcf1e7]`;
+  return `${baseClassName} border border-gray-200 bg-white text-gray-700 hover:bg-gray-50`;
 };
 
 const formatHourLabel = (hour: number) => `${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
@@ -243,6 +269,7 @@ export default function EditVenuePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [publishStatus, setPublishStatus] = useState('');
 
   useEffect(() => {
     const venueId = params?.id;
@@ -322,6 +349,7 @@ export default function EditVenuePage() {
           amenities: normalizeAmenities(venue.pricing?.amenities),
           availabilityOverrides,
         });
+        setPublishStatus(venue.publishStatus?.trim() || '');
 
         const initialMonth = getInitialMonthDate(availabilityOverrides);
         setCurrentMonth(initialMonth);
@@ -511,7 +539,9 @@ export default function EditVenuePage() {
         availabilityCalendar: formData.availabilityOverrides.map((override) => ({
           date: override.date,
           hours: override.slots.map((slot) => slot.hour),
+          status: 'blocked',
         })),
+        publishStatus: publishStatus || undefined,
       };
 
       uploadPreviews.forEach((preview) => {
@@ -882,13 +912,15 @@ export default function EditVenuePage() {
                       const dateKey = getDateKey(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                       const status = availabilityMap.get(dateKey) ?? null;
                       const isSelected = selectedDateKey === dateKey;
+                      const isPast = isPastDateKey(dateKey);
 
                       return (
                         <button
                           key={dateKey}
                           type="button"
                           onClick={() => setSelectedDateKey(dateKey)}
-                          className={getCalendarCellClassName(status, isSelected)}
+                          disabled={isPast}
+                          className={getCalendarCellClassName(status, isSelected, isPast)}
                         >
                           {day}
                         </button>
@@ -942,6 +974,24 @@ export default function EditVenuePage() {
                     ))}
                   </div>
                 ) : null}
+                <div className="mt-4 flex flex-wrap gap-3 border-t pt-4 text-xs text-gray-600">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 rounded bg-[#F3F4F6]" />
+                    Past
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 rounded bg-[#DCFCE7]" />
+                    Booked
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 rounded bg-[#FDECEC]" />
+                    Blocked
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 rounded bg-[#E8F8F0]" />
+                    Available
+                  </span>
+                </div>
               </div>
 
               <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
