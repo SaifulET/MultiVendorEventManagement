@@ -1,6 +1,6 @@
 "use client";
 
-import { Columns2, Bell, MessageSquare, MessageSquareMore } from "lucide-react";
+import { Columns2, MessageSquareMore } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import profile from "@/public/profile.jpg";
@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { formatRoleLabel, getFirstName } from "@/lib/user-display";
 import { fetchAuthMeProfile, PROFILE_DETAILS_UPDATED_EVENT } from "@/lib/auth-me";
 import { PROFILE_IMAGE_UPDATED_EVENT } from "@/lib/profile-image";
+import NotificationBell from "@/app/component/shared/NotificationBell";
 
 interface NavbarProps {
   collapsed: boolean;
@@ -130,18 +131,11 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
           <MessageSquareMore className="w-[22px] h-[22px]" />
         </button>
 
-        {/* Notifications Button */}
-        <button
-          onClick={() => handleNavigation('/home/dashboard/notification')}
-          className={`relative flex items-center justify-center w-[32px] h-[32px] rounded-full transition ${
-            isActive('/home/dashboard/notification')
-              ? 'bg-[#DC3545] text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-100'
-          }`}
-          aria-label="Notifications"
-        >
-          <Bell className="w-[22px] h-[22px]" />
-        </button>
+        <NotificationBell
+          active={isActive('/home/dashboard/notification')}
+          iconClassName="h-[22px] w-[22px]"
+          viewAllPath="/home/dashboard/notification"
+        />
 
         {/* Profile Avatar Button */}
         <button

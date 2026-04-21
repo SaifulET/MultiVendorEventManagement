@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { formatRoleLabel, getFirstName } from "@/lib/user-display";
 import { fetchAuthMeProfile, PROFILE_DETAILS_UPDATED_EVENT } from "@/lib/auth-me";
 import { PROFILE_IMAGE_UPDATED_EVENT } from "@/lib/profile-image";
+import NotificationBell from "@/app/component/shared/NotificationBell";
 
 interface Notification {
   id: number;
@@ -297,17 +298,11 @@ export default function Navbar({ collapsed, toggleSidebar }: NavbarProps) {
 
         {/* Right Side - Buttons & Notifications */}
         <div className="flex items-center gap-4">
-          {/* Notifications Button */}
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="relative flex items-center justify-center text-gray-500 hover:text-gray-800 transition"
-            aria-label="Notifications"
-          >
-            <Bell className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 block w-5 h-5 rounded-full bg-red-500 border-2 border-white text-white text-xs flex items-center justify-center">
-              {notifications.length}
-            </span>
-          </button>
+          <NotificationBell
+            buttonClassName="relative flex items-center justify-center text-gray-500 hover:text-gray-800 transition"
+            iconClassName="h-6 w-6"
+            viewAllPath="/venueprovider/dashboard/notification"
+          />
 
           {/* Add Venue Button */}
           <button
