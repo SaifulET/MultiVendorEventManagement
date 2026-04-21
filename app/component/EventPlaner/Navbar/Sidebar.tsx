@@ -8,6 +8,7 @@ import profile from "@/public/profile.jpg";
 import {
   LayoutDashboard,
   BookCheck,
+  CalendarDays,
   Crown,
   Settings,
   LogOut,
@@ -28,6 +29,11 @@ const MENU = [
         label: "Booking Requests",
         icon: BookCheck,
         href: "/eventPlanner/dashboard/bookingRequest",
+      },
+      {
+        label: "Availability",
+        icon: CalendarDays,
+        href: "/eventPlanner/dashboard/availability",
       },
       {
         label: "Subscription",
