@@ -635,24 +635,24 @@ export default function EditServicePage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-gray-800">
                     Service Name
                   </label>
                   <input
                     value={formData.serviceName}
                     onChange={(e) => handleInputChange('serviceName', e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 outline-none focus:border-[#B74140]"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 text-gray-700 outline-none focus:border-[#B74140]"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-gray-800">
                     Service Category
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => handleInputChange('category', e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 outline-none focus:border-[#B74140]"
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-gray-700 outline-none focus:border-[#B74140]"
                   >
                     <option value="">Select category</option>
                     <option value="Home Cleaning">Home Cleaning</option>
@@ -664,14 +664,14 @@ export default function EditServicePage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-gray-800">
                     Description
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={5}
-                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 outline-none focus:border-[#B74140]"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 text-gray-700 outline-none focus:border-[#B74140]"
                   />
                 </div>
               </div>
@@ -689,7 +689,7 @@ export default function EditServicePage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Per Hour</label>
+                <label className="mb-2 block text-sm font-medium text-gray-800">Per Hour</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
                     {GBP_CURRENCY_SYMBOL}
@@ -697,7 +697,7 @@ export default function EditServicePage() {
                   <input
                     value={formData.amount}
                     onChange={(e) => handleInputChange('amount', e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] py-3 pl-12 pr-4 outline-none focus:border-[#B74140]"
+                    className="w-full rounded-lg border border-[#E5E7EB] py-3 pl-12 pr-4 text-gray-700 outline-none focus:border-[#B74140]"
                   />
                 </div>
               </div>
@@ -714,7 +714,7 @@ export default function EditServicePage() {
               </div>
 
               <div className="mb-6">
-                <label className="mb-3 block text-sm font-medium text-gray-700">
+                <label className="mb-3 block text-sm font-medium text-gray-800">
                   Image Gallery
                 </label>
                 <div className="mb-4 rounded-xl border-2 border-dashed border-[#E5E7EB] p-6 text-center">
@@ -782,13 +782,13 @@ export default function EditServicePage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-gray-800">
                   Video Link (YouTube / Vimeo)
                 </label>
                 <input
                   value={formData.videoUrl}
                   onChange={(e) => handleInputChange('videoUrl', e.target.value)}
-                  className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 outline-none focus:border-[#B74140]"
+                  className="w-full rounded-lg border border-[#E5E7EB] px-4 py-3 text-gray-700 outline-none focus:border-[#B74140]"
                 />
               </div>
             </section>

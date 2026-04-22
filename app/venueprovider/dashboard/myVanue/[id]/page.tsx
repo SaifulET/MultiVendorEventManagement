@@ -649,22 +649,22 @@ export default function EditVenuePage() {
 
                 <div className="space-y-5">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-900">Venue Name</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-800">Venue Name</label>
                     <input
                       type="text"
                       value={formData.venueName}
                       onChange={(event) => handleInputChange('venueName', event.target.value)}
                       placeholder="Enter venue name"
-                      className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-900">Venue Type</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-800">Venue Type</label>
                     <select
                       value={formData.venueType}
                       onChange={(event) => handleInputChange('venueType', event.target.value)}
-                      className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                     >
                       <option value="">Select venue type</option>
                       <option value="Banquet">Banquet</option>
@@ -676,29 +676,29 @@ export default function EditVenuePage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-900">Description</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-800">Description</label>
                     <textarea
                       value={formData.description}
                       onChange={(event) => handleInputChange('description', event.target.value)}
                       placeholder="Premium event venue in central Dhaka."
                       rows={4}
-                      className="w-full resize-none rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      className="w-full resize-none rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                     />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Address Line</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Address Line</label>
                       <input
                         type="text"
                         value={formData.addressLine}
                         onChange={(event) => handleInputChange('addressLine', event.target.value)}
                         placeholder="123 Main Road"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       />
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Map Location</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Map Location</label>
                       <div className="flex h-[140px] items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-[#E5E7EB] bg-[#FAFAFA] text-center text-xs text-gray-500">
                         Map selection is not available here yet.
                       </div>
@@ -708,24 +708,24 @@ export default function EditVenuePage() {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">City</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">City</label>
                       <input
                         type="text"
                         value={formData.city}
                         onChange={(event) => handleInputChange('city', event.target.value)}
                         placeholder="Collected from map or enter manually"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Area</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Area</label>
                       <input
                         type="text"
                         value={formData.area}
                         onChange={(event) => handleInputChange('area', event.target.value)}
                         placeholder="Collected from map or enter manually"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       />
                     </div>
                   </div>
@@ -738,22 +738,22 @@ export default function EditVenuePage() {
                 <div className="space-y-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Price Per Person</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Price Per Person</label>
                       <input
                         type="number"
                         value={formData.pricePerPerson}
                         onChange={(event) => handleInputChange('pricePerPerson', event.target.value)}
                         placeholder="5000"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Currency</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Currency</label>
                       <select
                         value={formData.currency}
                         onChange={(event) => handleInputChange('currency', event.target.value)}
-                        className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       >
                         <option value={GBP_CURRENCY_CODE}>{GBP_CURRENCY_LABEL}</option>
                       </select>
@@ -762,11 +762,11 @@ export default function EditVenuePage() {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Discount Type</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Discount Type</label>
                       <select
                         value={formData.discountType}
                         onChange={(event) => handleInputChange('discountType', event.target.value)}
-                        className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       >
                         <option value="percentage">Percentage</option>
                         <option value="fixed">Fixed</option>
@@ -774,13 +774,13 @@ export default function EditVenuePage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-900">Discount Value</label>
+                      <label className="mb-2 block text-sm font-medium text-gray-800">Discount Value</label>
                       <input
                         type="number"
                         value={formData.discountValue}
                         onChange={(event) => handleInputChange('discountValue', event.target.value)}
                         placeholder="10"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                        className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                       />
                     </div>
                   </div>
@@ -809,13 +809,13 @@ export default function EditVenuePage() {
               <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
                 <h2 className="mb-6 text-xl font-bold text-gray-900">Capacity</h2>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-900">Maximum Guests</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-800">Maximum Guests</label>
                   <input
                     type="number"
                     value={formData.maximumGuests}
                     onChange={(event) => handleInputChange('maximumGuests', event.target.value)}
                     placeholder="300"
-                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                    className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                   />
                 </div>
               </div>
@@ -825,7 +825,7 @@ export default function EditVenuePage() {
 
                 <div className="space-y-5">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-900">Venue Images</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-800">Venue Images</label>
                     <div className="rounded-xl border-2 border-dashed border-[#E5E7EB] p-8 text-center">
                       <Upload className="mx-auto mb-3 h-12 w-12 text-gray-400" />
                       <p className="mb-1 font-medium text-gray-700">Upload venue images</p>
@@ -881,13 +881,13 @@ export default function EditVenuePage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-900">Video URL</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-800">Video URL</label>
                     <input
                       type="text"
                       value={formData.videoUrl}
                       onChange={(event) => handleInputChange('videoUrl', event.target.value)}
                       placeholder="https://www.youtube.com/watch?v=abc123"
-                      className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 outline-none transition-colors focus:border-gray-400"
+                      className="w-full rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-gray-700 outline-none transition-colors focus:border-gray-400"
                     />
                   </div>
                 </div>
