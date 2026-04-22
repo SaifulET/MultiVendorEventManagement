@@ -27,6 +27,7 @@ interface ServiceDetail {
     galleryImages?: string[];
     videoUrl?: string;
   };
+  availability?: Record<string, number[]>;
   availabilityOverrides?: Array<{
     date?: string;
     slots?: Array<{
@@ -40,6 +41,13 @@ interface ServiceDetail {
 interface ServiceDetailResponse {
   success: boolean;
   data?: ServiceDetail;
+}
+
+interface AvailabilityResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, number[]>;
+  };
 }
 
 interface ServiceListMeta {
@@ -133,6 +141,21 @@ const formatHourLabel = (hour: number) => {
   return `${normalizedHour}:00 ${suffix}`;
 };
 
+const fullDayHours = Array.from({ length: 16 }, (_, index) => index + 8);
+
+const mapAvailabilityToOverrides = (availability?: Record<string, number[]>): AvailabilityOverride[] =>
+  availability && typeof availability === 'object'
+    ? Object.entries(availability)
+        .filter(([date, hours]) => Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0)
+        .map(([date, hours]) => ({
+          date,
+          slots: (hours.length ? hours : fullDayHours).map((hour) => ({
+            hour,
+            status: 'booked' as OverrideStatus,
+          })),
+        }))
+    : [];
+
 const findServiceInProviderList = async (serviceId: string) => {
   let currentPage = 1;
   let totalPages = 1;
@@ -199,20 +222,47 @@ export default function ViewServicePage() {
           }
         }
 
-        setService(nextService);
+        let availabilityOverrides = mapAvailabilityToOverrides(nextService?.availability);
 
-        const overrides = (nextService?.availabilityOverrides ?? [])
-          .filter((override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] => Boolean(override?.date))
-          .map((override) => ({
-            date: override.date?.trim() || '',
-            slots: (override.slots ?? []).map((slot) => ({
-              hour: typeof slot.hour === 'number' ? slot.hour : 0,
-              status: normalizeStatus(slot.status?.trim().toLowerCase()),
-            })),
-          }));
+        try {
+          const availabilityResponse = await api.get<AvailabilityResponse>(
+            `/api/v1/service-provider/services/${serviceId}/availability`
+          );
+          const liveAvailability = availabilityResponse.data.data?.availability;
+          const liveAvailabilityOverrides = mapAvailabilityToOverrides(liveAvailability);
 
-        setCurrentMonth(getInitialMonthDate(overrides));
-        setSelectedDateKey(overrides[0]?.date ?? null);
+          if (
+            liveAvailabilityOverrides.length > 0 ||
+            (liveAvailability && Object.keys(liveAvailability).length === 0)
+          ) {
+            availabilityOverrides = liveAvailabilityOverrides;
+          }
+        } catch (_availabilityError) {
+          // Fall back to the detail payload when the dedicated availability request is unavailable.
+        }
+
+        if (availabilityOverrides.length === 0) {
+          availabilityOverrides = (nextService?.availabilityOverrides ?? [])
+            .filter(
+              (override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] =>
+                Boolean(override?.date)
+            )
+            .map((override) => ({
+              date: override.date?.trim() || '',
+              slots: (override.slots ?? []).map((slot) => ({
+                hour: typeof slot.hour === 'number' ? slot.hour : 0,
+                status: normalizeStatus(slot.status?.trim().toLowerCase()),
+              })),
+            }));
+        }
+
+        setService({
+          ...(nextService ?? {}),
+          availabilityOverrides
+        });
+
+        setCurrentMonth(getInitialMonthDate(availabilityOverrides));
+        setSelectedDateKey(availabilityOverrides[0]?.date ?? null);
       } catch (fetchError) {
         setError(getApiErrorMessage(fetchError));
       } finally {
@@ -226,7 +276,10 @@ export default function ViewServicePage() {
   const overrides = useMemo<AvailabilityOverride[]>(
     () =>
       (service?.availabilityOverrides ?? [])
-        .filter((override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] => Boolean(override?.date))
+        .filter(
+          (override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] =>
+            Boolean(override?.date)
+        )
         .map((override) => ({
           date: override.date?.trim() || '',
           slots: (override.slots ?? []).map((slot) => ({

@@ -46,6 +46,7 @@ interface BookingPayment {
 export interface ServiceProviderBooking {
   _id: string;
   bookingDate?: string;
+  conversationId?: string | null;
   createdAt?: string;
   customer?: BookingCustomer | null;
   durationHours?: number;
@@ -108,6 +109,18 @@ export const fetchServiceProviderBookings = async ({
 export const fetchServiceProviderBookingDetails = async (bookingId: string) => {
   const response = await api.get<ServiceProviderBookingResponse>(`/api/v1/bookings/${bookingId}`);
   return response.data;
+};
+
+export const getServiceProviderBookingChatHref = (booking: Pick<ServiceProviderBooking, '_id' | 'conversationId'>) => {
+  const params = new URLSearchParams({
+    bookingId: booking._id,
+  });
+
+  if (booking.conversationId?.trim()) {
+    params.set('conversationId', booking.conversationId);
+  }
+
+  return `/serviceprovider/dashboard/bookingRequest/chat?${params.toString()}`;
 };
 
 export const approveServiceProviderBooking = async (bookingId: string) => {

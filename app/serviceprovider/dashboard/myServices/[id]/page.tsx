@@ -22,6 +22,10 @@ interface ServiceDetail {
   pricing?: {
     amount?: number;
     currency?: string;
+    discount?: {
+      type?: 'percentage' | 'fixed';
+      value?: number;
+    };
   };
   media?: {
     galleryImages?: string[];
@@ -40,6 +44,13 @@ interface ServiceDetail {
 interface ServiceDetailResponse {
   success: boolean;
   data?: ServiceDetail;
+}
+
+interface AvailabilityResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, number[]>;
+  };
 }
 
 interface ServiceListMeta {
@@ -84,6 +95,10 @@ interface ServiceFormState {
   description: string;
   amount: string;
   currency: string;
+  discount: {
+    type: 'percentage' | 'fixed';
+    value: number;
+  } | null;
   videoUrl: string;
   galleryImages: string[];
   availabilityOverrides: AvailabilityOverride[];
@@ -118,6 +133,7 @@ const createEmptyFormState = (): ServiceFormState => ({
   description: '',
   amount: '',
   currency: GBP_CURRENCY_CODE,
+  discount: null,
   videoUrl: '',
   galleryImages: [],
   availabilityOverrides: [],
@@ -207,6 +223,16 @@ const findServiceInProviderList = async (serviceId: string) => {
   return null;
 };
 
+const mapAvailabilityToOverrides = (availability?: Record<string, number[]>) =>
+  availability && typeof availability === 'object'
+    ? Object.entries(availability)
+        .filter(([date, hours]) => Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0)
+        .map(([date, hours]) => ({
+          date,
+          slots: createBlockedDaySlots(hours),
+        }))
+    : [];
+
 export default function EditServicePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -252,29 +278,36 @@ export default function EditServicePage() {
           return;
         }
 
-        const availabilityOverrides =
-          service.availability && typeof service.availability === 'object'
-            ? Object.entries(service.availability)
-                .filter(
-                  ([date, hours]) =>
-                    Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0
-                )
-                .map(([date, hours]) => ({
-                  date,
-                  slots: createBlockedDaySlots(hours),
-                }))
-            : (service.availabilityOverrides ?? [])
-                .filter(
-                  (override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] =>
-                    Boolean(override?.date)
-                )
-                .map((override) => ({
-                  date: override.date?.trim() || '',
-                  slots: (override.slots ?? []).map((slot) => ({
-                    hour: typeof slot.hour === 'number' ? slot.hour : 0,
-                    status: normalizeStatus(slot.status?.trim().toLowerCase()),
-                  })),
-                }));
+        let availabilityOverrides = mapAvailabilityToOverrides(service.availability);
+
+        try {
+          const availabilityResponse = await api.get<AvailabilityResponse>(
+            `/api/v1/service-provider/services/${serviceId}/availability`
+          );
+          const liveAvailability = availabilityResponse.data.data?.availability;
+          const liveAvailabilityOverrides = mapAvailabilityToOverrides(liveAvailability);
+
+          if (liveAvailabilityOverrides.length > 0 || (liveAvailability && Object.keys(liveAvailability).length === 0)) {
+            availabilityOverrides = liveAvailabilityOverrides;
+          }
+        } catch (_availabilityError) {
+          // Fall back to the detail payload when the dedicated availability request is unavailable.
+        }
+
+        if (availabilityOverrides.length === 0) {
+          availabilityOverrides = (service.availabilityOverrides ?? [])
+            .filter(
+              (override): override is NonNullable<ServiceDetail['availabilityOverrides']>[number] =>
+                Boolean(override?.date)
+            )
+            .map((override) => ({
+              date: override.date?.trim() || '',
+              slots: (override.slots ?? []).map((slot) => ({
+                hour: typeof slot.hour === 'number' ? slot.hour : 0,
+                status: normalizeStatus(slot.status?.trim().toLowerCase()),
+              })),
+            }));
+        }
 
         setFormData({
           serviceName: service.information?.serviceName?.trim() || '',
@@ -285,6 +318,14 @@ export default function EditServicePage() {
           description: service.information?.description?.trim() || '',
           amount: typeof service.pricing?.amount === 'number' ? String(service.pricing.amount) : '',
           currency: service.pricing?.currency?.trim() || GBP_CURRENCY_CODE,
+          discount:
+            service.pricing?.discount?.type &&
+            typeof service.pricing.discount.value === 'number'
+              ? {
+                  type: service.pricing.discount.type,
+                  value: service.pricing.discount.value,
+                }
+              : null,
           videoUrl: service.media?.videoUrl?.trim() || '',
           galleryImages: Array.isArray(service.media?.galleryImages)
             ? service.media.galleryImages.filter(
@@ -335,7 +376,10 @@ export default function EditServicePage() {
     return '';
   };
 
-  const handleInputChange = (field: keyof Omit<ServiceFormState, 'galleryImages' | 'availabilityOverrides'>, value: string) => {
+  const handleInputChange = (
+    field: keyof Omit<ServiceFormState, 'galleryImages' | 'availabilityOverrides' | 'discount'>,
+    value: string
+  ) => {
     if (error) {
       setError('');
     }
@@ -500,6 +544,14 @@ export default function EditServicePage() {
           amount: Number(formData.amount),
           pricingType: 'hourly',
           currency: formData.currency,
+          ...(formData.discount
+            ? {
+                discount: {
+                  type: formData.discount.type,
+                  value: formData.discount.value,
+                },
+              }
+            : {}),
         },
         media: {
           galleryImages: formData.galleryImages,

@@ -21,6 +21,7 @@ import {
   fetchServiceProviderBookingStats,
   formatBookingDate,
   formatBookingTime,
+  getServiceProviderBookingChatHref,
   getBookingStatus,
   getBookingStatusLabel,
   getCustomerAvatar,
@@ -40,6 +41,7 @@ interface Booking {
     email: string;
     name: string;
   };
+  conversationId: string | null;
   date: string;
   id: string;
   service: {
@@ -58,6 +60,7 @@ const mapBooking = (booking: ServiceProviderBooking): Booking => ({
     email: getCustomerEmail(booking),
     name: getCustomerName(booking),
   },
+  conversationId: booking.conversationId?.trim() || null,
   date: formatBookingDate(booking.bookingDate),
   id: booking._id,
   service: {
@@ -378,7 +381,14 @@ export default function BookingRequest() {
                             </>
                           )}
                           <button
-                            onClick={() => router.push('/serviceprovider/dashboard/bookingRequest/chat')}
+                            onClick={() =>
+                              router.push(
+                                getServiceProviderBookingChatHref({
+                                  _id: booking.id,
+                                  conversationId: booking.conversationId,
+                                })
+                              )
+                            }
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#B74140] text-white text-xs font-medium rounded-lg hover:bg-[#9a3635] transition-colors"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />

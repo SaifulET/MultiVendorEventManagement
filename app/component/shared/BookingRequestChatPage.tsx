@@ -9,6 +9,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 import { getApiErrorMessage } from "@/lib/api";
 import {
@@ -255,6 +256,7 @@ export default function BookingRequestChatPage({
   composerPlaceholder,
 }: BookingRequestChatPageProps) {
   const user = useAuthStore((state) => state.user);
+  const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<OrderChatConversationItem[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState("");
   const [activeConversation, setActiveConversation] =
@@ -278,6 +280,10 @@ export default function BookingRequestChatPage({
   const activeConversationRef = useRef("");
   const activeBookingIdRef = useRef("");
   const joinedConversationRef = useRef("");
+  const hasResolvedInitialConversationRef = useRef(false);
+
+  const preferredConversationId = searchParams.get("conversationId")?.trim() || "";
+  const preferredBookingId = searchParams.get("bookingId")?.trim() || "";
 
   const selectedConversation =
     conversations.find(
@@ -569,6 +575,33 @@ export default function BookingRequestChatPage({
   const handleBackToInbox = () => {
     setShowMobileThread(false);
   };
+
+  useEffect(() => {
+    if (hasResolvedInitialConversationRef.current || !conversations.length) {
+      return;
+    }
+
+    const matchingConversation =
+      (preferredConversationId
+        ? conversations.find(
+            (conversation) =>
+              conversation.conversation._id === preferredConversationId
+          ) ?? null
+        : null) ||
+      (preferredBookingId
+        ? conversations.find(
+            (conversation) =>
+              conversation.latestBooking?._id === preferredBookingId
+          ) ?? null
+        : null);
+
+    if (!matchingConversation) {
+      return;
+    }
+
+    hasResolvedInitialConversationRef.current = true;
+    void handleSelectConversation(matchingConversation);
+  }, [conversations, preferredBookingId, preferredConversationId]);
 
   const handleSendMessage = async () => {
     const content = messageText.trim();

@@ -9,6 +9,7 @@ import {
   Check,
   X,
   Eye,
+  MessageSquare,
   ChevronRight,
   LoaderCircle,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ import {
   fetchServiceProviderBookings,
   formatBookingDate,
   formatBookingTime,
+  getServiceProviderBookingChatHref,
   getBookingStatus,
   getBookingStatusLabel,
   getCustomerAvatar,
@@ -36,6 +38,7 @@ interface Booking {
     email: string;
     name: string;
   };
+  conversationId: string | null;
   date: string;
   id: string;
   service: {
@@ -53,6 +56,7 @@ const mapBooking = (booking: ServiceProviderBooking): Booking => ({
     email: getCustomerEmail(booking),
     name: getCustomerName(booking),
   },
+  conversationId: booking.conversationId?.trim() || null,
   date: formatBookingDate(booking.bookingDate),
   id: booking._id,
   service: {
@@ -328,6 +332,20 @@ export default function VenueDashboard() {
                               </button>
                             </>
                           )}
+                          <button
+                            onClick={() =>
+                              router.push(
+                                getServiceProviderBookingChatHref({
+                                  _id: booking.id,
+                                  conversationId: booking.conversationId,
+                                })
+                              )
+                            }
+                            className="px-3 py-1.5 bg-[#B74140] text-white text-xs font-medium rounded-lg hover:bg-[#9a3635] flex items-center gap-1 transition-colors"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            Message
+                          </button>
                           <button
                             onClick={() => router.push(`/serviceprovider/bookingRequest/${booking.id}`)}
                             className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 flex items-center gap-1 transition-colors"

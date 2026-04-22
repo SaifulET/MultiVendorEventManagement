@@ -11,6 +11,7 @@ import {
   formatBookingDate,
   formatBookingTime,
   formatCurrencyMinor,
+  getServiceProviderBookingChatHref,
   getBookingStatus,
   getBookingStatusLabel,
   getCustomerEmail,
@@ -398,7 +399,14 @@ export default function BookingRequestDetails() {
                 ) : null}
 
                 <button
-                  onClick={() => router.push('/serviceprovider/dashboard/bookingRequest/chat')}
+                  onClick={() =>
+                    router.push(
+                      getServiceProviderBookingChatHref({
+                        _id: bookingId,
+                        conversationId: booking.conversationId ?? null,
+                      })
+                    )
+                  }
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#B74140] hover:bg-[#9e3331] text-white font-semibold rounded-lg transition-colors"
                 >
                   <MessageSquare className="w-5 h-5" />

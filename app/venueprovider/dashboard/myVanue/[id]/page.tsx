@@ -58,6 +58,13 @@ interface VenueDetailResponse {
   data?: VenueDetail;
 }
 
+interface AvailabilityResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, number[]>;
+  };
+}
+
 interface VenueListMeta {
   page?: number;
   totalPages?: number;
@@ -258,6 +265,16 @@ const findVenueInProviderList = async (venueId: string) => {
   return null;
 };
 
+const mapAvailabilityToOverrides = (availability?: Record<string, number[]>) =>
+  availability && typeof availability === 'object'
+    ? Object.entries(availability)
+        .filter(([date, hours]) => Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0)
+        .map(([date, hours]) => ({
+          date,
+          slots: createBlockedDaySlots(hours),
+        }))
+    : [];
+
 export default function EditVenuePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -301,29 +318,36 @@ export default function EditVenuePage() {
           return;
         }
 
-        const availabilityOverrides =
-          venue.availability && typeof venue.availability === 'object'
-            ? Object.entries(venue.availability)
-                .filter(
-                  ([date, hours]) =>
-                    Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0
-                )
-                .map(([date, hours]) => ({
-                  date,
-                  slots: createBlockedDaySlots(hours),
-                }))
-            : (venue.availabilityOverrides ?? [])
-                .filter(
-                  (override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] =>
-                    Boolean(override?.date)
-                )
-                .map((override) => ({
-                  date: override.date?.trim() || '',
-                  slots: (override.slots ?? []).map((slot) => ({
-                    hour: typeof slot.hour === 'number' ? slot.hour : 0,
-                    status: normalizeStatus(slot.status?.trim().toLowerCase()),
-                  })),
-                }));
+        let availabilityOverrides = mapAvailabilityToOverrides(venue.availability);
+
+        try {
+          const availabilityResponse = await api.get<AvailabilityResponse>(
+            `/api/v1/venue-provider/venues/${venueId}/availability`
+          );
+          const liveAvailability = availabilityResponse.data.data?.availability;
+          const liveAvailabilityOverrides = mapAvailabilityToOverrides(liveAvailability);
+
+          if (liveAvailabilityOverrides.length > 0 || (liveAvailability && Object.keys(liveAvailability).length === 0)) {
+            availabilityOverrides = liveAvailabilityOverrides;
+          }
+        } catch (_availabilityError) {
+          // Fall back to the detail payload when the dedicated availability request is unavailable.
+        }
+
+        if (availabilityOverrides.length === 0) {
+          availabilityOverrides = (venue.availabilityOverrides ?? [])
+            .filter(
+              (override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] =>
+                Boolean(override?.date)
+            )
+            .map((override) => ({
+              date: override.date?.trim() || '',
+              slots: (override.slots ?? []).map((slot) => ({
+                hour: typeof slot.hour === 'number' ? slot.hour : 0,
+                status: normalizeStatus(slot.status?.trim().toLowerCase()),
+              })),
+            }));
+        }
 
         setFormData({
           venueName: venue.information?.venueName?.trim() || '',
@@ -541,7 +565,6 @@ export default function EditVenuePage() {
           hours: override.slots.map((slot) => slot.hour),
           status: 'blocked',
         })),
-        publishStatus: publishStatus || undefined,
       };
 
       uploadPreviews.forEach((preview) => {

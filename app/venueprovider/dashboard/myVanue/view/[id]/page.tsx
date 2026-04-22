@@ -49,6 +49,7 @@ interface VenueDetail {
     galleryImages?: string[];
     videoUrl?: string;
   };
+  availability?: Record<string, number[]>;
   availabilityOverrides?: Array<{
     date?: string;
     slots?: Array<{
@@ -61,6 +62,13 @@ interface VenueDetail {
 interface VenueDetailResponse {
   success: boolean;
   data?: VenueDetail;
+}
+
+interface AvailabilityResponse {
+  success: boolean;
+  data?: {
+    availability?: Record<string, number[]>;
+  };
 }
 
 interface VenueListMeta {
@@ -204,6 +212,21 @@ const formatHourLabel = (hour: number) => {
   return `${normalizedHour}:00 ${suffix}`;
 };
 
+const fullDayHours = Array.from({ length: 16 }, (_, index) => index + 8);
+
+const mapAvailabilityToOverrides = (availability?: Record<string, number[]>): AvailabilityOverride[] =>
+  availability && typeof availability === 'object'
+    ? Object.entries(availability)
+        .filter(([date, hours]) => Boolean(date.trim()) && Array.isArray(hours) && hours.length > 0)
+        .map(([date, hours]) => ({
+          date,
+          slots: (hours.length ? hours : fullDayHours).map((hour) => ({
+            hour,
+            status: 'booked' as OverrideStatus,
+          })),
+        }))
+    : [];
+
 const formatDisplayDate = (date: string) => {
   return formatDateDDMMYY(date, date);
 };
@@ -274,20 +297,47 @@ export default function ViewVenuePage() {
           }
         }
 
-        setVenue(nextVenue);
+        let availabilityOverrides = mapAvailabilityToOverrides(nextVenue?.availability);
 
-        const overrides = (nextVenue?.availabilityOverrides ?? [])
-          .filter((override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] => Boolean(override?.date))
-          .map((override) => ({
-            date: override.date?.trim() || '',
-            slots: (override.slots ?? []).map((slot) => ({
-              hour: typeof slot.hour === 'number' ? slot.hour : 0,
-              status: normalizeStatus(slot.status?.trim().toLowerCase()),
-            })),
-          }));
+        try {
+          const availabilityResponse = await api.get<AvailabilityResponse>(
+            `/api/v1/venue-provider/venues/${venueId}/availability`
+          );
+          const liveAvailability = availabilityResponse.data.data?.availability;
+          const liveAvailabilityOverrides = mapAvailabilityToOverrides(liveAvailability);
 
-        setCurrentMonth(getInitialMonthDate(overrides));
-        setSelectedDateKey(overrides[0]?.date ?? null);
+          if (
+            liveAvailabilityOverrides.length > 0 ||
+            (liveAvailability && Object.keys(liveAvailability).length === 0)
+          ) {
+            availabilityOverrides = liveAvailabilityOverrides;
+          }
+        } catch (_availabilityError) {
+          // Fall back to the detail payload when the dedicated availability request is unavailable.
+        }
+
+        if (availabilityOverrides.length === 0) {
+          availabilityOverrides = (nextVenue?.availabilityOverrides ?? [])
+            .filter(
+              (override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] =>
+                Boolean(override?.date)
+            )
+            .map((override) => ({
+              date: override.date?.trim() || '',
+              slots: (override.slots ?? []).map((slot) => ({
+                hour: typeof slot.hour === 'number' ? slot.hour : 0,
+                status: normalizeStatus(slot.status?.trim().toLowerCase()),
+              })),
+            }));
+        }
+
+        setVenue({
+          ...(nextVenue ?? {}),
+          availabilityOverrides
+        });
+
+        setCurrentMonth(getInitialMonthDate(availabilityOverrides));
+        setSelectedDateKey(availabilityOverrides[0]?.date ?? null);
       } catch (fetchError) {
         setError(getApiErrorMessage(fetchError));
       } finally {
@@ -301,7 +351,10 @@ export default function ViewVenuePage() {
   const overrides = useMemo<AvailabilityOverride[]>(
     () =>
       (venue?.availabilityOverrides ?? [])
-        .filter((override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] => Boolean(override?.date))
+        .filter(
+          (override): override is NonNullable<VenueDetail['availabilityOverrides']>[number] =>
+            Boolean(override?.date)
+        )
         .map((override) => ({
           date: override.date?.trim() || '',
           slots: (override.slots ?? []).map((slot) => ({
