@@ -297,7 +297,11 @@ export default function ViewVenuePage() {
           }
         }
 
-        let availabilityOverrides = mapAvailabilityToOverrides(nextVenue?.availability);
+        if (!nextVenue) {
+          throw new Error('Venue details were not found.');
+        }
+
+        let availabilityOverrides = mapAvailabilityToOverrides(nextVenue.availability);
 
         try {
           const availabilityResponse = await api.get<AvailabilityResponse>(
@@ -332,7 +336,7 @@ export default function ViewVenuePage() {
         }
 
         setVenue({
-          ...(nextVenue ?? {}),
+          ...nextVenue,
           availabilityOverrides
         });
 

@@ -222,7 +222,11 @@ export default function ViewServicePage() {
           }
         }
 
-        let availabilityOverrides = mapAvailabilityToOverrides(nextService?.availability);
+        if (!nextService) {
+          throw new Error('Service details were not found.');
+        }
+
+        let availabilityOverrides = mapAvailabilityToOverrides(nextService.availability);
 
         try {
           const availabilityResponse = await api.get<AvailabilityResponse>(
@@ -257,7 +261,7 @@ export default function ViewServicePage() {
         }
 
         setService({
-          ...(nextService ?? {}),
+          ...nextService,
           availabilityOverrides
         });
 
